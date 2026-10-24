@@ -17,7 +17,7 @@
         android:allowBackup="false"
         android:label="Apophenia"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+        android:theme="@style/Theme.Apophenia">
 
         <activity
             android:name=".MainActivity"

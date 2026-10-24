@@ -2,6 +2,13 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## M7 part 4 — build 0.7.3 (24 Oct 2026): the BAM splash
+- **Cold start shows the Better App Mafia mark, as Independent Video does** (Christopher, 24 Oct 2026: "the BAM splash screen like independent video"). Ported from Independent Video's `MainActivity.showSplash`, with the same asset (`assets/brand/bam_logo.png`, 512×512, feathered edges) and timing: true black, the logo at 78% of the screen's short side, fading in and growing from 94% over 520 ms, held until 1.7 s, then fading out over 380 ms to the app. A tap skips it. `ui/Splash.kt` (BamSplash), drawn over the Shell in MainActivity.
+- **System splash:** Android 12+ always draws its own (the launcher icon). The new `Theme.Apophenia` (res/values and values-v31) sets the window and `windowSplashScreenBackground` to black so the system splash, the BAM screen and the app meet with no flash. [Claude] No androidx core-splashscreen library: the platform splash plus a black theme gives the same result without a new dependency.
+- [Claude] Not shown when the app is opened by the Record widget or shortcut (the take starts at once and the screen must show the mic), and not after a rotation or return from the background (cold starts only, as in Independent Video).
+- **Tests: 546**, all passing (no new tests: a splash is visual).
+- **Unverified on device:** all of it. Christopher still has not seen notation drawn (0.5.2–0.7.3).
+
 
 ## Repo and website (24 Oct 2026, after build 0.7.2)
 - **GitHub:** https://github.com/TheNightManCometh-FLAC/apophenia, public, GPL-3.0-or-later, described as "A 21st century musician's notebook" (Christopher, 24 Oct 2026: "Put it on github like the last one. Give it a full repo."). First commit c1b220c holds the whole project: app, core, audio, data, docs, site, reference, tools, skills-to-install. Not in git: build outputs, local.properties, dist/, keys, .claude/, .kotlin/. Line endings LF (`.gitattributes`; this repo has core.autocrlf off).

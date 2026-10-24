@@ -10,9 +10,14 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import com.betterappmafia.apophenia.audio.Mic
 import com.betterappmafia.apophenia.capture.RecordWidget
+import com.betterappmafia.apophenia.ui.BamSplash
 import com.betterappmafia.apophenia.ui.Shell
 import com.betterappmafia.apophenia.ui.theme.ConsoleTheme
 
@@ -44,8 +49,15 @@ class MainActivity : ComponentActivity() {
         app.model.pickFileTarget = { name -> pickFileTarget.launch(name) }
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT), navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT))
         CrashLog.file(app).takeIf { it.isFile }?.let { app.model.crashText = it.readText() }
+        // The BAM splash on a cold start only; never over a widget/shortcut take, where the screen must show the mic.
+        var splash by mutableStateOf(savedInstanceState == null && intent?.action != RecordWidget.ACTION_RECORD)
         setContent {
-            ConsoleTheme { Shell(app.model, ::withMic) }
+            ConsoleTheme {
+                Box {
+                    Shell(app.model, ::withMic)
+                    if (splash) BamSplash { splash = false }
+                }
+            }
         }
         if (savedInstanceState == null) handle(intent)
     }
