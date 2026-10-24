@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- No INTERNET permission: Apophenia is offline by design (official plan §1). -->
+<!-- allowBackup is off: Android auto-backup uploads to the cloud; the app has its own backup to a chosen folder (plan §11). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The microphone, asked for the first time you record or open the tuner. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Keeps a take recording with the screen off (plan §10.1). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <!-- AI jobs (stems, transcription) keep running in the background: media processing on Android 15+, data sync before. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROCESSING" />
+
+    <application
+        android:name=".ApopheniaApp"
+        android:allowBackup="false"
+        android:label="Apophenia"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Widget and shortcut: open straight into a Library recording. -->
+            <intent-filter>
+                <action android:name="com.betterappmafia.apophenia.RECORD" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
+        </activity>
+
+        <receiver
+            android:name=".capture.RecordWidget"
+            android:exported="false"
+            android:label="Apophenia · Record">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_record_info" />
+        </receiver>
+
+        <service
+            android:name=".capture.RecordingService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
+
+        <service
+            android:name=".audio.AiJobService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync|mediaProcessing" />
+    </application>
+
+</manifest>

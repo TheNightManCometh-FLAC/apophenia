@@ -1,0 +1,86 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-22T01:00:00Z"
+  },
+  "title": "Apophenia mockups",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "A · Session",
+      "is_interactive": true,
+      "radius": 28
+    },
+    "Notebook.dc.html": {
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "B · Notebook",
+      "is_interactive": true,
+      "radius": 28
+    },
+    "Console.dc.html": {
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "C · Console",
+      "is_interactive": true,
+      "radius": 28
+    },
+    "Console2.dc.html": {
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "C2 · Console, revised",
+      "is_interactive": true,
+      "radius": 28
+    },
+    "Console3.dc.html": {
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "C3 · menus, AI, notation",
+      "is_interactive": true,
+      "radius": 28
+    },
+    "Console4.dc.html": {
+      "x": 2350,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "C4 · score editor: notation, tab, piano roll",
+      "is_interactive": true,
+      "radius": 28
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Notebook.dc.html",
+    "Console.dc.html",
+    "Console2.dc.html",
+    "Console3.dc.html",
+    "Console4.dc.html"
+  ],
+  "notes": {
+    "title": {
+      "x": 0,
+      "y": -260,
+      "text": "Apophenia — three directions, then C revised three times",
+      "kind": "title1",
+      "maxW": 2740
+    }
+  },
+  "designSystems": []
+}

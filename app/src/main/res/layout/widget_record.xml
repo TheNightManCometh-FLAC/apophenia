@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home-screen widget: one big ● REC that opens the app straight into a Library recording. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_record"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="14dp"
+    android:paddingEnd="14dp"
+    android:contentDescription="@string/widget_record_description">
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:text="● REC"
+        android:textColor="#C9564B"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:fontFamily="monospace"
+        android:text="APOPHENIA\nTO LIBRARY"
+        android:textColor="#8D8A84"
+        android:textSize="10sp" />
+</LinearLayout>

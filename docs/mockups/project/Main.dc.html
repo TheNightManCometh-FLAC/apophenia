@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Apophenia · Session</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.app{position:relative;width:390px;height:844px;overflow:hidden;background:#0F1013;color:#ECEDEF;font-family:Manrope,system-ui,sans-serif;display:flex;flex-direction:column}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+.top{height:60px;flex:none;display:flex;align-items:center;gap:10px;padding:0 16px}
+.proj{display:flex;align-items:center;gap:6px;font-weight:800;font-size:20px;letter-spacing:-0.01em}
+.sub{font-size:12px;color:#9AA0AA;font-weight:500}
+.mic{margin-left:auto;display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:16px;background:#22252B;font-size:12px;font-weight:700;color:#C9CDD3}
+.mic i{width:8px;height:8px;border-radius:4px;background:#5C626C;display:block}
+.iconbtn{width:44px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;color:#C9CDD3}
+.content{flex:1;overflow-y:auto;padding:4px 12px 16px;display:flex;flex-direction:column;gap:10px}
+.card{background:#181A1F;border-radius:18px;padding:14px 14px 16px;display:flex;flex-direction:column;gap:10px}
+.cardhead{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#9AA0AA;text-transform:uppercase;letter-spacing:0.06em}
+.chip{display:inline-flex;align-items:center;justify-content:center;height:22px;min-width:34px;padding:0 7px;border-radius:7px;font-size:10px;font-weight:800;letter-spacing:0.04em;color:#0F1013}
+.t-rec{background:#5B9DFF}.t-lyr{background:#F2A93B}.t-tab{background:#4CC38A}.t-chd{background:#B48CFF}.t-txt{background:#AEB4BD}.t-mid{background:#FF8FA8}
+.section{font-size:22px;font-weight:800;padding:6px 4px 0;letter-spacing:-0.01em}
+.lyric{display:flex;flex-direction:column;gap:2px}
+.ch{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#F2A93B;white-space:pre;height:18px}
+.ly{font-size:17px;line-height:1.35;white-space:pre}
+.bars{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.bar{height:52px;border-radius:10px;background:#22252B;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px}
+.tab{font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.5;white-space:pre;color:#DADDE2;overflow-x:auto}
+.noterow{font-family:'JetBrains Mono',monospace;font-size:13px;white-space:pre;color:#4CC38A}
+.wave{display:flex;align-items:center;gap:2px;height:48px}
+.wave span{display:block;width:3px;border-radius:2px;background:#5B9DFF}
+.recrow{display:flex;align-items:center;gap:12px}
+.round{width:48px;height:48px;border-radius:24px;background:#ECEDEF;color:#0F1013;display:flex;align-items:center;justify-content:center;flex:none}
+.add{height:52px;border-radius:16px;border:1.5px dashed #3A3E46;color:#C9CDD3;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
+.player{flex:none;height:64px;margin:0 8px;border-radius:18px;background:#22252B;display:flex;align-items:center;gap:10px;padding:0 8px 0 14px}
+.player .t{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;text-align:left}
+.player .t b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.pbtn{width:48px;height:48px;border-radius:24px;background:#F2A93B;color:#0F1013;display:flex;align-items:center;justify-content:center;flex:none}
+.nav-wrap{flex:none;height:72px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:4px 4px 8px}
+.nav{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:700;color:#8C929C;border-radius:14px}
+.nav.on{color:#F2A93B}
+.fab{position:absolute;right:16px;bottom:160px;width:60px;height:60px;border-radius:30px;background:#E5484D;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,0.5)}
+.search{height:48px;border-radius:14px;background:#181A1F;display:flex;align-items:center;gap:10px;padding:0 14px;color:#9AA0AA;font-size:15px}
+.search input{flex:1;background:none;border:0;color:#ECEDEF;font:inherit;outline:none}
+.tools{display:flex;gap:8px}
+.pill{height:36px;padding:0 14px;border-radius:18px;background:#22252B;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pill.on{background:#F2A93B;color:#0F1013}
+.row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:#181A1F;text-align:left}
+.row .mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.row .name{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tags{display:flex;gap:4px;flex-wrap:nowrap;overflow:hidden}
+.tag{height:22px;padding:0 8px;border-radius:11px;background:#262A31;color:#C9CDD3;font-size:11px;font-weight:600;display:flex;align-items:center;white-space:nowrap}
+.meta{font-size:11px;color:#9AA0AA;font-weight:600}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tool{height:104px;border-radius:18px;background:#181A1F;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;padding:14px;text-align:left}
+.tool b{font-size:16px}
+.big{font-size:96px;font-weight:800;letter-spacing:-0.04em;line-height:1;text-align:center}
+.beats{display:flex;justify-content:center;gap:8px}
+.beat{width:30px;height:30px;border-radius:15px;background:#262A31}
+.beat.acc{background:#F2A93B}
+.ctl{display:flex;justify-content:center;gap:12px}
+.cbtn{width:72px;height:72px;border-radius:36px;background:#22252B;font-size:30px;font-weight:700}
+.tap{height:72px;flex:1;border-radius:22px;background:#ECEDEF;color:#0F1013;font-weight:800;font-size:18px}
+.needle{position:relative;height:120px;border-radius:18px;background:#181A1F;overflow:hidden}
+.needle .scale{position:absolute;left:16px;right:16px;bottom:30px;height:2px;background:#3A3E46}
+.needle .zero{position:absolute;left:50%;bottom:22px;width:2px;height:60px;background:#4CC38A}
+.needle .hand{position:absolute;left:47%;bottom:22px;width:4px;height:76px;border-radius:2px;background:#F2A93B}
+.opts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.opt{height:56px;border-radius:14px;background:#22252B;font-weight:800;font-size:16px}
+.opt.right{background:#4CC38A;color:#0F1013}
+.opt.wrong{background:#E5484D;color:#fff}
+.fret{display:grid;grid-template-columns:28px repeat(5,minmax(0,1fr));gap:0;border-radius:12px;overflow:hidden;background:#22252B}
+.fret div{height:30px;border-bottom:1px solid #3A3E46;border-right:1px solid #3A3E46;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}
+.dot{width:22px;height:22px;border-radius:11px;background:#B48CFF;color:#0F1013;display:flex;align-items:center;justify-content:center}
+.dot.root{background:#F2A93B}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,0.55)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#181A1F;border-radius:26px 26px 0 0;padding:10px 16px 22px;display:flex;flex-direction:column;gap:14px}
+.grip{width:40px;height:4px;border-radius:2px;background:#3A3E46;align-self:center}
+.full{position:absolute;inset:0;background:#0F1013;display:flex;flex-direction:column}
+.label{font-size:12px;font-weight:700;color:#9AA0AA;text-transform:uppercase;letter-spacing:0.06em}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.primary{height:52px;border-radius:16px;background:#F2A93B;color:#0F1013;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;flex:1}
+.ghost{height:52px;border-radius:16px;background:#22252B;font-weight:700;display:flex;align-items:center;justify-content:center;flex:1}
+.layer{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;background:#181A1F}
+.lhead{display:flex;align-items:center;gap:8px}
+.mode{height:22px;padding:0 8px;border-radius:7px;font-size:10px;font-weight:800;letter-spacing:0.05em;display:flex;align-items:center;background:#262A31;color:#ECEDEF}
+.conf{font-family:'JetBrains Mono',monospace;font-size:12px;color:#4CC38A}
+.slider{height:6px;border-radius:3px;background:#262A31;position:relative}
+.slider i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:#5B9DFF;display:block}
+.capopt{height:64px;border-radius:16px;background:#22252B;display:flex;align-items:center;gap:14px;padding:0 16px;font-weight:700;font-size:16px;text-align:left}
+.field{height:48px;border-radius:12px;background:#22252B;display:flex;align-items:center;padding:0 14px;color:#ECEDEF;font-size:15px;border:0;font-family:inherit;width:100%;box-sizing:border-box}
+.toggle{width:46px;height:28px;border-radius:14px;background:#F2A93B;position:relative;flex:none}
+.toggle i{position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:11px;background:#0F1013;display:block}
+.toggle.off{background:#3A3E46}.toggle.off i{left:3px;right:auto;background:#9AA0AA}
+.srow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:15px;font-weight:600}
+</style>
+</helmet>
+<div class="app">
+
+<sc-if value="{{isBoard}}" hint-placeholder-val="{{true}}">
+<div class="top">
+  <button class="proj" aria-label="Switch project">Low Tide
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+  </button>
+  <div class="mic"><i></i>Mic off</div>
+  <button class="iconbtn" aria-label="Stand mode"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M8 21h8"></path></svg></button>
+</div>
+<div class="content">
+  <div class="section">Verse</div>
+  <div class="card">
+    <div class="cardhead"><span class="chip t-lyr">LYR</span>Lyrics · synced to Verse riff B</div>
+    <div class="lyric">
+      <div class="ch">Dm7               G</div>
+      <div class="ly">Salt on the window, the</div>
+      <div class="ch">Am7          C</div>
+      <div class="ly">tide keeps the time</div>
+      <div class="ch">Dm7            G</div>
+      <div class="ly">I left the porch light on</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="cardhead"><span class="chip t-chd">CHD</span>Chords · 4/4 · D Dorian</div>
+    <div class="bars"><div class="bar">Dm7</div><div class="bar">G</div><div class="bar">Am7</div><div class="bar">C</div></div>
+  </div>
+  <div class="card">
+    <div class="cardhead"><span class="chip t-tab">TAB</span>Bass · D standard</div>
+    <div class="tab">G|------------------|
+D|------5---7-------|
+A|---5--------------|
+D|-0--------0---3---|</div>
+    <div class="noterow">   D  D  G  D  A  F     notes
+   1  1  4  1  5  ♭3    degrees</div>
+  </div>
+  <div class="card">
+    <div class="cardhead"><span class="chip t-rec">REC</span>Verse riff B ★ · 92 BPM · 0:18</div>
+    <div class="recrow">
+      <button class="round" onClick="{{togglePlay}}" aria-label="Play Verse riff B"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg></button>
+      <div class="wave"><sc-for list="{{wave}}" as="w" hint-placeholder-count="40"><span style="height: {{w.h}}"></span></sc-for></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="cardhead"><span class="chip t-txt">TXT</span>Note</div>
+    <div style="font-size: 15px; line-height: 1.45; color: #DADDE2">Chorus should drop to half-time. Try the walk-up from the Library before the bridge.</div>
+  </div>
+  <button class="add"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add block</button>
+</div>
+</sc-if>
+
+<sc-if value="{{isLibrary}}" hint-placeholder-val="{{false}}">
+<div class="top"><div class="proj">Library</div><div class="mic"><i></i>Mic off</div></div>
+<div class="content">
+  <label class="search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><input type="text" placeholder="Search scraps, tags, lyrics" aria-label="Search the Library"></label>
+  <div class="tools">
+    <button class="pill" onClick="{{openFilter}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"></path></svg>Filter</button>
+    <button class="pill">Sort · Recent</button>
+  </div>
+  <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+    <div class="row">
+      <span class="chip {{r.cls}}">{{r.type}}</span>
+      <div class="mid">
+        <div class="name">{{r.title}}</div>
+        <div class="tags"><sc-for list="{{r.tags}}" as="t" hint-placeholder-count="2"><span class="tag">{{t}}</span></sc-for></div>
+        <div class="meta">{{r.meta}}</div>
+      </div>
+      <button class="iconbtn" aria-label="Preview"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg></button>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isTools}}" hint-placeholder-val="{{false}}">
+<div class="top"><div class="proj">Tools</div><div class="mic"><i></i>Mic off</div></div>
+<div class="content">
+  <div class="grid2">
+    <button class="tool" onClick="{{goMetro}}"><span class="chip t-lyr">BPM</span><b>Metronome</b></button>
+    <button class="tool" onClick="{{goTuner}}"><span class="chip t-tab">Hz</span><b>Tuner</b></button>
+    <button class="tool"><span class="chip t-chd">D</span><b>Drone</b></button>
+    <button class="tool" onClick="{{openCapture}}"><span class="chip t-rec">REC</span><b>Recorder</b></button>
+    <button class="tool"><span class="chip t-rec">0.6×</span><b>Slow-down player</b></button>
+    <button class="tool"><span class="chip t-mid">EQ</span><b>Isolator</b></button>
+    <button class="tool"><span class="chip t-mid">4</span><b>Stem separation</b></button>
+    <button class="tool"><span class="chip t-txt">LOG</span><b>Practice log</b></button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{isMetro}}" hint-placeholder-val="{{false}}">
+<div class="top"><button class="iconbtn" onClick="{{goTools}}" aria-label="Back to Tools"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button><div class="proj">Metronome</div><div class="mic"><i></i>Mic off</div></div>
+<div class="content" style="justify-content: center; gap: 22px">
+  <div class="big">{{bpm}}</div>
+  <div style="text-align: center" class="sub">BPM · 7/8 grouped 2+2+3 · eighths</div>
+  <div class="beats"><span class="beat acc"></span><span class="beat"></span><span class="beat acc"></span><span class="beat"></span><span class="beat acc"></span><span class="beat"></span><span class="beat"></span></div>
+  <div class="ctl">
+    <button class="cbtn" onClick="{{bpmDown}}" aria-label="Slower">−</button>
+    <button class="tap">Tap</button>
+    <button class="cbtn" onClick="{{bpmUp}}" aria-label="Faster">+</button>
+  </div>
+  <div class="tools" style="justify-content: center; flex-wrap: wrap">
+    <span class="pill on">Count-in 1 bar</span><span class="pill">Swing off</span><span class="pill">Trainer +2 / 4 bars</span>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{isTuner}}" hint-placeholder-val="{{false}}">
+<div class="top"><button class="iconbtn" onClick="{{goTools}}" aria-label="Back to Tools"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button><div class="proj">Tuner</div><div class="mic"><i style="background: #4CC38A"></i>Listening</div></div>
+<div class="content" style="justify-content: center; gap: 18px">
+  <div class="big">D<span style="font-size: 40px">1</span></div>
+  <div style="text-align: center; font-size: 22px; font-weight: 800; color: #F2A93B">−4 cents</div>
+  <div class="needle"><div class="scale"></div><div class="zero"></div><div class="hand"></div></div>
+  <div style="text-align: center" class="sub">Bass · D standard · A4 = 440 Hz · equal temperament</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isTrainer}}" hint-placeholder-val="{{false}}">
+<div class="top"><div class="proj">Pitch Trainer</div><div class="mic"><i></i>Mic off</div></div>
+<div class="content">
+  <div class="tools" style="flex-wrap: wrap"><span class="pill on">Intervals</span><span class="pill">Degrees</span><span class="pill">Chords</span><span class="pill">Harmony</span><span class="pill">Rhythm</span></div>
+  <div class="card" style="gap: 16px">
+    <div class="cardhead">Melodic · ascending · in D Dorian</div>
+    <div style="font-size: 24px; font-weight: 800">Name the interval</div>
+    <div class="recrow"><button class="round" aria-label="Hear again"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg></button><span class="sub">Hear again · compare · piano</span></div>
+    <div class="opts"><sc-for list="{{opts}}" as="o" hint-placeholder-count="5"><button class="{{o.cls}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div>
+    <sc-if value="{{answered}}" hint-placeholder-val="{{false}}"><div style="font-size: 15px; font-weight: 700">M6 — D up to B. Commonly confused with m6.</div></sc-if>
+  </div>
+  <div class="card"><div class="cardhead">This week</div><div style="font-size: 15px">m6/M6 and m7/M7 get extra weight. 212 answers · 81 %</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isTheory}}" hint-placeholder-val="{{false}}">
+<div class="top"><div class="proj">Theory</div><div class="mic"><i></i>Mic off</div></div>
+<div class="content">
+  <label class="search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><input type="text" value="E7♯9" aria-label="Search Theory"></label>
+  <div class="card">
+    <div class="cardhead"><span class="chip t-chd">CHD</span>Dominant seventh, sharp nine</div>
+    <div style="font-size: 40px; font-weight: 800; letter-spacing: -0.02em">E7<sup style="font-size: 22px">♯9</sup></div>
+    <div class="srow"><span class="sub">Formula</span><span style="font-family: 'JetBrains Mono', monospace">1  3  5  ♭7  ♯9</span></div>
+    <div class="srow"><span class="sub">Spelling</span><span style="font-family: 'JetBrains Mono', monospace">E  G♯  B  D  F𝄪</span></div>
+  </div>
+  <div class="card">
+    <div class="cardhead">On your guitar · standard · frets 5–9</div>
+    <div class="fret">
+      <div>e</div><div></div><div></div><div></div><div></div><div></div>
+      <div>B</div><div></div><div></div><div></div><div><span class="dot">F𝄪</span></div><div></div>
+      <div>G</div><div></div><div></div><div><span class="dot">D</span></div><div></div><div></div>
+      <div>D</div><div></div><div><span class="dot">G♯</span></div><div></div><div></div><div></div>
+      <div>A</div><div></div><div></div><div><span class="dot root">E</span></div><div></div><div></div>
+      <div>E</div><div></div><div></div><div></div><div></div><div></div>
+    </div>
+  </div>
+  <div class="card"><div class="cardhead">In your material</div><div style="font-size: 15px">Chorus walk-up, bar 3 · Take C at 0:41</div></div>
+</div>
+</sc-if>
+
+<button class="fab" onClick="{{openCapture}}" aria-label="Quick capture"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg></button>
+
+<div class="player">
+  <button class="t" onClick="{{openPlayer}}" aria-label="Open player"><b>Low Tide · stack 1</b><span class="sub">3 layers · 96 BPM · D Dorian</span></button>
+  <button class="pbtn" onClick="{{togglePlay}}" aria-label="Play or pause">
+    <sc-if value="{{paused}}" hint-placeholder-val="{{true}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg></sc-if>
+    <sc-if value="{{playing}}" hint-placeholder-val="{{false}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg></sc-if>
+  </button>
+</div>
+<div class="nav-wrap">
+  <button class="{{navBoard}}" onClick="{{goBoard}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"></rect><path d="M9 8h6M9 12h6M9 16h3"></path></svg>Board</button>
+  <button class="{{navLibrary}}" onClick="{{goLibrary}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>Library</button>
+  <button class="{{navTools}}" onClick="{{goTools}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3l7 18H5z"></path><path d="M12 13l5-6"></path></svg>Tools</button>
+  <button class="{{navTrainer}}" onClick="{{goTrainer}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 18V5l11-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="17" cy="16" r="3"></circle></svg>Trainer</button>
+  <button class="{{navTheory}}" onClick="{{goTheory}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H4zM20 5h-4a2 2 0 0 0-2 2"></path></svg>Theory</button>
+</div>
+
+<sc-if value="{{sheetFilter}}" hint-placeholder-val="{{false}}">
+<button class="scrim" onClick="{{closeSheet}}" aria-label="Close"></button>
+<div class="sheet">
+  <div class="grip"></div>
+  <div style="font-size: 20px; font-weight: 800">Filter</div>
+  <div class="label">Tags</div>
+  <div class="chips"><span class="pill on">bass</span><span class="pill">guitar</span><span class="pill">lyrics</span><span class="pill">dark</span><span class="pill">love song</span><span class="pill">+9</span></div>
+  <div class="label">Key and mode</div>
+  <div class="chips"><span class="pill on">D Dorian</span><span class="pill">A minor</span><span class="pill">Any</span></div>
+  <div class="label">BPM</div>
+  <div class="srow"><span>88 – 96 · include half/double time</span><span class="toggle"><i></i></span></div>
+  <div class="label">Groups and projects</div>
+  <div class="chips"><span class="pill">Dark riffs</span><span class="pill">Possible choruses</span><span class="pill on">Unused only</span></div>
+  <div style="display: flex; gap: 10px"><button class="ghost" onClick="{{closeSheet}}">Clear</button><button class="primary" onClick="{{closeSheet}}">Show 4</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetCapture}}" hint-placeholder-val="{{false}}">
+<button class="scrim" onClick="{{closeSheet}}" aria-label="Close"></button>
+<div class="sheet">
+  <div class="grip"></div>
+  <div style="font-size: 20px; font-weight: 800">Capture</div>
+  <div class="sub">Goes to the Library. You come back right here.</div>
+  <button class="capopt" onClick="{{startRec}}"><span class="chip t-rec">REC</span>Record audio</button>
+  <button class="capopt" onClick="{{closeSheet}}"><span class="chip t-lyr">LYR</span>Write lyrics</button>
+  <button class="capopt" onClick="{{closeSheet}}"><span class="chip t-txt">TXT</span>Text note</button>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetRec}}" hint-placeholder-val="{{false}}">
+<div class="full" style="justify-content: space-between; padding: 24px 20px 40px; box-sizing: border-box">
+  <div style="display: flex; align-items: center; justify-content: space-between"><div class="mic" style="margin-left: 0; background: #E5484D; color: #fff"><i style="background: #fff"></i>Recording</div><span class="sub">To Library · bass</span></div>
+  <div style="display: flex; flex-direction: column; gap: 20px; align-items: center">
+    <div class="big" style="font-size: 72px">0:07</div>
+    <div class="wave" style="height: 80px"><sc-for list="{{wave}}" as="w" hint-placeholder-count="40"><span style="height: {{w.h}}; background: #E5484D"></span></sc-for></div>
+    <div class="sub">Input −14 dB · no clipping</div>
+  </div>
+  <button onClick="{{stopRec}}" aria-label="Stop recording" style="align-self: center; width: 96px; height: 96px; border-radius: 48px; background: #ECEDEF; display: flex; align-items: center; justify-content: center"><span style="width: 32px; height: 32px; border-radius: 6px; background: #E5484D; display: block"></span></button>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetSave}}" hint-placeholder-val="{{false}}">
+<button class="scrim" onClick="{{closeSheet}}" aria-label="Close"></button>
+<div class="sheet">
+  <div class="grip"></div>
+  <div style="display: flex; align-items: baseline; justify-content: space-between"><div style="font-size: 20px; font-weight: 800">Take D saved</div><span class="sub">0:07 · nothing required</span></div>
+  <input class="field" type="text" placeholder="Title (optional)" aria-label="Title">
+  <div class="label">Tags</div>
+  <div class="chips"><span class="pill on">bass</span><span class="pill">+ add tag</span></div>
+  <div class="srow"><span class="sub">BPM</span><span>analysing…</span></div>
+  <div class="srow"><span class="sub">Key and mode</span><span>analysing…</span></div>
+  <div class="srow"><span>Show in Library</span><span class="toggle"><i></i></span></div>
+  <div class="srow"><span>Add as stack layer</span><span class="toggle off"><i></i></span></div>
+  <button class="primary" onClick="{{closeSheet}}" style="flex: none">Done</button>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetPlayer}}" hint-placeholder-val="{{false}}">
+<div class="full">
+  <div class="top"><button class="iconbtn" onClick="{{closeSheet}}" aria-label="Collapse player"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button><div class="proj">Stack 1</div><span class="sub" style="margin-left: auto">in Low Tide</span></div>
+  <div class="content">
+    <div class="tools"><span class="pill on">96 BPM</span><span class="pill on">D Dorian</span><span class="pill">Loop 4 bars</span></div>
+    <sc-for list="{{layers}}" as="l" hint-placeholder-count="3">
+      <div class="layer">
+        <div class="lhead"><span class="chip t-rec">REC</span><b style="flex: 1">{{l.name}}</b><span class="mode">{{l.mode}}</span></div>
+        <div class="wave" style="height: 32px"><sc-for list="{{wave}}" as="w" hint-placeholder-count="40"><span style="height: {{w.small}}"></span></sc-for></div>
+        <div class="conf">{{l.conf}}</div>
+        <div class="slider"><i style="width: {{l.gain}}"></i></div>
+      </div>
+    </sc-for>
+    <button class="add">Add layer from Library</button>
+  </div>
+  <div style="display: flex; gap: 10px; padding: 12px 16px 28px">
+    <button class="ghost" onClick="{{startRec}}">Record over</button>
+    <button class="primary" onClick="{{togglePlay}}">Play stack</button>
+  </div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { screen: 'board', sheet: 'none', playing: false, bpm: 96, pick: '' };
+  }
+  renderVals() {
+    const s = this.state;
+    const go = (screen) => () => this.setState({ screen: screen, sheet: 'none' });
+    const sheet = (name) => () => this.setState({ sheet: name });
+    const nav = (keys) => keys.indexOf(s.screen) >= 0 ? 'nav on' : 'nav';
+    const wave = [];
+    for (let i = 0; i < 64; i++) {
+      const v = Math.abs(Math.sin(i * 0.7) * 0.6 + Math.sin(i * 0.23) * 0.4);
+      wave.push({ h: (6 + Math.round(v * 40)) + 'px', small: (3 + Math.round(v * 26)) + 'px' });
+    }
+    const opts = ['m6', 'M6', 'm7', 'M7', 'TT'].map((o) => ({
+      label: o,
+      pick: () => this.setState({ pick: o }),
+      cls: s.pick === '' ? 'opt' : (o === 'M6' ? 'opt right' : (o === s.pick ? 'opt wrong' : 'opt'))
+    }));
+    return {
+      isBoard: s.screen === 'board', isLibrary: s.screen === 'library', isTools: s.screen === 'tools',
+      isMetro: s.screen === 'metro', isTuner: s.screen === 'tuner', isTrainer: s.screen === 'trainer', isTheory: s.screen === 'theory',
+      sheetFilter: s.sheet === 'filter', sheetCapture: s.sheet === 'capture', sheetRec: s.sheet === 'rec',
+      sheetSave: s.sheet === 'save', sheetPlayer: s.sheet === 'player',
+      playing: s.playing, paused: !s.playing, bpm: s.bpm, answered: s.pick !== '',
+      navBoard: nav(['board']), navLibrary: nav(['library']), navTools: nav(['tools', 'metro', 'tuner']),
+      navTrainer: nav(['trainer']), navTheory: nav(['theory']),
+      goBoard: go('board'), goLibrary: go('library'), goTools: go('tools'), goMetro: go('metro'),
+      goTuner: go('tuner'), goTrainer: go('trainer'), goTheory: go('theory'),
+      openFilter: sheet('filter'), openCapture: sheet('capture'), openPlayer: sheet('player'),
+      startRec: sheet('rec'), stopRec: sheet('save'), closeSheet: sheet('none'),
+      togglePlay: () => this.setState({ playing: !s.playing }),
+      bpmUp: () => this.setState({ bpm: Math.min(400, s.bpm + 1) }),
+      bpmDown: () => this.setState({ bpm: Math.max(20, s.bpm - 1) }),
+      wave: wave, opts: opts,
+      rows: [
+        { type: 'REC', cls: 't-rec', title: 'Verse riff B ★', tags: ['bass', 'dark'], meta: '92 BPM · D Dorian · in Low Tide' },
+        { type: 'LYR', cls: 't-lyr', title: 'Salt on the window, the tide…', tags: ['lyrics', 'love song', 'political song'], meta: 'in Low Tide, Porch Light' },
+        { type: 'TAB', cls: 't-tab', title: 'Chorus walk-up', tags: ['bass', 'tab'], meta: 'D Dorian · Group: Possible choruses' },
+        { type: 'REC', cls: 't-rec', title: 'Take C', tags: ['guitar'], meta: 'free time · key unknown' },
+        { type: 'CHD', cls: 't-chd', title: 'Dm7  G  Am7  C', tags: ['chords', 'possible chorus'], meta: '96 BPM · D Dorian' },
+        { type: 'TXT', cls: 't-txt', title: 'Bridge idea: half-time feel', tags: ['note'], meta: 'edited yesterday' },
+        { type: 'MIDI', cls: 't-mid', title: 'Hum melody (from Take A)', tags: ['vocal', 'midi'], meta: '88 BPM · A minor' }
+      ],
+      layers: [
+        { name: 'Verse riff B', mode: 'LOOP', conf: '+0 st · 92→96 BPM · conform on', gain: '72%' },
+        { name: 'Hum melody', mode: 'ONE-SHOT', conf: '+2 st · 88→96 BPM · conform on', gain: '55%' },
+        { name: 'Room take', mode: 'FREE TIME', conf: 'never conformed', gain: '40%' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

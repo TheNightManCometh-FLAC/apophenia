@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Apophenia · Console</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.app{position:relative;width:390px;height:844px;overflow:hidden;background:#000;color:#F2F2F2;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;font-size:13px}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0;text-align:left}
+.lcd{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-bottom:1px solid #2A2A2A}
+.lcd div{padding:8px 10px;border-right:1px solid #2A2A2A;display:flex;flex-direction:column;gap:2px;min-height:44px;box-sizing:border-box;justify-content:center}
+.lcd div:last-child{border-right:0}
+.k{font-size:9px;letter-spacing:0.14em;color:#8A8A8A;text-transform:uppercase}
+.v{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hot{color:#FF5A1F}
+.ttl{flex:none;display:flex;align-items:center;justify-content:space-between;padding:12px 12px 10px;border-bottom:1px solid #2A2A2A}
+.ttl b{font-size:20px;font-weight:800;letter-spacing:0.02em;text-transform:uppercase}
+.sq{min-width:44px;height:36px;border:1px solid #3A3A3A;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;letter-spacing:0.08em;padding:0 10px;box-sizing:border-box}
+.sq.on{background:#F2F2F2;color:#000;border-color:#F2F2F2}
+.scroll{flex:1;overflow-y:auto}
+.blk{display:grid;grid-template-columns:52px minmax(0,1fr);border-bottom:1px solid #2A2A2A}
+.idx{border-right:1px solid #2A2A2A;padding:10px 0 0 10px;display:flex;flex-direction:column;gap:4px}
+.idx .n{font-size:18px;font-weight:800;color:#8A8A8A}
+.cell{padding:10px 12px 12px}
+.sec{padding:10px 12px;border-bottom:1px solid #2A2A2A;font-size:11px;font-weight:800;letter-spacing:0.16em;color:#000;background:#F2F2F2}
+.ch{color:#FF5A1F;white-space:pre;font-size:12px;height:16px;font-weight:700}
+.ly{white-space:pre;font-size:15px;line-height:1.3}
+.bars{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid #3A3A3A}
+.bars div{height:48px;border-right:1px solid #3A3A3A;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800}
+.bars div:last-child{border-right:0}
+.tab{white-space:pre;font-size:12.5px;line-height:1.55}
+.nr{white-space:pre;font-size:12px;color:#8A8A8A}
+.segs{display:flex;gap:2px;height:28px;align-items:stretch}
+.segs span{flex:1;background:#F2F2F2;display:block}
+.segs span.d{background:#333}
+.tbl{display:grid;grid-template-columns:44px minmax(0,1fr) 44px 64px;border-bottom:1px solid #2A2A2A;align-items:start}
+.tbl > div{padding:10px 6px 10px 10px;min-height:44px;box-sizing:border-box}
+.tbl.h > div{min-height:0;padding:6px 6px 6px 10px}
+.tbl .name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbl .tg{font-size:11px;color:#8A8A8A;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search{display:flex;align-items:center;gap:8px;border-bottom:1px solid #2A2A2A;padding:0 12px}
+.search input{flex:1;background:none;border:0;color:#F2F2F2;font:500 14px 'JetBrains Mono',monospace;outline:none;min-height:48px}
+.keys{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #2A2A2A}
+.key{height:118px;border-right:1px solid #2A2A2A;border-bottom:1px solid #2A2A2A;padding:10px;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box}
+.key:nth-child(3n){border-right:0}
+.key .n{font-size:11px;color:#8A8A8A}
+.key b{font-size:13px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase}
+.key .r{font-size:18px;font-weight:800;color:#FF5A1F}
+.digits{font-size:132px;font-weight:800;line-height:0.9;letter-spacing:-0.06em;text-align:center}
+.steps{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:0 12px}
+.steps span{height:40px;border:1px solid #3A3A3A;display:block}
+.steps span.a{background:#FF5A1F;border-color:#FF5A1F}
+.row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #2A2A2A;border-bottom:1px solid #2A2A2A}
+.row3 button{height:76px;border-right:1px solid #2A2A2A;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800}
+.row3 button:last-child{border-right:0}
+.led{display:grid;grid-template-columns:repeat(21,minmax(0,1fr));gap:3px;padding:0 12px}
+.led span{height:52px;background:#1C1C1C;display:block}
+.led span.l{background:#F2F2F2}
+.led span.c{background:#3A3A3A}
+.led span.o{background:#FF5A1F}
+.ans{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid #2A2A2A;border-bottom:1px solid #2A2A2A}
+.opt{height:72px;border-right:1px solid #2A2A2A;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800}
+.opt.right{background:#F2F2F2;color:#000}
+.opt.wrong{background:#FF5A1F;color:#000}
+.kv{display:grid;grid-template-columns:96px minmax(0,1fr);border-bottom:1px solid #2A2A2A}
+.kv > div{padding:12px}
+.kv > div:first-child{border-right:1px solid #2A2A2A}
+.fret{display:grid;grid-template-columns:24px repeat(5,minmax(0,1fr));border-top:1px solid #3A3A3A;border-left:1px solid #3A3A3A}
+.fret div{height:28px;border-right:1px solid #3A3A3A;border-bottom:1px solid #3A3A3A;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800}
+.fret .d{background:#F2F2F2;color:#000}
+.fret .rt{background:#FF5A1F;color:#000}
+.transport{flex:none;display:grid;grid-template-columns:minmax(0,1fr) 56px 56px;border-top:1px solid #3A3A3A;height:60px}
+.transport > button{border-left:1px solid #3A3A3A;display:flex;align-items:center;justify-content:center}
+.transport .info{display:flex;flex-direction:column;justify-content:center;padding:0 12px;gap:2px;border-left:0}
+.recbtn{background:#FF5A1F;color:#000}
+.nav-wrap{flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid #3A3A3A;height:58px;padding-bottom:4px}
+.nav{border-right:1px solid #2A2A2A;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:700;letter-spacing:0.06em;color:#8A8A8A}
+.nav:last-child{border-right:0}
+.nav i{font-style:normal;font-size:15px;font-weight:800}
+.nav.on{background:#F2F2F2;color:#000}
+.full{position:absolute;inset:0;background:#000;display:flex;flex-direction:column}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,0.7)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#0B0B0B;border-top:2px solid #FF5A1F;display:flex;flex-direction:column}
+.sline{display:grid;grid-template-columns:110px minmax(0,1fr);border-bottom:1px solid #2A2A2A;min-height:48px;align-items:center}
+.sline > *{padding:0 12px}
+.sline > :first-child{border-right:1px solid #2A2A2A;height:100%;display:flex;align-items:center}
+.opts{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px}
+.bigbtn{height:60px;display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:0.08em;font-size:14px;border-top:1px solid #2A2A2A}
+.bigbtn.p{background:#F2F2F2;color:#000}
+.capkey{height:64px;display:flex;align-items:center;gap:14px;padding:0 12px;border-bottom:1px solid #2A2A2A;font-weight:800;letter-spacing:0.06em}
+.capkey span{width:40px;height:40px;border:1px solid #3A3A3A;display:flex;align-items:center;justify-content:center;font-size:10px}
+.lyr{display:grid;grid-template-columns:44px minmax(0,1fr) 72px;border-bottom:1px solid #2A2A2A}
+.lyr > div{padding:10px}
+.gain{height:4px;background:#2A2A2A;margin-top:8px;position:relative}
+.gain i{position:absolute;left:0;top:0;bottom:0;background:#F2F2F2;display:block}
+.wave{display:flex;align-items:center;gap:1px;height:30px}
+.wave span{display:block;width:2px;background:#F2F2F2}
+</style>
+</helmet>
+<div class="app">
+
+<div class="lcd">
+  <div><span class="k">Project</span><span class="v">LOW TIDE</span></div>
+  <div><span class="k">Mic</span><span class="v">{{micText}}</span></div>
+  <div><span class="k">Tempo</span><span class="v">{{bpm}}</span></div>
+  <div><span class="k">Key</span><span class="v">D DOR</span></div>
+</div>
+
+<sc-if value="{{isBoard}}" hint-placeholder-val="{{true}}">
+<div class="ttl"><b>Board</b><div style="display: flex; gap: 6px"><button class="sq">PRJ ▾</button><button class="sq">STAND</button></div></div>
+<div class="scroll">
+  <div class="sec">VERSE</div>
+  <div class="blk"><div class="idx"><span class="n">01</span><span class="k">LYR</span></div><div class="cell">
+    <div class="ch">Dm7               G</div><div class="ly">Salt on the window, the</div>
+    <div class="ch">Am7          C</div><div class="ly">tide keeps the time</div>
+    <div class="ch">Dm7            G</div><div class="ly">I left the porch light on</div>
+  </div></div>
+  <div class="blk"><div class="idx"><span class="n">02</span><span class="k">CHD</span></div><div class="cell">
+    <div class="bars"><div>Dm7</div><div>G</div><div>Am7</div><div>C</div></div>
+  </div></div>
+  <div class="blk"><div class="idx"><span class="n">03</span><span class="k">TAB</span></div><div class="cell">
+    <div class="k" style="margin-bottom: 6px">BASS · D STANDARD</div>
+    <div class="tab">G|------------------|
+D|------5---7-------|
+A|---5--------------|
+D|-0--------0---3---|</div>
+    <div class="nr">   D  D  G  D  A  F
+   1  1  4  1  5  ♭3</div>
+  </div></div>
+  <div class="blk"><div class="idx"><span class="n">04</span><span class="k">REC</span></div><div class="cell">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 8px"><b>VERSE RIFF B ★</b><span class="k">92 BPM · 0:18</span></div>
+    <div class="segs"><sc-for list="{{segs}}" as="g" hint-placeholder-count="32"><span class="{{g}}"></span></sc-for></div>
+  </div></div>
+  <div class="blk"><div class="idx"><span class="n">05</span><span class="k">TXT</span></div><div class="cell" style="line-height: 1.5">Chorus should drop to half-time. Try the walk-up from the Library before the bridge.</div></div>
+  <button class="capkey" style="width: 100%; box-sizing: border-box"><span>+</span>ADD BLOCK</button>
+</div>
+</sc-if>
+
+<sc-if value="{{isLibrary}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><b>Library</b><div style="display: flex; gap: 6px"><button class="sq" onClick="{{openFilter}}">FILTER</button><button class="sq">SORT</button></div></div>
+<label class="search"><span class="k">FIND</span><input type="text" placeholder="title, tag, lyric" aria-label="Search the Library"></label>
+<div class="tbl h"><div class="k">TYP</div><div class="k">NAME / TAGS</div><div class="k">BPM</div><div class="k">KEY</div></div>
+<div class="scroll">
+  <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+    <div class="tbl">
+      <div class="k" style="color: #F2F2F2; font-weight: 800">{{r.type}}</div>
+      <div><div class="name">{{r.title}}</div><div class="tg">{{r.tagline}}</div></div>
+      <div style="font-weight: 700">{{r.bpm}}</div>
+      <div style="font-weight: 700">{{r.key}}</div>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isTools}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><b>Tools</b></div>
+<div class="scroll">
+  <div class="keys">
+    <button class="key" onClick="{{goMetro}}"><span class="n">T1</span><b>Metro</b><span class="r">{{bpm}}</span></button>
+    <button class="key" onClick="{{goTuner}}"><span class="n">T2</span><b>Tuner</b><span class="r">D1</span></button>
+    <button class="key"><span class="n">T3</span><b>Drone</b><span class="r">D+5</span></button>
+    <button class="key" onClick="{{startRec}}"><span class="n">T4</span><b>Recorder</b><span class="r">●</span></button>
+    <button class="key"><span class="n">T5</span><b>Slow-down</b><span class="r">0.6×</span></button>
+    <button class="key"><span class="n">T6</span><b>Isolator</b><span class="r">LOW</span></button>
+    <button class="key"><span class="n">T7</span><b>Stems</b><span class="r">4</span></button>
+    <button class="key"><span class="n">T8</span><b>Log</b><span class="r">42m</span></button>
+    <button class="key"><span class="n">T9</span><b>Exercises</b><span class="r">—</span></button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{isMetro}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><b>Metronome</b><button class="sq" onClick="{{goTools}}">BACK</button></div>
+<div class="scroll" style="display: flex; flex-direction: column; justify-content: center; gap: 20px">
+  <div class="digits">{{bpm}}</div>
+  <div class="k" style="text-align: center">BPM · 7/8 · 2+2+3 · ♪ SUBDIV</div>
+  <div class="steps"><span class="a"></span><span></span><span class="a"></span><span></span><span class="a"></span><span></span><span></span></div>
+  <div class="row3"><button onClick="{{bpmDown}}" aria-label="Slower">−1</button><button style="background: #F2F2F2; color: #000">TAP</button><button onClick="{{bpmUp}}" aria-label="Faster">+1</button></div>
+  <div style="display: flex; gap: 6px; padding: 0 12px; flex-wrap: wrap"><span class="sq on">CNT-IN 1</span><span class="sq">SWING 0</span><span class="sq">TRN +2/4</span><span class="sq">POLY OFF</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isTuner}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><b>Tuner</b><button class="sq" onClick="{{goTools}}">BACK</button></div>
+<div class="scroll" style="display: flex; flex-direction: column; justify-content: center; gap: 22px">
+  <div class="digits">D1</div>
+  <div style="text-align: center; font-size: 22px; font-weight: 800" class="hot">−04 ¢</div>
+  <div class="led"><span></span><span></span><span></span><span></span><span></span><span></span><span class="l"></span><span class="l"></span><span class="o"></span><span class="l"></span><span class="c"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="k" style="text-align: center">BASS · D STD · A4 440 · EQUAL</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isTrainer}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><b>Trainer</b><div style="display: flex; gap: 6px"><span class="sq on">INT</span><span class="sq">DEG</span><span class="sq">CHD</span><span class="sq">RHY</span></div></div>
+<div class="scroll">
+  <div class="kv"><div class="k">MODE</div><div>MELODIC ↑ · D DORIAN</div></div>
+  <div class="kv"><div class="k">TASK</div><div style="font-size: 18px; font-weight: 800">NAME THE INTERVAL</div></div>
+  <div class="row3"><button>▶ AGAIN</button><button>A/B</button><button>PIANO</button></div>
+  <div style="height: 16px"></div>
+  <div class="ans"><sc-for list="{{opts}}" as="o" hint-placeholder-count="5"><button class="{{o.cls}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div>
+  <sc-if value="{{answered}}" hint-placeholder-val="{{false}}"><div class="kv"><div class="k">RESULT</div><div>M6 · D → B · OFTEN MISTAKEN FOR m6</div></div></sc-if>
+  <div class="kv"><div class="k">WEEK</div><div>212 ANS · 81% · m6/M6 m7/M7 WEIGHTED</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isTheory}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><b>Theory</b></div>
+<label class="search"><span class="k">FIND</span><input type="text" value="E7♯9" aria-label="Search Theory"></label>
+<div class="scroll">
+  <div style="padding: 14px 12px; border-bottom: 1px solid #2A2A2A"><div style="font-size: 44px; font-weight: 800; line-height: 1">E7<sup style="font-size: 22px">♯9</sup></div><div class="k" style="margin-top: 6px">DOMINANT 7 · SHARP 9</div></div>
+  <div class="kv"><div class="k">FORMULA</div><div style="font-weight: 700">1 3 5 ♭7 ♯9</div></div>
+  <div class="kv"><div class="k">SPELLING</div><div style="font-weight: 700">E G♯ B D F𝄪</div></div>
+  <div class="kv"><div class="k">GUITAR<br>FR 5–9</div><div>
+    <div class="fret">
+      <div>e</div><div></div><div></div><div></div><div></div><div></div>
+      <div>B</div><div></div><div></div><div></div><div class="d">F𝄪</div><div></div>
+      <div>G</div><div></div><div></div><div class="d">D</div><div></div><div></div>
+      <div>D</div><div></div><div class="d">G♯</div><div></div><div></div><div></div>
+      <div>A</div><div></div><div></div><div class="rt">E</div><div></div><div></div>
+      <div>E</div><div></div><div></div><div></div><div></div><div></div>
+    </div>
+  </div></div>
+  <div class="kv"><div class="k">IN YOURS</div><div>CHORUS WALK-UP B3 · TAKE C 0:41</div></div>
+</div>
+</sc-if>
+
+<div class="transport">
+  <button class="info" onClick="{{openPlayer}}"><span class="k">STACK 1 · 3 LYR</span><span class="v">{{timeText}}</span></button>
+  <button onClick="{{togglePlay}}" aria-label="Play or pause" style="{{playStyle}}">
+    <sc-if value="{{paused}}" hint-placeholder-val="{{true}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8z"></path></svg></sc-if>
+    <sc-if value="{{playing}}" hint-placeholder-val="{{false}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="12" height="14"></rect></svg></sc-if>
+  </button>
+  <button class="recbtn" onClick="{{openCapture}}" aria-label="Quick capture"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle></svg></button>
+</div>
+<div class="nav-wrap">
+  <button class="{{navBoard}}" onClick="{{goBoard}}"><i>1</i>BOARD</button>
+  <button class="{{navLibrary}}" onClick="{{goLibrary}}"><i>2</i>LIBRARY</button>
+  <button class="{{navTools}}" onClick="{{goTools}}"><i>3</i>TOOLS</button>
+  <button class="{{navTrainer}}" onClick="{{goTrainer}}"><i>4</i>TRAINER</button>
+  <button class="{{navTheory}}" onClick="{{goTheory}}"><i>5</i>THEORY</button>
+</div>
+
+<sc-if value="{{sheetFilter}}" hint-placeholder-val="{{false}}">
+<button class="scrim" onClick="{{closeSheet}}" aria-label="Close"></button>
+<div class="sheet">
+  <div class="ttl"><b>Filter</b><span class="k">OR WITHIN · AND ACROSS</span></div>
+  <div class="sline"><span class="k">TAGS</span><div class="opts"><span class="sq on">BASS</span><span class="sq">GUITAR</span><span class="sq">LYRICS</span><span class="sq">+9</span></div></div>
+  <div class="sline"><span class="k">KEY</span><div class="opts"><span class="sq on">D DOR</span><span class="sq">A MIN</span><span class="sq">ANY</span></div></div>
+  <div class="sline"><span class="k">BPM</span><div class="opts"><span class="sq on">88–96</span><span class="sq on">½ / 2×</span></div></div>
+  <div class="sline"><span class="k">GROUP</span><div class="opts"><span class="sq">DARK RIFFS</span><span class="sq">CHORUSES</span></div></div>
+  <div class="sline"><span class="k">PROJECT</span><div class="opts"><span class="sq on">UNUSED</span><span class="sq">ANY</span></div></div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr"><button class="bigbtn" onClick="{{closeSheet}}">CLEAR</button><button class="bigbtn p" onClick="{{closeSheet}}">SHOW 4</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetCapture}}" hint-placeholder-val="{{false}}">
+<button class="scrim" onClick="{{closeSheet}}" aria-label="Close"></button>
+<div class="sheet">
+  <div class="ttl"><b>Capture</b><span class="k">→ LIBRARY · RETURNS HERE</span></div>
+  <button class="capkey" onClick="{{startRec}}"><span class="hot">●</span>RECORD AUDIO</button>
+  <button class="capkey" onClick="{{closeSheet}}"><span>LYR</span>WRITE LYRICS</button>
+  <button class="capkey" onClick="{{closeSheet}}"><span>TXT</span>TEXT NOTE</button>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetRec}}" hint-placeholder-val="{{false}}">
+<div class="full">
+  <div class="lcd"><div><span class="k">State</span><span class="v hot">● REC</span></div><div><span class="k">Dest</span><span class="v">LIBRARY</span></div><div><span class="k">Tag</span><span class="v">BASS</span></div><div><span class="k">Input</span><span class="v">−14 dB</span></div></div>
+  <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px">
+    <div class="digits" style="font-size: 104px">00:07</div>
+    <div class="led"><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="c"></span><span class="c"></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="k" style="text-align: center">NO CLIPPING · WRITING TO DISK</div>
+  </div>
+  <button class="bigbtn p" onClick="{{stopRec}}" style="height: 84px; font-size: 18px">■ STOP</button>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetSave}}" hint-placeholder-val="{{false}}">
+<button class="scrim" onClick="{{closeSheet}}" aria-label="Close"></button>
+<div class="sheet">
+  <div class="ttl"><b>Take D · saved</b><span class="k">00:07 · ALL OPTIONAL</span></div>
+  <div class="sline"><span class="k">TITLE</span><input type="text" placeholder="—" aria-label="Title" style="background: none; border: 0; color: #F2F2F2; font: 700 14px 'JetBrains Mono', monospace; outline: none; min-height: 46px"></div>
+  <div class="sline"><span class="k">TAGS</span><div class="opts"><span class="sq on">BASS</span><span class="sq">+ TAG</span></div></div>
+  <div class="sline"><span class="k">BPM</span><span>ANALYSING…</span></div>
+  <div class="sline"><span class="k">KEY</span><span>ANALYSING…</span></div>
+  <div class="sline"><span class="k">LIBRARY</span><div class="opts"><span class="sq on">SHOW</span><span class="sq">HIDE</span></div></div>
+  <div class="sline"><span class="k">STACK</span><div class="opts"><span class="sq">ADD LAYER</span></div></div>
+  <button class="bigbtn p" onClick="{{closeSheet}}">DONE</button>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetPlayer}}" hint-placeholder-val="{{false}}">
+<div class="full">
+  <div class="lcd"><div><span class="k">Stack</span><span class="v">1</span></div><div><span class="k">Tempo</span><span class="v">96</span></div><div><span class="k">Key</span><span class="v">D DOR</span></div><div><span class="k">Loop</span><span class="v">4 BAR</span></div></div>
+  <div class="ttl"><b>Player</b><button class="sq" onClick="{{closeSheet}}">CLOSE</button></div>
+  <div class="lyr"><div class="k">#</div><div class="k">LAYER / CONFORM</div><div class="k">MODE</div></div>
+  <div class="scroll">
+    <sc-for list="{{layers}}" as="l" hint-placeholder-count="3">
+      <div class="lyr">
+        <div style="font-size: 18px; font-weight: 800; color: #8A8A8A">{{l.n}}</div>
+        <div><div style="font-weight: 800">{{l.name}}</div><div class="wave" style="margin-top: 6px"><sc-for list="{{wave}}" as="w" hint-placeholder-count="40"><span style="height: {{w.h}}"></span></sc-for></div><div class="k hot" style="margin-top: 4px">{{l.conf}}</div><div class="gain"><i style="width: {{l.gain}}"></i></div></div>
+        <div><span class="sq">{{l.mode}}</span></div>
+      </div>
+    </sc-for>
+    <button class="capkey" style="width: 100%; box-sizing: border-box"><span>+</span>ADD LAYER FROM LIBRARY</button>
+  </div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr"><button class="bigbtn" onClick="{{startRec}}" style="background: #FF5A1F; color: #000">● REC OVER</button><button class="bigbtn p" onClick="{{togglePlay}}">▶ PLAY</button></div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { screen: 'board', sheet: 'none', playing: false, bpm: 96, pick: '' };
+  }
+  renderVals() {
+    const s = this.state;
+    const go = (screen) => () => this.setState({ screen: screen, sheet: 'none' });
+    const sheet = (name) => () => this.setState({ sheet: name });
+    const nav = (keys) => keys.indexOf(s.screen) >= 0 ? 'nav on' : 'nav';
+    const wave = [];
+    const segs = [];
+    for (let i = 0; i < 80; i++) {
+      const v = Math.abs(Math.sin(i * 0.7) * 0.6 + Math.sin(i * 0.23) * 0.4);
+      wave.push({ h: (2 + Math.round(v * 26)) + 'px' });
+      if (i < 32) segs.push(i < 9 ? '' : 'd');
+    }
+    const opts = ['m6', 'M6', 'm7', 'M7', 'TT'].map((o) => ({
+      label: o,
+      pick: () => this.setState({ pick: o }),
+      cls: s.pick === '' ? 'opt' : (o === 'M6' ? 'opt right' : (o === s.pick ? 'opt wrong' : 'opt'))
+    }));
+    return {
+      isBoard: s.screen === 'board', isLibrary: s.screen === 'library', isTools: s.screen === 'tools',
+      isMetro: s.screen === 'metro', isTuner: s.screen === 'tuner', isTrainer: s.screen === 'trainer', isTheory: s.screen === 'theory',
+      sheetFilter: s.sheet === 'filter', sheetCapture: s.sheet === 'capture', sheetRec: s.sheet === 'rec',
+      sheetSave: s.sheet === 'save', sheetPlayer: s.sheet === 'player',
+      playing: s.playing, paused: !s.playing, bpm: s.bpm, answered: s.pick !== '',
+      micText: s.screen === 'tuner' ? 'LISTEN' : (s.sheet === 'rec' ? 'REC' : 'OFF'),
+      timeText: s.playing ? '▶ 00:12 / 00:48' : '■ 00:00 / 00:48',
+      playStyle: s.playing ? 'background: #F2F2F2; color: #000' : '',
+      navBoard: nav(['board']), navLibrary: nav(['library']), navTools: nav(['tools', 'metro', 'tuner']),
+      navTrainer: nav(['trainer']), navTheory: nav(['theory']),
+      goBoard: go('board'), goLibrary: go('library'), goTools: go('tools'), goMetro: go('metro'),
+      goTuner: go('tuner'), goTrainer: go('trainer'), goTheory: go('theory'),
+      openFilter: sheet('filter'), openCapture: sheet('capture'), openPlayer: sheet('player'),
+      startRec: sheet('rec'), stopRec: sheet('save'), closeSheet: sheet('none'),
+      togglePlay: () => this.setState({ playing: !s.playing }),
+      bpmUp: () => this.setState({ bpm: Math.min(400, s.bpm + 1) }),
+      bpmDown: () => this.setState({ bpm: Math.max(20, s.bpm - 1) }),
+      wave: wave, segs: segs, opts: opts,
+      rows: [
+        { type: 'REC', title: 'Verse riff B ★', tagline: 'bass · dark · in Low Tide', bpm: '92', key: 'D DOR' },
+        { type: 'LYR', title: 'Salt on the window…', tagline: 'lyrics · love song · political song', bpm: '—', key: '—' },
+        { type: 'TAB', title: 'Chorus walk-up', tagline: 'bass · tab · Possible choruses', bpm: '—', key: 'D DOR' },
+        { type: 'REC', title: 'Take C', tagline: 'guitar', bpm: 'FREE', key: '?' },
+        { type: 'CHD', title: 'Dm7 G Am7 C', tagline: 'chords · possible chorus', bpm: '96', key: 'D DOR' },
+        { type: 'TXT', title: 'Bridge idea: half-time', tagline: 'note', bpm: '—', key: '—' },
+        { type: 'MID', title: 'Hum melody (Take A)', tagline: 'vocal · midi', bpm: '88', key: 'A MIN' }
+      ],
+      layers: [
+        { n: '01', name: 'VERSE RIFF B', mode: 'LOOP', conf: '+0 ST · 92→96', gain: '72%' },
+        { n: '02', name: 'HUM MELODY', mode: '1-SHOT', conf: '+2 ST · 88→96', gain: '55%' },
+        { n: '03', name: 'ROOM TAKE', mode: 'FREE', conf: 'NEVER CONFORMED', gain: '40%' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

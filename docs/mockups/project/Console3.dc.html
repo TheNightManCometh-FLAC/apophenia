@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Apophenia · C3</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.app{position:relative;width:390px;height:844px;overflow:hidden;background:#121314;color:#CFCCC4;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;font-size:13px}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0;text-align:left}
+.k{font-size:9px;letter-spacing:0.14em;color:#8D8A84;text-transform:uppercase}
+.acc{color:#D08A55}
+.hi{color:#E4E1DA;font-weight:800}
+.top1{flex:none;height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #2C2E31}
+.dd{font-weight:800;font-size:12px;letter-spacing:0.06em;min-height:38px;display:flex;align-items:center;gap:6px;color:#E4E1DA}
+.dd::after{content:'▾';font-size:10px;color:#8D8A84}
+.micst{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:0.08em;color:#8D8A84;min-height:38px}
+.micst i{width:7px;height:7px;border-radius:4px;border:1.5px solid #8D8A84;display:block}
+.top2{flex:none;height:48px;display:grid;grid-template-columns:1.5fr 1fr 0.9fr;border-bottom:1px solid #2C2E31;background:#18191B}
+.top2 > button{border-right:1px solid #2C2E31;display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:0.08em}
+.top2 > button:last-child{border-right:0}
+.lamp{width:9px;height:9px;border-radius:5px;background:#3A3C40;display:block}
+.lamp.on{animation-name:blink;animation-iteration-count:infinite;animation-timing-function:steps(1)}
+@keyframes blink{0%{background:#D08A55}20%{background:#3A3C40}100%{background:#3A3C40}}
+.bpm{font-size:17px;color:#E4E1DA}
+.scroll{flex:1;overflow-y:auto;position:relative}
+.ttl{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid #2C2E31;min-height:50px;box-sizing:border-box}
+.ttl b{font-size:14px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;color:#E4E1DA}
+.sq{min-width:44px;height:34px;border:1px solid #3A3C40;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;letter-spacing:0.08em;padding:0 10px;box-sizing:border-box}
+.sq.on{border-color:#D08A55;color:#E4E1DA;background:#24221F}
+.more{width:44px;height:40px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#CFCCC4}
+.menuscrim{position:absolute;inset:0;z-index:15;background:rgba(0,0,0,0.25)}
+.menu{position:absolute;z-index:20;background:#1F2023;border:1px solid #3A3C40;box-shadow:0 10px 30px rgba(0,0,0,0.55);min-width:220px}
+.mi{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;padding:0 14px;box-sizing:border-box;border-bottom:1px solid #2C2E31;font-size:12px;font-weight:700}
+.mi:last-child{border-bottom:0}
+.mi .k{letter-spacing:0.08em}
+.mh{padding:10px 14px 6px}
+.canvas{position:relative;height:600px;margin:0 6px}
+.win{position:absolute;background:#18191B;border:1px solid #2C2E31;display:flex;flex-direction:column;overflow:hidden}
+.wopen{flex:1;display:flex;flex-direction:column;gap:5px;padding:7px 8px;width:100%;box-sizing:border-box;overflow:hidden}
+.whead{display:flex;align-items:center;gap:6px}
+.wtype{font-size:8px;font-weight:800;letter-spacing:0.1em;padding:2px 4px;border:1px solid #3A3C40;color:#8D8A84}
+.wname{font-weight:800;font-size:11px;color:#E4E1DA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.wprev{font-size:10.5px;line-height:1.4;color:#AEABA4;white-space:pre;overflow:hidden}
+.wfoot{display:flex;align-items:center;border-top:1px solid #2C2E31;padding-left:8px;min-height:30px}
+.wtags{flex:1;font-size:9.5px;color:#8D8A84;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stk{height:30px;padding:0 8px;border-left:1px solid #2C2E31;font-size:8.5px;font-weight:800;letter-spacing:0.1em;color:#8D8A84;display:flex;align-items:center}
+.stk.in{color:#D08A55}
+.grip{position:absolute;right:2px;bottom:2px;width:10px;height:10px;border-right:2px solid #3A3C40;border-bottom:2px solid #3A3C40}
+.wave{display:flex;align-items:center;gap:1px;height:26px}
+.wave span{display:block;width:2px;background:#8F8C85}
+.transport{flex:none;display:grid;grid-template-columns:minmax(0,1fr) 54px 54px;border-top:1px solid #2C2E31;height:54px;background:#18191B}
+.transport > button{border-left:1px solid #2C2E31;display:flex;align-items:center;justify-content:center}
+.transport .info{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:0 12px;gap:2px;border-left:0}
+.nav-wrap{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid #2C2E31;height:52px;padding-bottom:4px}
+.nav{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:9px;font-weight:700;letter-spacing:0.08em;color:#8D8A84;border-top:2px solid transparent}
+.nav i{font-style:normal;font-size:13px;font-weight:800}
+.nav.on{color:#E4E1DA;border-top-color:#D08A55}
+.full{position:absolute;inset:0;background:#121314;display:flex;flex-direction:column;z-index:10}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,0.6);z-index:9}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:92%;background:#18191B;border-top:1px solid #D08A55;display:flex;flex-direction:column;z-index:10}
+.frow{display:grid;grid-template-columns:96px minmax(0,1fr);border-bottom:1px solid #2C2E31;min-height:46px;align-items:center;width:100%}
+.frow > :first-child{padding-left:12px}
+.frow > :last-child{padding:6px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;color:#E4E1DA;font-weight:700;font-size:12px}
+.frow > :last-child::after{content:'▾';color:#8D8A84;font-size:10px}
+.frow.open{background:#1C1D20}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px 10px 108px;border-bottom:1px solid #2C2E31;background:#1C1D20}
+.bigbtn{height:54px;display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:0.08em;font-size:12px;border-top:1px solid #2C2E31}
+.bigbtn.p{color:#E4E1DA;background:#24221F;border-top-color:#D08A55}
+.kv{display:grid;grid-template-columns:96px minmax(0,1fr);border-bottom:1px solid #2C2E31}
+.kv > div{padding:10px 12px;line-height:1.5}
+.kv > div:first-child{border-right:1px solid #2C2E31}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;border-bottom:1px solid #2C2E31;width:100%;min-height:54px;padding:8px 12px;box-sizing:border-box;gap:10px}
+.row .t{font-weight:800;color:#E4E1DA}
+.row .s{font-size:10.5px;color:#8D8A84;margin-top:3px;line-height:1.4}
+.lyrtext{padding:18px 16px 220px}
+.lyrtext.run{animation-name:lyrscroll;animation-timing-function:linear;animation-fill-mode:forwards}
+@keyframes lyrscroll{from{transform:translateY(0)}to{transform:translateY(-62%)}}
+.lsec{font-size:10px;font-weight:800;letter-spacing:0.16em;color:#8D8A84;margin:14px 0 4px}
+.lch{color:#D08A55;white-space:pre;font-size:12px;height:16px;font-weight:700}
+.lly{white-space:pre-wrap;font-size:19px;line-height:1.35;color:#E4E1DA}
+.ctlrow{flex:none;display:grid;grid-template-columns:1fr 1fr 54px;border-top:1px solid #2C2E31;height:50px}
+.ctlrow > *{border-right:1px solid #2C2E31;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;letter-spacing:0.06em}
+.ctlrow > :last-child{border-right:0}
+.rtabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid #2C2E31;border-bottom:1px solid #2C2E31}
+.rtab{height:40px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;letter-spacing:0.1em;color:#8D8A84;border-bottom:2px solid transparent}
+.rtab.on{color:#E4E1DA;border-bottom-color:#D08A55}
+.bigwave{display:flex;align-items:center;gap:1px;height:64px;padding:0 12px;position:relative}
+.bigwave span{display:block;flex:1;background:#8F8C85}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.tile{height:96px;border-right:1px solid #2C2E31;border-bottom:1px solid #2C2E31;padding:10px;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box}
+.tile:nth-child(3n){border-right:0}
+.tile b{font-size:11px;font-weight:800;letter-spacing:0.04em;color:#E4E1DA;line-height:1.3}
+.gauge{letter-spacing:0.2em;font-size:9px;color:#D08A55}
+.para{padding:10px 14px;font-size:12.5px;line-height:1.6}
+.hear{display:inline-flex;align-items:center;height:32px;padding:0 10px;border:1px solid #3A3C40;font-size:10.5px;font-weight:700;margin:0 6px 6px 0;color:#E4E1DA}
+.circle{position:relative;width:200px;height:200px;margin:6px auto;border:1px solid #2C2E31;border-radius:100px}
+.circle span{position:absolute;width:34px;height:22px;margin:-11px 0 0 -17px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#E4E1DA}
+.circle span.hl{color:#D08A55}
+.ans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #2C2E31}
+.opt{height:58px;border-right:1px solid #2C2E31;border-bottom:1px solid #2C2E31;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800}
+.opt:nth-child(3n){border-right:0}
+.opt.right{background:#26302A;color:#B5D6BC}
+.opt.wrong{background:#352625;color:#E3AEA7}
+.ear{display:grid;grid-template-columns:minmax(0,1fr) 44px 44px 44px;border-bottom:1px solid #2C2E31;align-items:center}
+.ear > div{padding:9px 12px}
+.ear > button{height:50px;border-left:1px solid #2C2E31;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800}
+.banner{height:32px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;letter-spacing:0.14em;background:#262B35;color:#9DB3D6}
+.digits{font-size:110px;font-weight:800;line-height:0.9;letter-spacing:-0.06em;text-align:center;color:#E4E1DA}
+.led{display:grid;grid-template-columns:repeat(21,minmax(0,1fr));gap:3px;padding:0 12px}
+.led span{height:44px;background:#1F2023;display:block}
+.led span.l{background:#8F8C85}
+.led span.o{background:#D08A55}
+.prob{border-bottom:1px solid #2C2E31;padding:10px 12px}
+.prob .h{display:flex;justify-content:space-between;gap:8px}
+.tbl{display:grid;grid-template-columns:44px minmax(0,1fr) 44px 60px;border-bottom:1px solid #2C2E31;align-items:start}
+.tbl > div{padding:10px 6px 10px 10px;min-height:44px;box-sizing:border-box}
+.search{display:flex;align-items:center;gap:8px;border-bottom:1px solid #2C2E31;padding:0 12px}
+.search input{flex:1;background:none;border:0;color:#E4E1DA;font:500 14px 'JetBrains Mono',monospace;outline:none;min-height:46px}
+.ivt{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));text-align:center}
+.ivt div{padding:4px 0;border-right:1px solid #2C2E31}
+.ivt div:nth-child(5n){border-right:0}
+.layer{display:grid;grid-template-columns:40px minmax(0,1fr) 70px;border-bottom:1px solid #2C2E31}
+.layer > div{padding:10px}
+</style>
+</helmet>
+<div class="app">
+
+<div class="top1">
+  <button class="dd" onClick="{{mProject}}" aria-label="Project menu">LOW TIDE</button>
+  <button class="micst" onClick="{{toggleMic}}" aria-label="Microphone: tap for Off or Listening"><i style="{{micDot}}"></i>{{micText}}</button>
+</div>
+<div class="top2">
+  <button onClick="{{mClick}}" aria-label="Metronome menu"><i class="{{lampCls}}" style="animation-duration: {{beatDur}}"></i>CLICK <span class="bpm">{{bpm}}</span><span class="k">▾</span></button>
+  <button onClick="{{mTools}}" aria-label="Tools menu">TOOLS <span class="k">▾</span></button>
+  <button onClick="{{quickRec}}" style="color: #C9564B" aria-label="Quick record to the Library">● REC</button>
+</div>
+
+<sc-if value="{{isBoard}}" hint-placeholder-val="{{true}}">
+<div class="ttl"><b>Board</b><span class="k" style="flex: 1">DRAG TO ARRANGE · CORNER TO RESIZE</span><button class="more" onClick="{{mBoard}}" aria-label="Board menu">⋯</button></div>
+<div class="scroll">
+  <div class="canvas">
+    <sc-for list="{{wins}}" as="w" hint-placeholder-count="6">
+      <div class="win" style="{{w.pos}}">
+        <button class="wopen" onClick="{{w.open}}">
+          <div class="whead"><span class="wtype">{{w.type}}</span><span class="wname">{{w.name}}</span></div>
+          <sc-if value="{{w.isText}}" hint-placeholder-val="{{true}}"><div class="wprev">{{w.prev}}</div></sc-if>
+          <sc-if value="{{w.isRec}}" hint-placeholder-val="{{false}}"><div class="wave"><sc-for list="{{w.wave}}" as="h" hint-placeholder-count="20"><span style="height: {{h}}"></span></sc-for></div><div class="k">{{w.meta}}</div></sc-if>
+          <sc-if value="{{w.isNot}}" hint-placeholder-val="{{false}}">
+            <svg width="200" height="54" viewBox="0 0 200 54" aria-hidden="true"><g stroke="#4A4C50"><line x1="0" y1="10" x2="200" y2="10"></line><line x1="0" y1="18" x2="200" y2="18"></line><line x1="0" y1="26" x2="200" y2="26"></line><line x1="0" y1="34" x2="200" y2="34"></line><line x1="0" y1="42" x2="200" y2="42"></line><line x1="110" y1="10" x2="110" y2="42"></line></g><text x="2" y="40" font-size="30" fill="#AEABA4" font-family="serif">𝄞</text><g fill="#E4E1DA"><ellipse cx="34" cy="30" rx="4" ry="3"></ellipse><ellipse cx="52" cy="30" rx="4" ry="3"></ellipse><ellipse cx="70" cy="34" rx="4" ry="3"></ellipse><ellipse cx="88" cy="38" rx="4" ry="3"></ellipse><ellipse cx="124" cy="38" rx="4" ry="3"></ellipse><ellipse cx="142" cy="34" rx="4" ry="3"></ellipse><ellipse cx="160" cy="30" rx="4" ry="3"></ellipse><ellipse cx="178" cy="22" rx="4" ry="3"></ellipse></g></svg>
+            <div class="k">{{w.meta}}</div>
+          </sc-if>
+        </button>
+        <div class="wfoot"><span class="wtags">{{w.tags}}</span><sc-if value="{{w.isRec}}" hint-placeholder-val="{{false}}"><button class="{{w.stkCls}}" onClick="{{w.toggleStack}}">{{w.stkText}}</button></sc-if></div>
+        <i class="grip"></i>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{isLyrics}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><button class="sq" onClick="{{goBoard}}">‹</button><b style="flex: 1">Low Tide · words</b><button class="more" onClick="{{mLyr}}" aria-label="Lyrics menu">⋯</button></div>
+<div class="scroll" style="overflow: hidden">
+  <div class="{{lyrCls}}" style="animation-duration: {{scrollDur}}">
+    <sc-for list="{{lyrics}}" as="l" hint-placeholder-count="12">
+      <sc-if value="{{l.isSec}}" hint-placeholder-val="{{false}}"><div class="lsec">{{l.text}}</div></sc-if>
+      <sc-if value="{{l.isLine}}" hint-placeholder-val="{{true}}"><div class="lch">{{l.ch}}</div><div class="lly">{{l.text}}</div></sc-if>
+    </sc-for>
+  </div>
+</div>
+<div class="ctlrow">
+  <button onClick="{{toggleScroll}}" class="{{scrollBtnCls}}">{{scrollText}}</button>
+  <button onClick="{{mSpeed}}">SPEED {{speed}} ▾</button>
+  <button onClick="{{mLyr}}" aria-label="More">⋯</button>
+</div>
+</sc-if>
+
+<sc-if value="{{isNotation}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><button class="sq" onClick="{{goBoard}}">‹</button><b style="flex: 1">Chorus melody</b><button class="sq" onClick="{{mNotView}}">{{notViewText}} ▾</button></div>
+<div class="scroll">
+  <div style="display: flex; gap: 6px; padding: 8px 12px; align-items: center"><span class="k">TREBLE · 4/4 · D DORIAN · ♩ = {{bpm}}</span></div>
+  <svg width="390" height="130" viewBox="0 0 390 130" role="img" aria-label="Chorus melody in treble clef: A A G F, F G A C" style="display: block">
+    <g stroke="#5A5C60"><line x1="8" y1="40" x2="382" y2="40"></line><line x1="8" y1="52" x2="382" y2="52"></line><line x1="8" y1="64" x2="382" y2="64"></line><line x1="8" y1="76" x2="382" y2="76"></line><line x1="8" y1="88" x2="382" y2="88"></line><line x1="210" y1="40" x2="210" y2="88"></line><line x1="381" y1="40" x2="381" y2="88"></line></g>
+    <text x="10" y="86" font-size="58" fill="#CFCCC4" font-family="serif">𝄞</text>
+    <text x="52" y="62" font-size="20" fill="#CFCCC4" font-weight="800">4</text><text x="52" y="84" font-size="20" fill="#CFCCC4" font-weight="800">4</text>
+    <g fill="#E4E1DA"><ellipse cx="88" cy="70" rx="6.5" ry="5"></ellipse><ellipse cx="120" cy="70" rx="6.5" ry="5"></ellipse><ellipse cx="152" cy="76" rx="6.5" ry="5"></ellipse><ellipse cx="184" cy="82" rx="6.5" ry="5"></ellipse><ellipse cx="236" cy="82" rx="6.5" ry="5"></ellipse><ellipse cx="268" cy="76" rx="6.5" ry="5"></ellipse><ellipse cx="300" cy="70" rx="6.5" ry="5"></ellipse><ellipse cx="342" cy="58" rx="6.5" ry="5" fill="#D08A55"></ellipse></g>
+    <g stroke="#E4E1DA" stroke-width="1.5"><line x1="94" y1="70" x2="94" y2="34"></line><line x1="126" y1="70" x2="126" y2="34"></line><line x1="158" y1="76" x2="158" y2="40"></line><line x1="190" y1="82" x2="190" y2="46"></line><line x1="242" y1="82" x2="242" y2="46"></line><line x1="274" y1="76" x2="274" y2="40"></line><line x1="306" y1="70" x2="306" y2="34"></line><line x1="336" y1="58" x2="336" y2="94"></line></g>
+    <g fill="#AEABA4" font-size="11" font-family="JetBrains Mono, monospace"><text x="78" y="118">Low</text><text x="110" y="118">tide</text><text x="144" y="118">low</text><text x="174" y="118">tide</text><text x="224" y="118">show</text><text x="262" y="118">me</text><text x="290" y="118">what</text><text x="326" y="118">took</text></g>
+  </svg>
+  <div class="kv"><div class="k">SELECTED</div><div><span class="hi">C5</span> · quarter · ♭7 of Dm7 · <span class="acc">drag up/down to change, hear it</span></div></div>
+  <div style="display: flex; gap: 6px; padding: 10px 12px"><button class="sq" onClick="{{mNotInput}}">INPUT: {{notInputText}} ▾</button><button class="sq" onClick="{{mDur}}">♩ QUARTER ▾</button><button class="sq" onClick="{{togglePlay}}">▶</button></div>
+  <div role="img" aria-label="Piano keyboard, two octaves from C4, C5 selected" style="position: relative; height: 120px">
+    <sc-for list="{{whiteKeys}}" as="kw" hint-placeholder-count="14"><div style="{{kw.style}}"></div></sc-for>
+    <sc-for list="{{blackKeys}}" as="kb" hint-placeholder-count="10"><div style="{{kb.style}}"></div></sc-for>
+    <span class="k" style="position: absolute; left: 8px; bottom: 6px; color: #5A5C60">C4</span><span class="k" style="position: absolute; left: 200px; bottom: 6px; color: #121314">C5</span>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{isRec}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><button class="sq" onClick="{{goBoard}}">‹</button><b style="flex: 1">Verse riff · B ★</b><button class="sq" onClick="{{mTake}}">TAKE B ▾</button><button class="sq on" onClick="{{mRecAI}}">AI ▾</button></div>
+<div class="bigwave"><sc-for list="{{big}}" as="h" hint-placeholder-count="60"><span style="height: {{h}}"></span></sc-for></div>
+<div class="rtabs"><sc-for list="{{rtabs}}" as="t" hint-placeholder-count="5"><button class="{{t.cls}}" onClick="{{t.pick}}">{{t.label}}</button></sc-for></div>
+<div class="scroll">
+  <sc-if value="{{tabInfo}}" hint-placeholder-val="{{true}}">
+    <div class="kv"><div class="k">TAGS</div><div>bass · dark <span class="acc">+ TAG</span></div></div>
+    <div class="kv"><div class="k">BPM · KEY</div><div>92 <span class="k">CLICK</span> · D Dorian <span class="k">ANALYSIS</span><br><span class="k">HOME NOTE D · ALT C IONIAN</span></div></div>
+    <div class="kv"><div class="k">MADE BY AI</div><div>Stems ✓ · MIDI ✓ · Sheet ✓ · Speech ✓ · Chords —</div></div>
+    <div class="kv"><div class="k">USED IN</div><div>Low Tide, Porch Light · Dark riffs</div></div>
+    <div class="kv"><div class="k">RECORDED</div><div>21 Oct · 0:18 · 48 kHz · UNPROCESSED · latency 12.4 ms</div></div>
+  </sc-if>
+  <sc-if value="{{tabStems}}" hint-placeholder-val="{{false}}">
+    <sc-for list="{{stems}}" as="s" hint-placeholder-count="4"><div class="row"><div><div class="t">{{s.name}}</div><div class="s">{{s.note}}</div></div><button class="sq">M · S ▾</button></div></sc-for>
+  </sc-if>
+  <sc-if value="{{tabMidi}}" hint-placeholder-val="{{false}}">
+    <div class="kv"><div class="k">MIDI</div><div>6 notes from the bass stem · tap a note to fix it</div></div>
+    <svg width="366" height="120" viewBox="0 0 366 120" role="img" aria-label="Piano roll of six notes" style="margin: 8px 12px; display: block"><rect x="0" y="0" width="366" height="120" fill="none" stroke="#2C2E31"></rect><g fill="#D08A55"><rect x="10" y="96" width="38" height="10"></rect><rect x="64" y="60" width="38" height="10"></rect><rect x="118" y="40" width="38" height="10"></rect><rect x="180" y="96" width="38" height="10"></rect><rect x="234" y="24" width="38" height="10"></rect><rect x="290" y="84" width="60" height="10"></rect></g></svg>
+  </sc-if>
+  <sc-if value="{{tabSheet}}" hint-placeholder-val="{{false}}">
+    <div class="kv"><div class="k">AS</div><div>Bass clef, written an octave up · also as TAB ▾</div></div>
+    <div class="para">Opens in the notation editor (same as Chorus melody), with the riff spelled in D Dorian.</div>
+  </sc-if>
+  <sc-if value="{{tabText}}" hint-placeholder-val="{{false}}">
+    <div class="kv"><div class="k">0:00</div><div>okay this is the verse thing again, B take</div></div>
+    <div class="kv"><div class="k">0:13</div><div>maybe that last F wants to be an F sharp, try it both ways</div></div>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{isLibrary}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><b>Library</b><span style="flex: 1"></span><button class="sq on" onClick="{{openFilter}}">FILTER · 3 ▾</button><button class="sq" onClick="{{mSort}}">SORT ▾</button></div>
+<label class="search"><span class="k">FIND</span><input type="text" placeholder="title, tag, lyric, transcript" aria-label="Search the Library"></label>
+<div class="scroll">
+  <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+    <div class="tbl"><div class="k" style="color: #CFCCC4; font-weight: 800">{{r.type}}</div><div><div class="hi">{{r.title}}</div><div class="k" style="margin-top: 4px; letter-spacing: 0.04em; text-transform: none">{{r.tagline}}</div></div><div style="font-weight: 700">{{r.bpm}}</div><div style="font-weight: 700">{{r.key}}</div></div>
+  </sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isTools}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><button class="dd" onClick="{{mToolsCat}}">{{toolsCatText}}</button><span class="k">{{toolsCatNote}}</span></div>
+<div class="scroll">
+  <sc-if value="{{toolsPractice}}" hint-placeholder-val="{{true}}">
+    <sc-for list="{{practice}}" as="p" hint-placeholder-count="7"><button class="row" onClick="{{p.open}}"><div><div class="t">{{p.name}}</div><div class="s">{{p.note}}</div></div><span class="acc" style="font-weight: 800">{{p.val}}</span></button></sc-for>
+  </sc-if>
+  <sc-if value="{{toolsAI}}" hint-placeholder-val="{{false}}">
+    <div class="kv"><div class="k">ON PHONE</div><div>Every model runs on the phone. Nothing leaves it. Results are new items linked to the source; the source is never changed.</div></div>
+    <sc-for list="{{ai}}" as="a" hint-placeholder-count="7"><button class="row" onClick="{{a.open}}"><div><div class="t">{{a.name}}</div><div class="s">{{a.note}}</div></div><span class="k">{{a.model}}</span></button></sc-for>
+    <div class="k" style="padding: 14px 12px 6px">JOBS</div>
+    <div class="row"><div><div class="t">Stems · Porch Light demo</div><div class="s">4 stems · 62% · runs in the background</div></div><span class="acc">62%</span></div>
+    <div class="row"><div><div class="t">MIDI · Hum melody</div><div class="s">done · 18 notes · open to correct</div></div><span class="k">DONE</span></div>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{isCheck}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><button class="sq" onClick="{{goToolsAI}}">‹</button><b style="flex: 1">Performance check</b><button class="sq" onClick="{{mInstr}}">VOICE ▾</button></div>
+<div class="scroll">
+  <button class="frow"><span class="k">REFERENCE</span><span>Chorus melody (notation)</span></button>
+  <button class="frow"><span class="k">YOUR TAKE</span><span>Take E · voice · 0:21</span></button>
+  <svg width="366" height="150" viewBox="0 0 366 150" role="img" aria-label="Reference notes as outlines and your sung pitch as a line, with two problem spots marked" style="margin: 10px 12px 0; display: block">
+    <rect x="94" y="0" width="42" height="132" fill="#352625"></rect><rect x="302" y="0" width="44" height="132" fill="#352625"></rect>
+    <g fill="none" stroke="#8D8A84" stroke-width="1.2"><rect x="10" y="60" width="40" height="10"></rect><rect x="52" y="60" width="40" height="10"></rect><rect x="94" y="72" width="40" height="10"></rect><rect x="136" y="84" width="40" height="10"></rect><rect x="178" y="84" width="40" height="10"></rect><rect x="220" y="72" width="40" height="10"></rect><rect x="262" y="60" width="40" height="10"></rect><rect x="304" y="42" width="40" height="10"></rect></g>
+    <polyline fill="none" stroke="#D08A55" stroke-width="2" points="12,66 48,65 54,65 90,64 96,92 104,86 112,80 134,79 138,89 176,88 180,89 216,90 224,77 258,77 266,65 300,64 312,54 344,53"></polyline>
+    <g fill="#8D8A84" font-size="9" font-family="JetBrains Mono, monospace"><text x="12" y="146">Low</text><text x="54" y="146">tide</text><text x="96" y="146">low</text><text x="138" y="146">tide</text><text x="180" y="146">show</text><text x="222" y="146">me</text><text x="264" y="146">what</text><text x="306" y="146">took</text></g>
+  </svg>
+  <div class="kv" style="border-top: 1px solid #2C2E31; margin-top: 8px"><div class="k">SCORE</div><div>Pitch <span class="hi">84%</span> within ±25¢ · notes <span class="hi">31/34</span> · timing avg <span class="hi">18 ms late</span></div></div>
+  <sc-for list="{{problems}}" as="p" hint-placeholder-count="3">
+    <div class="prob"><div class="h"><span class="hi">{{p.where}}</span><span class="acc" style="font-weight: 800">{{p.what}}</span></div><div class="s" style="font-size: 11px; line-height: 1.5; margin-top: 4px; color: #CFCCC4">{{p.why}}</div><div style="margin-top: 8px"><button class="hear">▶ YOURS</button><button class="hear">▶ REFERENCE</button><button class="hear">LOOP IT</button></div></div>
+  </sc-for>
+  <div class="kv"><div class="k">WORKS ON</div><div>Pitch: voice, bass, single-note guitar, any one-note-at-a-time instrument. Chords: notes present or missing, lower confidence. Drums: timing only.</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isMetro}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><button class="sq" onClick="{{goTools}}">‹</button><b style="flex: 1">Metronome</b><button class="sq" onClick="{{mMeter}}">4/4 ▾</button></div>
+<div class="scroll" style="display: flex; flex-direction: column; justify-content: center; gap: 16px">
+  <div class="digits">{{bpm}}</div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px solid #2C2E31; border-bottom: 1px solid #2C2E31"><button class="bigbtn" style="border-top: 0" onClick="{{bpmDown}}">−</button><button class="bigbtn p" style="border-top: 0">TAP</button><button class="bigbtn" style="border-top: 0" onClick="{{bpmUp}}">+</button></div>
+  <button class="frow"><span class="k">MORE</span><span>Count-in, accents, subdivision, swing, trainer, polyrhythm</span></button>
+</div>
+</sc-if>
+
+<sc-if value="{{isTuner}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><button class="sq" onClick="{{goTools}}">‹</button><b style="flex: 1">Tuner</b><button class="sq">BASS · DROP D ▾</button></div>
+<div class="scroll" style="display: flex; flex-direction: column; justify-content: center; gap: 18px">
+  <div class="digits">D1</div>
+  <div style="text-align: center; font-size: 20px; font-weight: 800" class="acc">−04 ¢</div>
+  <div class="led"><span></span><span></span><span></span><span></span><span></span><span></span><span class="l"></span><span class="l"></span><span class="o"></span><span class="l"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="k" style="text-align: center">A4 440 · EQUAL ▾</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isLearn}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><button class="dd" onClick="{{mLearn}}">{{learnText}}</button><span class="k">{{learnNote}}</span></div>
+<div class="scroll">
+  <sc-if value="{{learnCourse}}" hint-placeholder-val="{{true}}">
+    <div class="tiles"><sc-for list="{{cats}}" as="c" hint-placeholder-count="9"><button class="tile" onClick="{{c.open}}"><span class="k">{{c.count}}</span><b>{{c.name}}</b><span class="gauge">{{c.range}}</span></button></sc-for></div>
+    <div class="kv"><div class="k">LEVELS</div><div>● to ●●●●● is only a guide to how complex a page is. Everything is open.</div></div>
+  </sc-if>
+  <sc-if value="{{learnEar}}" hint-placeholder-val="{{false}}">
+    <button class="frow"><span class="k">CHAPTER</span><span>Seventh chords · 5 drills</span></button>
+    <sc-for list="{{earRows}}" as="e" hint-placeholder-count="5"><div class="ear"><div><div class="hi">{{e.name}}</div><div class="k" style="margin-top: 3px">{{e.best}}</div></div><button onClick="{{goEar}}" style="color: #9EC4A6">L</button><button onClick="{{goEar}}" style="color: #9DB3D6">P</button><button onClick="{{goEar}}" style="color: #D99A92">T</button></div></sc-for>
+    <div class="kv"><div class="k">KEY</div><div>L listen · P practice · T test</div></div>
+  </sc-if>
+  <sc-if value="{{learnRef}}" hint-placeholder-val="{{false}}">
+    <label class="search"><span class="k">FIND</span><input type="text" value="E7♯9" aria-label="Search the reference"></label>
+    <div style="padding: 12px; border-bottom: 1px solid #2C2E31; display: flex; justify-content: space-between; align-items: flex-end"><div><div style="font-size: 38px; font-weight: 800; line-height: 1; color: #E4E1DA">E7<sup style="font-size: 18px">♯9</sup></div><div class="k" style="margin-top: 6px">ALSO E7+9 · "THE HENDRIX CHORD"</div></div><button class="sq" onClick="{{mRefView}}">{{refViewText}} ▾</button></div>
+    <div class="kv"><div class="k">NOTES</div><div><div class="ivt"><div class="hi">E</div><div class="hi">G♯</div><div class="hi">B</div><div class="hi">D</div><div class="hi">F𝄪</div><div class="k">R · 0</div><div class="k">M3 · 4</div><div class="k">P5 · 7</div><div class="k">m7 · 10</div><div class="k">A9 · 15</div></div></div></div>
+    <sc-if value="{{refGuitar}}" hint-placeholder-val="{{true}}">
+      <div class="kv"><div class="k">GUITAR<br>x-7-6-7-8-x</div><div>
+        <svg width="250" height="138" viewBox="0 0 250 138" role="img" aria-label="Guitar fingering dots: A string fret 7 E, D string fret 6 G sharp, G string fret 7 D, B string fret 8 F double sharp" style="display: block">
+          <g stroke="#5A5C60"><line x1="20" y1="10" x2="240" y2="10"></line><line x1="20" y1="30" x2="240" y2="30"></line><line x1="20" y1="50" x2="240" y2="50"></line><line x1="20" y1="70" x2="240" y2="70"></line><line x1="20" y1="90" x2="240" y2="90"></line><line x1="20" y1="110" x2="240" y2="110"></line><line x1="20" y1="10" x2="20" y2="110"></line><line x1="64" y1="10" x2="64" y2="110"></line><line x1="108" y1="10" x2="108" y2="110"></line><line x1="152" y1="10" x2="152" y2="110"></line><line x1="196" y1="10" x2="196" y2="110"></line><line x1="240" y1="10" x2="240" y2="110"></line></g>
+          <g fill="#8D8A84" font-size="10" font-family="JetBrains Mono, monospace"><text x="4" y="14">x</text><text x="4" y="114">x</text><text x="38" y="132">5</text><text x="82" y="132">6</text><text x="126" y="132">7</text><text x="170" y="132">8</text><text x="214" y="132">9</text></g>
+          <circle cx="130" cy="90" r="9" fill="#D08A55"></circle><circle cx="86" cy="70" r="9" fill="#E4E1DA"></circle><circle cx="130" cy="50" r="9" fill="#E4E1DA"></circle><circle cx="174" cy="30" r="9" fill="#E4E1DA"></circle>
+          <g font-size="8" font-weight="800" text-anchor="middle" font-family="JetBrains Mono, monospace" fill="#121314"><text x="130" y="93">E</text><text x="86" y="73">G♯</text><text x="130" y="53">D</text><text x="174" y="33">F𝄪</text></g>
+        </svg>
+      </div></div>
+    </sc-if>
+    <sc-if value="{{refPiano}}" hint-placeholder-val="{{false}}">
+      <div class="kv"><div class="k">PIANO<br>E · G♯ D F𝄪</div><div>
+        <div role="img" aria-label="Piano voicing: left hand E, right hand G sharp, D, F double sharp" style="position: relative; height: 96px; width: 242px">
+          <sc-for list="{{refWhite}}" as="kw" hint-placeholder-count="11"><div style="{{kw.style}}"></div></sc-for>
+          <sc-for list="{{refBlack}}" as="kb" hint-placeholder-count="7"><div style="{{kb.style}}"></div></sc-for>
+          <sc-for list="{{refLabels}}" as="lb" hint-placeholder-count="4"><span style="{{lb.style}}">{{lb.t}}</span></sc-for>
+        </div>
+        <div class="k" style="margin-top: 6px">LH E · RH G♯ D F𝄪 (sounds G)</div>
+      </div></div>
+    </sc-if>
+    <div class="kv"><div class="k">FUNCTION</div><div>Dominant: V7 in A minor (or A major). The ♯9 adds the minor third over the major third, the blues clash.</div></div>
+    <div class="kv"><div class="k">SCALES<br>THAT FIT</div><div>E altered (7th mode of F melodic minor) · E half-whole diminished · E minor pentatonic over it, blues-style</div></div>
+    <div class="kv"><div class="k">SUBSTITUTE</div><div>B♭7 (tritone sub: shares G♯/A♭ and D) · E7♭9 · E7alt</div></div>
+    <div class="kv"><div class="k">HEAR</div><div><button class="hear">▶ CHORD</button><button class="hear">▶ ARPEGGIO</button><button class="hear">▶ VS 7♭9</button><button class="hear">▶ E7♯9 → Am</button></div></div>
+    <div class="kv"><div class="k">WHERE</div><div>"Purple Haze" (Hendrix) · common in funk and blues-rock · Billboard data: 0.3% of chords</div></div>
+    <div class="kv"><div class="k">IN YOURS</div><div>Chorus walk-up, bar 3 · Take C 0:41</div></div>
+    <div class="kv"><div class="k">NAMING</div><div>Written ♯9 (F𝄪), not ♭10 (G), because chord tones stack in thirds; it sounds like G.</div></div>
+    <div class="kv"><div class="k">EXPLAINED</div><div><button class="hear" onClick="{{goCat}}">CHORDS › EXTENSIONS &amp; ALTERATIONS →</button><button class="hear" onClick="{{goEar}}">EAR DRILL →</button></div></div>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{isCat}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><button class="sq" onClick="{{goLearn}}">‹</button><b style="flex: 1">Scales &amp; keys</b><button class="sq" onClick="{{mLevel}}">LEVEL: ALL ▾</button></div>
+<div class="scroll">
+  <sc-for list="{{topics}}" as="t" hint-placeholder-count="8"><button class="row" onClick="{{t.open}}"><div><div class="t">{{t.name}}</div><div class="s">{{t.note}}</div></div><span class="gauge">{{t.gauge}}</span></button></sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isLesson}}" hint-placeholder-val="{{false}}">
+<div class="ttl"><button class="sq" onClick="{{goCat}}">‹</button><b style="flex: 1">Circle of fifths</b><span class="gauge">●●○○○</span><button class="more" onClick="{{mLesson}}" aria-label="Page menu">⋯</button></div>
+<div class="scroll">
+  <div class="k" style="padding: 12px 14px 0">EXPLAIN</div>
+  <div class="para">Each step clockwise is a perfect fifth up and adds one sharp to the key signature; each step anticlockwise adds one flat. Neighbours share six of their seven notes, so one step sounds close and a jump across sounds far.</div>
+  <div class="k" style="padding: 0 14px">SEE · TAP A KEY TO HEAR ITS SCALE</div>
+  <div class="circle"><sc-for list="{{cof}}" as="c" hint-placeholder-count="12"><span class="{{c.cls}}" style="left: {{c.x}}; top: {{c.y}}">{{c.k}}</span></sc-for></div>
+  <div class="k" style="padding: 6px 14px">HEAR</div>
+  <div style="padding: 0 14px"><button class="hear">▶ C → G</button><button class="hear">▶ C → F</button><button class="hear">▶ C → F♯</button></div>
+  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px 6px"><span class="k">TRY · D MAJOR, ONE STEP CLOCKWISE FROM G</span><button class="sq" onClick="{{mTry}}">PIANO ▾</button></div>
+  <div role="img" aria-label="Piano, D major scale: right-hand fingering 1 2 3 1 2 3 4 5 above, left-hand 5 4 3 2 1 3 2 1 below" style="position: relative; height: 134px">
+    <sc-for list="{{tryWhite}}" as="kw" hint-placeholder-count="8"><div style="{{kw.style}}"></div></sc-for>
+    <sc-for list="{{tryBlack}}" as="kb" hint-placeholder-count="5"><div style="{{kb.style}}"></div></sc-for>
+    <sc-for list="{{tryFingers}}" as="f" hint-placeholder-count="16"><span style="{{f.style}}">{{f.t}}</span></sc-for>
+  </div>
+  <div class="k" style="padding: 2px 14px 8px">RIGHT HAND ABOVE · LEFT HAND BELOW · F♯ AND C♯ ARE THE TWO SHARPS</div>
+  <div class="kv" style="border-top: 1px solid #2C2E31"><div class="k">CHECK<br>BY EAR</div><div>The progression moves one step. Up a fifth or down a fifth?</div></div>
+  <div class="ans" style="grid-template-columns: repeat(2, minmax(0, 1fr))"><button class="opt">↑ FIFTH</button><button class="opt">↓ FIFTH</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isEar}}" hint-placeholder-val="{{false}}">
+<div class="banner">PRACTICE</div>
+<div class="ttl"><button class="sq" onClick="{{goLearnEar}}">‹</button><b style="flex: 1">Maj7 · m7 · 7</b><button class="sq" onClick="{{mEarMode}}">PRACTICE ▾</button></div>
+<div class="scroll">
+  <div style="display: flex; gap: 6px; padding: 14px 12px"><button class="sq on">▶ PLAY</button><button class="sq">↺ AGAIN</button><button class="sq" onClick="{{mEarOpts}}">SOUND ▾</button></div>
+  <div class="ans"><sc-for list="{{opts}}" as="o" hint-placeholder-count="3"><button class="{{o.cls}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div>
+  <sc-if value="{{answered}}" hint-placeholder-val="{{false}}"><div class="kv"><div class="k">ANSWER</div><div>m7: D F A C. The ♭3 is what sets it apart from the dominant 7.</div></div></sc-if>
+  <div class="kv"><div class="k">SESSION</div><div>7 / 9 · streak 3</div></div>
+</div>
+</sc-if>
+
+<div class="transport">
+  <button class="info" onClick="{{openPlayer}}"><span class="k">STACK 1 · {{inStack}} LAYERS · LOW TIDE</span><span class="hi">{{timeText}}</span></button>
+  <button onClick="{{togglePlay}}" aria-label="Play or stop the stack">
+    <sc-if value="{{paused}}" hint-placeholder-val="{{true}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8z"></path></svg></sc-if>
+    <sc-if value="{{playing}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="12" height="14"></rect></svg></sc-if>
+  </button>
+  <button onClick="{{startBounce}}" style="color: #C9564B" aria-label="Record the stack's own output"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle></svg></button>
+</div>
+<div class="nav-wrap">
+  <button class="{{navBoard}}" onClick="{{goBoard}}"><i>1</i>BOARD</button>
+  <button class="{{navLibrary}}" onClick="{{goLibrary}}"><i>2</i>LIBRARY</button>
+  <button class="{{navTools}}" onClick="{{goTools}}"><i>3</i>TOOLS</button>
+  <button class="{{navLearn}}" onClick="{{goLearn}}"><i>4</i>LEARN</button>
+</div>
+
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+<button class="menuscrim" onClick="{{closeMenu}}" aria-label="Close menu"></button>
+<div class="menu" style="{{menuPos}}">
+  <sc-if value="{{menuHasTitle}}" hint-placeholder-val="{{false}}"><div class="mh k">{{menuTitle}}</div></sc-if>
+  <sc-if value="{{menuIsClick}}" hint-placeholder-val="{{false}}">
+    <div style="display: grid; grid-template-columns: 56px 1fr 56px; align-items: center; border-bottom: 1px solid #2C2E31"><button class="bigbtn" style="border: 0" onClick="{{bpmDown}}" aria-label="Slower">−</button><div style="text-align: center; font-size: 34px; font-weight: 800; color: #E4E1DA">{{bpm}}</div><button class="bigbtn" style="border: 0" onClick="{{bpmUp}}" aria-label="Faster">+</button></div>
+    <button class="mi" onClick="{{toggleClick}}">{{clickItem}}<span class="k">{{clickState}}</span></button>
+    <button class="mi">Tap tempo<span class="k">TAP HERE</span></button>
+    <button class="mi">Meter<span class="k">4/4 ›</span></button>
+    <button class="mi">Count-in<span class="k">1 BAR ›</span></button>
+    <button class="mi" onClick="{{goMetro}}">Full metronome<span class="k">›</span></button>
+  </sc-if>
+  <sc-for list="{{menuItems}}" as="m" hint-placeholder-count="4"><button class="mi" onClick="{{m.act}}">{{m.label}}<span class="k">{{m.note}}</span></button></sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetFilter}}" hint-placeholder-val="{{false}}">
+<button class="scrim" onClick="{{closeSheet}}" aria-label="Close"></button>
+<div class="sheet">
+  <div class="ttl"><b>Filter</b><button class="sq">SAVED ▾</button></div>
+  <div class="scroll">
+    <button class="frow"><span class="k">MATCH</span><span>All of these</span></button>
+    <button class="frow"><span class="k">TYPE</span><span>Recordings, MIDI</span></button>
+    <button class="frow open"><span class="k">TAGS</span><span>has bass · not vocal</span></button>
+    <div class="chips"><span class="sq on">+ BASS</span><span class="sq">GUITAR</span><span class="sq">DARK</span><span class="sq on">− VOCAL</span><span class="sq">ANY / ALL</span></div>
+    <button class="frow"><span class="k">KEY · MODE</span><span>D Dorian, + unknown</span></button>
+    <button class="frow"><span class="k">BPM</span><span>88–96 · ½ and 2× · no free time</span></button>
+    <button class="frow"><span class="k">METER</span><span>Any</span></button>
+    <button class="frow"><span class="k">HAS</span><span>MIDI or stems</span></button>
+    <button class="frow"><span class="k">TAKES</span><span>Starred only</span></button>
+    <button class="frow"><span class="k">PROJECT</span><span>Not used anywhere</span></button>
+    <button class="frow"><span class="k">GROUP</span><span>Any</span></button>
+    <button class="frow"><span class="k">SOURCE</span><span>Recorded, imported, AI-made</span></button>
+    <button class="frow"><span class="k">DATE</span><span>Captured: any time</span></button>
+    <button class="frow"><span class="k">LENGTH</span><span>Any</span></button>
+  </div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr"><button class="bigbtn" onClick="{{closeSheet}}">CLEAR</button><button class="bigbtn">SAVE AS…</button><button class="bigbtn p" onClick="{{closeSheet}}">SHOW 4</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetRec}}" hint-placeholder-val="{{false}}">
+<div class="full">
+  <div class="top1"><span class="micst" style="color: #C9564B"><i style="background: #C9564B; border-color: #C9564B"></i>{{recTitle}}</span><span class="k">{{recDest}}</span></div>
+  <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 22px">
+    <div class="digits" style="font-size: 92px">00:07</div>
+    <div class="led"><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span class="l"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="k" style="text-align: center; padding: 0 20px; line-height: 1.6">{{recNote}}</div>
+  </div>
+  <button class="bigbtn p" onClick="{{stopRec}}" style="height: 76px; font-size: 15px">■ STOP</button>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetSave}}" hint-placeholder-val="{{false}}">
+<button class="scrim" onClick="{{closeSheet}}" aria-label="Close"></button>
+<div class="sheet">
+  <div class="ttl"><b>{{saveTitle}}</b><span class="k">ALL OPTIONAL</span></div>
+  <button class="frow"><span class="k">TITLE</span><span>—</span></button>
+  <button class="frow"><span class="k">TAGS</span><span>{{saveTags}}</span></button>
+  <button class="frow"><span class="k">BPM · KEY</span><span>analysing…</span></button>
+  <button class="frow"><span class="k">GOES TO</span><span>{{saveDest}}</span></button>
+  <button class="bigbtn p" onClick="{{closeSheet}}">DONE</button>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetPlayer}}" hint-placeholder-val="{{false}}">
+<div class="full">
+  <div class="ttl"><b>Stack 1</b><button class="sq">96 · D DOR ▾</button><button class="sq" onClick="{{closeSheet}}">CLOSE</button></div>
+  <div class="scroll">
+    <sc-for list="{{layers}}" as="l" hint-placeholder-count="3">
+      <div class="layer"><div style="font-weight: 800; color: #8D8A84">{{l.n}}</div><div><div class="hi">{{l.name}}</div><div class="wave" style="margin-top: 6px"><sc-for list="{{l.wave}}" as="h" hint-placeholder-count="30"><span style="height: {{h}}"></span></sc-for></div><div class="k acc" style="margin-top: 4px">{{l.conf}}</div></div><div><button class="sq">{{l.mode}} ▾</button></div></div>
+    </sc-for>
+    <div class="kv"><div class="k">TO ADD A<br>PART</div><div>Play the stack and press <span style="color: #C9564B">● REC</span> at the top: you hear the stack, the mic records you, the take lands here as a new layer.</div></div>
+    <div class="kv"><div class="k">● BELOW</div><div>Records the stack's own output directly, no mic, as a new recording.</div></div>
+  </div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr"><button class="bigbtn">+ LAYER FROM LIBRARY</button><button class="bigbtn p" onClick="{{togglePlay}}">{{stackPlayText}}</button></div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { screen: 'board', sheet: 'none', menu: '', playing: false, click: false, bpm: 96, pick: '',
+      rtab: 'info', autoscroll: false, speed: 3, learn: 'course', tools: 'practice', listening: false,
+      refView: 'guitar', notView: 'notation', notInput: 'piano', recKind: 'quick', stack: { riffB: true, hum: true, room: true } };
+  }
+  renderVals() {
+    const s = this.state;
+    const go = (screen, extra) => () => this.setState(Object.assign({ screen: screen, sheet: 'none', menu: '' }, extra || {}));
+    const nav = (keys) => keys.indexOf(s.screen) >= 0 ? 'nav on' : 'nav';
+    const menu = (name) => () => this.setState({ menu: s.menu === name ? '' : name });
+    const set = (obj) => () => this.setState(Object.assign({ menu: '' }, obj));
+    const shape = (n, amp, seed) => {
+      const out = [];
+      for (let i = 0; i < n; i++) {
+        const v = Math.abs(Math.sin(i * 0.7 + seed) * 0.6 + Math.sin(i * 0.23 + seed * 2) * 0.4);
+        out.push((2 + Math.round(v * amp)) + 'px');
+      }
+      return out;
+    };
+    const toggleStack = (id) => () => { const st = Object.assign({}, s.stack); st[id] = !st[id]; this.setState({ stack: st }); };
+    const pos = (x, y, w, h) => 'left: ' + x + 'px; top: ' + y + 'px; width: ' + w + 'px; height: ' + h + 'px';
+    const rec = (id, name, tags, meta, seed, p) => ({ pos: p, type: 'REC', name: name, tags: tags, meta: meta, isRec: true, isText: false, isNot: false,
+      wave: shape(Math.round(parseInt(p.split('width: ')[1], 10) / 3.2), 20, seed), open: go('rec', { rtab: 'info' }), toggleStack: toggleStack(id),
+      stkCls: s.stack[id] ? 'stk in' : 'stk', stkText: s.stack[id] ? 'IN STACK' : '+ STACK' });
+    const txt = (type, name, tags, prev, target, p) => ({ pos: p, type: type, name: name, tags: tags, prev: prev, isText: true, isRec: false, isNot: false,
+      open: target ? go(target) : () => {} });
+    const inStack = Object.keys(s.stack).filter((k) => s.stack[k]).length;
+    const white = (n, w, x0, top, h, lit) => { const out = []; for (let i = 0; i < n; i++) out.push({ style: 'position: absolute; top: ' + top + 'px; left: ' + (x0 + i * w) + 'px; width: ' + (w - 1) + 'px; height: ' + h + 'px; background: ' + (lit.indexOf(i) >= 0 ? '#D08A55' : '#CFCCC4') }); return out; };
+    const black = (after, w, bw, x0, top, h, lit) => after.map((i) => ({ style: 'position: absolute; top: ' + top + 'px; left: ' + (x0 + (i + 1) * w - bw / 2 - 0.5) + 'px; width: ' + bw + 'px; height: ' + h + 'px; background: ' + (lit.indexOf(i) >= 0 ? '#D08A55' : '#121314') + '; border: 1px solid #121314; box-sizing: border-box' }));
+    const label = (cx, y, t, color) => ({ t: t, style: 'position: absolute; top: ' + y + 'px; left: ' + (cx - 12) + 'px; width: 24px; text-align: center; font-size: 11px; font-weight: 800; color: ' + color });
+    const tryX = [66, 100, 151, 168, 202, 236, 287, 304];
+    const tryFingers = ['1', '2', '3', '1', '2', '3', '4', '5'].map((t, i) => label(tryX[i], 0, t, '#D08A55'))
+      .concat(['5', '4', '3', '2', '1', '3', '2', '1'].map((t, i) => label(tryX[i], 116, t, '#8D8A84')));
+    const keys = ['C', 'G', 'D', 'A', 'E', 'B', 'F♯', 'D♭', 'A♭', 'E♭', 'B♭', 'F'];
+    const cof = keys.map((k, i) => { const a = (i / 12) * 2 * Math.PI - Math.PI / 2;
+      return { k: k, x: Math.round(100 + 80 * Math.cos(a)) + 'px', y: Math.round(100 + 80 * Math.sin(a)) + 'px', cls: (k === 'G' || k === 'D') ? 'hl' : '' }; });
+    const opts = ['Maj7', 'm7', '7'].map((o) => ({ label: o, pick: () => this.setState({ pick: o }),
+      cls: s.pick === '' ? 'opt' : (o === 'm7' ? 'opt right' : (o === s.pick ? 'opt wrong' : 'opt')) }));
+    const rtab = (id, label) => ({ label: label, cls: s.rtab === id ? 'rtab on' : 'rtab', pick: () => this.setState({ rtab: id }) });
+    const gauge = (lv) => '●●●●●'.slice(0, lv) + '○○○○○'.slice(lv);
+    const M = {
+      project: { pos: 'left: 8px; top: 38px', title: 'PROJECTS', items: [['Low Tide', '✓ OPEN', set({})], ['Porch Light', '', set({})], ['New project', '+', set({})], ['Temporary stack', '', set({})]] },
+      tools: { pos: 'left: 156px; top: 86px', title: 'TOOLS · TWO CAN BE PINNED', items: [['Tuner', 'D1 ›', go('tuner')], ['Drone', 'D + 5TH ›', set({})], ['Playback speed', '0.6× ›', set({})], ['Isolator', '›', set({})], ['Practice timer', '0:00 ›', set({})], ['AI tools', '›', go('tools', { tools: 'ai' })]] },
+      click: { pos: 'left: 8px; top: 86px', title: '' , items: [] },
+      board: { pos: 'right: 8px; top: 136px', title: 'BOARD', items: [['Add to Board', 'NEW OR LIBRARY ›', set({})], ['Arrange', 'FREE · SNAP ›', set({})], ['Stand mode', 'LANDSCAPE', set({})], ['Show', 'ALL TYPES ›', set({})]] },
+      lyr: { pos: 'right: 8px; bottom: 166px', title: 'WORDS', items: [['Edit words and chords', '', set({})], ['Sync lines to a recording', 'TAP ALONG', set({})], ['Text size', 'L ›', set({})], ['Chords', 'SHOWN ›', set({})], ['Transpose', '0 ›', set({})]] },
+      speed: { pos: 'left: 130px; bottom: 166px', title: 'AUTO-SCROLL SPEED', items: [1, 2, 3, 4, 5, 6].map((v) => [String(v), v === s.speed ? '✓' : '', set({ speed: v })]) },
+      notView: { pos: 'right: 8px; top: 136px', title: 'SHOW AS', items: [['Notation', s.notView === 'notation' ? '✓' : '', set({ notView: 'notation' })], ['Tab', '', set({ notView: 'tab' })], ['Piano roll', '', set({ notView: 'roll' })], ['Chord chart', '', set({})]] },
+      notInput: { pos: 'left: 12px; top: 300px', title: 'ENTER NOTES WITH', items: [['Piano keys', s.notInput === 'piano' ? '✓' : '', set({ notInput: 'piano' })], ['Fretboard', '', set({ notInput: 'fretboard' })], ['Sing or play it', 'PITCH TRACKER', set({ notInput: 'sing' })], ['Tap on the staff', '', set({ notInput: 'staff' })], ['From a recording', 'AI ›', set({})]] },
+      dur: { pos: 'left: 140px; top: 300px', title: 'DURATION', items: [['𝅝 whole', '', set({})], ['𝅗𝅥 half', '', set({})], ['♩ quarter', '✓', set({})], ['♪ eighth', '', set({})], ['dot · tie · tuplet', '›', set({})]] },
+      take: { pos: 'right: 60px; top: 136px', title: 'TAKES', items: [['A', '', set({})], ['B ★', '✓', set({})], ['C', '', set({})], ['Compare A / B', '›', set({})]] },
+      recAI: { pos: 'right: 8px; top: 136px', title: 'AI ON THIS RECORDING', items: [['Separate stems', '✓ DONE', set({ rtab: 'stems' })], ['Notes → MIDI', '✓ DONE', set({ rtab: 'midi' })], ['Sheet music and tab', '✓ DONE', go('notation')], ['Find the chords', 'RUN', set({})], ['Speech → text', '✓ DONE', set({ rtab: 'text' })], ['Check a performance against it', '›', go('check')]] },
+      sort: { pos: 'right: 8px; top: 136px', title: 'SORT', items: [['Recently captured', '✓', set({})], ['Recently edited', '', set({})], ['Name', '', set({})], ['Tempo', 'NONE LAST', set({})], ['Key', '', set({})], ['Length', '', set({})]] },
+      toolsCat: { pos: 'left: 8px; top: 136px', title: 'TOOLS', items: [['Practice tools', s.tools === 'practice' ? '✓' : '', set({ tools: 'practice' })], ['AI tools', s.tools === 'ai' ? '✓' : '', set({ tools: 'ai' })]] },
+      instr: { pos: 'right: 8px; top: 136px', title: 'INSTRUMENT', items: [['Voice', '✓ PITCH + TIMING', set({})], ['Bass', 'PITCH + TIMING', set({})], ['Guitar, single notes', 'PITCH + TIMING', set({})], ['Guitar or piano chords', 'NOTES PER CHORD', set({})], ['Drums', 'TIMING ONLY', set({})]] },
+      learn: { pos: 'left: 8px; top: 136px', title: 'LEARN', items: [['Course', s.learn === 'course' ? '✓' : '', set({ learn: 'course' })], ['Ear', s.learn === 'ear' ? '✓' : '', set({ learn: 'ear' })], ['Reference', s.learn === 'ref' ? '✓' : '', set({ learn: 'ref' })]] },
+      refView: { pos: 'right: 8px; top: 230px', title: 'SHOW ON', items: [['Guitar', s.refView === 'guitar' ? '✓' : '', set({ refView: 'guitar' })], ['Piano', s.refView === 'piano' ? '✓' : '', set({ refView: 'piano' })], ['Bass', '', set({})], ['Staff', '', set({})]] },
+      level: { pos: 'right: 8px; top: 136px', title: 'SHOW LEVEL', items: [['All', '✓', set({})], ['● only', '', set({})], ['●● only', '', set({})], ['●●● only', '', set({})], ['●●●● and up', '', set({})]] },
+      lesson: { pos: 'right: 8px; top: 136px', title: 'THIS PAGE', items: [['Previous: Key signatures', '‹', set({})], ['Next: Relative minor', '›', set({})], ['Reference: key signatures', '›', set({})], ['Ear: key changes', '›', go('ear', { pick: '' })], ['In your material', '3 ›', set({})]] },
+      tryOn: { pos: 'right: 8px; top: 420px', title: 'SHOW ON', items: [['Piano', '✓', set({})], ['Your bass · drop D', '', set({})], ['Guitar', '', set({})], ['Staff', '', set({})]] },
+      earMode: { pos: 'right: 8px; top: 170px', title: 'MODE', items: [['Listen', 'NO SCORE', set({})], ['Practice', '✓', set({})], ['Test', 'TIMED', set({})]] },
+      earOpts: { pos: 'left: 140px; top: 230px', title: 'SOUND', items: [['Block chord', '✓', set({})], ['Arpeggio up', '', set({})], ['Random key', '✓', set({})], ['Piano', '✓', set({})]] },
+      meter: { pos: 'right: 8px; top: 136px', title: 'METER', items: [['4/4', '✓', set({})], ['3/4', '', set({})], ['6/8', '', set({})], ['7/8 · 2+2+3', '', set({})], ['Custom…', '›', set({})]] }
+    };
+    const m = M[s.menu];
+    const fromProject = s.recKind === 'layer';
+    return {
+      isBoard: s.screen === 'board', isLyrics: s.screen === 'lyrics', isNotation: s.screen === 'notation', isRec: s.screen === 'rec',
+      isLibrary: s.screen === 'library', isTools: s.screen === 'tools', isCheck: s.screen === 'check', isMetro: s.screen === 'metro',
+      isTuner: s.screen === 'tuner', isLearn: s.screen === 'learn', isCat: s.screen === 'cat', isLesson: s.screen === 'lesson', isEar: s.screen === 'ear',
+      sheetFilter: s.sheet === 'filter', sheetRec: s.sheet === 'rec', sheetSave: s.sheet === 'save', sheetPlayer: s.sheet === 'player',
+      menuOpen: !!m, menuPos: m ? m.pos : '', menuHasTitle: !!(m && m.title), menuTitle: m ? m.title : '', menuIsClick: s.menu === 'click',
+      menuItems: m ? m.items.map((it) => ({ label: it[0], note: it[1], act: it[2] })) : [],
+      closeMenu: () => this.setState({ menu: '' }),
+      mProject: menu('project'), mClick: menu('click'), mTools: menu('tools'), mBoard: menu('board'), mLyr: menu('lyr'), mSpeed: menu('speed'),
+      mNotView: menu('notView'), mNotInput: menu('notInput'), mDur: menu('dur'), mTake: menu('take'), mRecAI: menu('recAI'), mSort: menu('sort'),
+      mToolsCat: menu('toolsCat'), mInstr: menu('instr'), mLearn: menu('learn'), mRefView: menu('refView'), mLevel: menu('level'),
+      mLesson: menu('lesson'), mTry: menu('tryOn'), mEarMode: menu('earMode'), mEarOpts: menu('earOpts'), mMeter: menu('meter'),
+      playing: s.playing, paused: !s.playing, bpm: s.bpm, answered: s.pick !== '', speed: s.speed, inStack: inStack,
+      micText: (s.screen === 'tuner' || s.listening) ? 'LISTENING' : 'MIC OFF',
+      micDot: (s.screen === 'tuner' || s.listening) ? 'background: #7FA889; border-color: #7FA889' : '',
+      toggleMic: () => this.setState({ listening: !s.listening }),
+      lampCls: s.click ? 'lamp on' : 'lamp', beatDur: (60 / s.bpm).toFixed(3) + 's',
+      clickItem: s.click ? 'Click is on' : 'Click is off', clickState: s.click ? 'TURN OFF' : 'TURN ON',
+      toggleClick: () => this.setState({ click: !s.click }),
+      bpmUp: () => this.setState({ bpm: Math.min(400, s.bpm + 1) }), bpmDown: () => this.setState({ bpm: Math.max(20, s.bpm - 1) }),
+      timeText: s.playing ? '▶ 00:12 / 00:48' : '■ 00:00 / 00:48', stackPlayText: s.playing ? '■ STOP' : '▶ PLAY',
+      quickRec: () => this.setState({ sheet: 'rec', menu: '', recKind: s.playing ? 'layer' : 'quick' }),
+      startBounce: () => this.setState({ sheet: 'rec', menu: '', recKind: 'bounce', playing: true }),
+      recTitle: s.recKind === 'bounce' ? 'RECORDING THE STACK' : 'RECORDING',
+      recDest: s.recKind === 'bounce' ? 'NO MIC · DIRECT' : (fromProject ? 'TO LOW TIDE · NEW LAYER' : 'TO LIBRARY'),
+      recNote: s.recKind === 'bounce' ? 'THE STACK’S OWN OUTPUT IS RECORDED DIRECTLY. THE MIC STAYS OFF.' : (fromProject ? 'YOU HEAR THE STACK IN HEADPHONES · THE MIC RECORDS YOU' : 'MIC → DISK AS IT RECORDS'),
+      saveTitle: s.recKind === 'bounce' ? 'Stack 1 mix · saved' : 'Take D · saved',
+      saveTags: s.recKind === 'bounce' ? 'stack mix' : 'bass',
+      saveDest: s.recKind === 'bounce' ? 'Low Tide + Library' : (fromProject ? 'Low Tide · stack layer + Library' : 'Library'),
+      stopRec: () => this.setState({ sheet: 'save' }), closeSheet: () => this.setState({ sheet: 'none' }),
+      openFilter: () => this.setState({ sheet: 'filter', menu: '' }), openPlayer: () => this.setState({ sheet: 'player', menu: '' }),
+      togglePlay: () => this.setState({ playing: !s.playing }),
+      lyrCls: s.autoscroll ? 'lyrtext run' : 'lyrtext', scrollDur: Math.round(20 * (7 - s.speed) + 20) + 's',
+      scrollBtnCls: s.autoscroll ? 'acc' : '', scrollText: s.autoscroll ? '■ AUTO-SCROLL' : '▶ AUTO-SCROLL',
+      toggleScroll: () => this.setState({ autoscroll: !s.autoscroll }),
+      notViewText: s.notView === 'tab' ? 'TAB' : (s.notView === 'roll' ? 'PIANO ROLL' : 'NOTATION'),
+      notInputText: s.notInput === 'fretboard' ? 'FRETBOARD' : (s.notInput === 'sing' ? 'SING' : (s.notInput === 'staff' ? 'STAFF' : 'PIANO')),
+      whiteKeys: white(14, 27.5, 2, 0, 118, [7]), blackKeys: black([0, 1, 3, 4, 5, 7, 8, 10, 11, 12], 27.5, 16, 2, 0, 72, []),
+      refGuitar: s.refView === 'guitar', refPiano: s.refView === 'piano', refViewText: s.refView === 'piano' ? 'PIANO' : 'GUITAR',
+      refWhite: white(11, 22, 0, 0, 96, [1, 7, 10]), refBlack: black([0, 2, 3, 4, 6, 7, 9], 22, 14, 0, 0, 58, [3]),
+      refLabels: [label(33, 78, 'E', '#121314'), label(88, 40, 'G♯', '#121314'), label(165, 78, 'D', '#121314'), label(231, 78, 'F𝄪', '#121314')],
+      tryWhite: white(8, 34, 49, 18, 92, [0, 1, 3, 4, 5, 7]), tryBlack: black([0, 2, 3, 4, 6], 34, 20, 49, 18, 56, [2, 6]), tryFingers: tryFingers,
+      rtabs: [rtab('info', 'INFO'), rtab('stems', 'STEMS'), rtab('midi', 'MIDI'), rtab('sheet', 'SHEET'), rtab('text', 'TEXT')],
+      tabInfo: s.rtab === 'info', tabStems: s.rtab === 'stems', tabMidi: s.rtab === 'midi', tabSheet: s.rtab === 'sheet', tabText: s.rtab === 'text',
+      toolsPractice: s.tools === 'practice', toolsAI: s.tools === 'ai',
+      toolsCatText: s.tools === 'ai' ? 'AI TOOLS' : 'PRACTICE TOOLS', toolsCatNote: s.tools === 'ai' ? 'ALL ON THE PHONE' : 'PIN TWO IN THE TOP BAR',
+      learnCourse: s.learn === 'course', learnEar: s.learn === 'ear', learnRef: s.learn === 'ref',
+      learnText: s.learn === 'ear' ? 'LEARN · EAR' : (s.learn === 'ref' ? 'LEARN · REFERENCE' : 'LEARN · COURSE'),
+      learnNote: s.learn === 'ear' ? 'LISTEN · PRACTICE · TEST' : (s.learn === 'ref' ? 'EVERYTHING, ON YOUR TUNING' : 'PICK A CATEGORY'),
+      navBoard: nav(['board', 'lyrics', 'notation', 'rec']), navLibrary: nav(['library']), navTools: nav(['tools', 'metro', 'tuner', 'check']),
+      navLearn: nav(['learn', 'cat', 'lesson', 'ear']),
+      goBoard: go('board'), goLibrary: go('library'), goTools: go('tools'), goToolsAI: go('tools', { tools: 'ai' }), goMetro: go('metro'),
+      goLearn: go('learn'), goLearnEar: go('learn', { learn: 'ear' }), goCat: go('cat'), goEar: go('ear', { pick: '' }),
+      opts: opts, cof: cof, big: shape(90, 54, 0.4),
+      wins: [
+        txt('LYR', 'Low Tide · words', 'lyrics · love song', 'Salt on the window, the\ntide keeps the time\nI left the porch light on\nfor nobody’s sake…', 'lyrics', pos(0, 6, 222, 132)),
+        rec('riffB', 'Verse riff B ★', 'bass · dark', '92 · D DOR · 0:18', 0.3, pos(230, 6, 148, 118)),
+        Object.assign(txt('NOT', 'Chorus melody', 'notation · vocal', '', 'notation', pos(0, 146, 222, 124)), { isText: false, isNot: true, meta: 'TREBLE · 2 BARS' }),
+        rec('hum', 'Hum melody', 'vocal · midi', '+2 ST · MIDI ✓', 1.7, pos(230, 132, 148, 118)),
+        txt('CHD', 'Verse changes', 'chords', '| Dm7 | G  | Am7 | C  |', '', pos(0, 278, 182, 76)),
+        txt('TAB', 'Chorus walk-up', 'bass · tab', 'A|---5------|\nD|-0----0-3-|', '', pos(190, 258, 188, 96)),
+        rec('room', 'Room take', 'guitar', 'FREE TIME · KEY ?', 2.9, pos(0, 362, 200, 110)),
+        txt('MID', 'Hum melody · MIDI', 'midi', '18 notes · A minor\nfrom Hum melody', '', pos(208, 362, 170, 84)),
+        txt('TXT', 'Bridge idea', 'note', 'Chorus should drop to half-time.', '', pos(60, 480, 260, 64))
+      ],
+      lyrics: [
+        { isSec: true, isLine: false, text: 'VERSE 1' },
+        { isSec: false, isLine: true, ch: 'Dm7               G', text: 'Salt on the window, the' },
+        { isSec: false, isLine: true, ch: 'Am7          C', text: 'tide keeps the time' },
+        { isSec: false, isLine: true, ch: 'Dm7            G', text: 'I left the porch light on' },
+        { isSec: false, isLine: true, ch: 'Am7       C', text: 'for nobody’s sake' },
+        { isSec: false, isLine: true, ch: '', text: 'Counting the boats like' },
+        { isSec: false, isLine: true, ch: '', text: 'they owe me a line' },
+        { isSec: false, isLine: true, ch: '', text: 'Everything floats till it' },
+        { isSec: false, isLine: true, ch: '', text: 'learns how to break' },
+        { isSec: true, isLine: false, text: 'CHORUS' },
+        { isSec: false, isLine: true, ch: 'F        C', text: 'Low tide, low tide' },
+        { isSec: false, isLine: true, ch: 'G             Dm7', text: 'show me what you took' },
+        { isSec: false, isLine: true, ch: 'F        C', text: 'Low tide, low tide' },
+        { isSec: false, isLine: true, ch: 'G            Dm7', text: 'I don’t want to look' },
+        { isSec: true, isLine: false, text: 'VERSE 2' },
+        { isSec: false, isLine: true, ch: '', text: 'Rust on the railing,' },
+        { isSec: false, isLine: true, ch: '', text: 'the gulls in the rain' },
+        { isSec: false, isLine: true, ch: '', text: 'Your coat on the hook' },
+        { isSec: false, isLine: true, ch: '', text: 'like it’s planning to stay' },
+        { isSec: false, isLine: true, ch: '', text: 'The water comes back' },
+        { isSec: false, isLine: true, ch: '', text: 'and it calls it the same' },
+        { isSec: true, isLine: false, text: 'CHORUS' },
+        { isSec: false, isLine: true, ch: 'F        C', text: 'Low tide, low tide' },
+        { isSec: false, isLine: true, ch: 'G             Dm7', text: 'show me what you took' }
+      ],
+      stems: [
+        { name: 'VOCALS', note: 'near silent · a stem for every part, made on the phone' },
+        { name: 'DRUMS', note: 'room bleed only' }, { name: 'BASS', note: 'the riff · → MIDI → tab' }, { name: 'OTHER', note: 'amp hum' }
+      ],
+      practice: [
+        { name: 'Metronome', note: 'full screen · meters, accents, trainer', val: s.bpm, open: go('metro') },
+        { name: 'Tuner', note: 'bass · drop D', val: 'D1', open: go('tuner') },
+        { name: 'Drone', note: 'any root, fifth, third', val: 'D', open: () => {} },
+        { name: 'Playback speed', note: 'any file · 0.25–2× · pitch ±24 st · A/B loop', val: '0.6×', open: () => {} },
+        { name: 'Isolator', note: 'pan, tone vs hit, band · note finder', val: '›', open: () => {} },
+        { name: 'Practice timer', note: 'attach to a scrap or project', val: '42m', open: () => {} },
+        { name: 'Recorder', note: 'same as ● REC at the top · markers, level', val: '●', open: () => this.setState({ sheet: 'rec', recKind: 'quick' }) }
+      ],
+      ai: [
+        { name: 'Separate stems', note: 'vocals, drums, bass, other (+ piano) from any song or take', model: 'SPLEETER', open: () => {} },
+        { name: 'Notes → MIDI', note: 'polyphonic transcription of a take or stem', model: 'BASIC PITCH', open: () => {} },
+        { name: 'Sheet music and tab', note: 'from the MIDI, spelled in the key, in your tuning', model: 'CORE', open: go('notation') },
+        { name: 'Find the chords', note: 'per beat → a chord chart', model: 'ANALYSIS', open: () => {} },
+        { name: 'Tempo and key', note: 'ranked guesses with the reason shown', model: 'ANALYSIS', open: () => {} },
+        { name: 'Speech → text', note: 'voice memos and thinking out loud, time-stamped', model: 'MOONSHINE', open: () => {} },
+        { name: 'Performance check', note: 'record yourself against a reference; see where and why you were off', model: 'PITCH + DTW', open: go('check') }
+      ],
+      problems: [
+        { where: 'BAR 1 · “low”', what: 'G4 · 38¢ FLAT', why: 'You scooped up from below and never quite arrived: the held note sat under pitch the whole time.' },
+        { where: 'BAR 2 · “took”', what: 'B4, NOT C5', why: 'Half a step low. B isn’t in the Dm7 underneath; the line lands on C, the chord’s 7th.' },
+        { where: 'BAR 2 · “show me”', what: '140 MS LATE', why: 'Late entry on the downbeat, then rushed the next two notes to catch up.' }
+      ],
+      cats: [
+        { name: 'SOUND & PITCH', count: '6 TOPICS', range: '●–●●●', open: go('cat') },
+        { name: 'RHYTHM & TIME', count: '8 TOPICS', range: '●–●●●●●', open: go('cat') },
+        { name: 'INTERVALS', count: '5 TOPICS', range: '●–●●●', open: go('cat') },
+        { name: 'SCALES & KEYS', count: '9 TOPICS', range: '●–●●●●', open: go('cat') },
+        { name: 'CHORDS', count: '10 TOPICS', range: '●–●●●●●', open: go('cat') },
+        { name: 'HARMONY', count: '9 TOPICS', range: '●●–●●●●●', open: go('cat') },
+        { name: 'MELODY & SONGS', count: '7 TOPICS', range: '●–●●●●', open: go('cat') },
+        { name: 'READING · NOTATION, TAB, CHARTS', count: '8 TOPICS', range: '●–●●●', open: go('cat') },
+        { name: 'INSTRUMENTS · FRETBOARD, PIANO, VOICE', count: '9 TOPICS', range: '●–●●●●', open: go('cat') }
+      ],
+      topics: [
+        { name: 'The major scale', note: '4 pages · steps, sound, on piano and fretboard', gauge: gauge(1), open: go('lesson') },
+        { name: 'Key signatures', note: '3 pages · reading sharps and flats', gauge: gauge(2), open: go('lesson') },
+        { name: 'The circle of fifths', note: '3 pages · keys as neighbours', gauge: gauge(2), open: go('lesson') },
+        { name: 'Minor scales', note: '4 pages · natural, harmonic, melodic', gauge: gauge(2), open: go('lesson') },
+        { name: 'Pentatonic and blues', note: '3 pages · five positions, the blue note', gauge: gauge(2), open: go('lesson') },
+        { name: 'Modes of the major scale', note: '5 pages · one scale, seven homes', gauge: gauge(3), open: go('lesson') },
+        { name: 'Modes of melodic and harmonic minor', note: '5 pages', gauge: gauge(4), open: go('lesson') },
+        { name: 'Symmetric scales', note: '3 pages · whole-tone, diminished, Messiaen', gauge: gauge(4), open: go('lesson') },
+        { name: 'Scales from other traditions', note: '3 pages · labelled approximations', gauge: gauge(4), open: go('lesson') }
+      ],
+      earRows: [
+        { name: 'Maj7 · m7 · 7', best: 'BEST 9/10 · 0:41' }, { name: 'ø7 · °7', best: 'BEST 7/10' },
+        { name: 'mMaj7 · +Maj7', best: '—' }, { name: '7sus4 · Lydian dominant', best: '—' }, { name: 'All seventh chords', best: '—' }
+      ],
+      rows: [
+        { type: 'REC', title: 'Verse riff B ★', tagline: 'bass · dark · in Low Tide · stems, MIDI', bpm: '92', key: 'D DOR' },
+        { type: 'MID', title: 'Hum melody · MIDI', tagline: 'vocal · midi · from Hum melody', bpm: '88', key: 'A MIN' },
+        { type: 'REC', title: 'Porch Light demo', tagline: 'bass · imported · stems running', bpm: '94', key: 'D DOR' },
+        { type: 'REC', title: 'Walk-up idea', tagline: 'bass · starred', bpm: '90', key: '?' }
+      ],
+      layers: [
+        { n: '01', name: 'VERSE RIFF B', mode: 'LOOP', conf: '+0 ST · 92→96', wave: shape(40, 22, 0.3) },
+        { n: '02', name: 'HUM MELODY', mode: '1-SHOT', conf: '+2 ST · 88→96', wave: shape(40, 22, 1.7) },
+        { n: '03', name: 'ROOM TAKE', mode: 'FREE', conf: 'NEVER CONFORMED', wave: shape(40, 22, 2.9) }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

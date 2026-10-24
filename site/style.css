@@ -1,0 +1,11 @@
+:root { --bg: #121314; --panel: #18191b; --line: #2c2e31; --text: #cfccc4; --hi: #e4e1da; --dim: #8d8a84; --acc: #d08a55; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; }
+main { max-width: 760px; margin: 0 auto; padding: 48px 16px 64px; }
+h1 { color: var(--hi); font-size: 34px; margin: 0 0 4px; letter-spacing: 0.02em; }
+h2 { color: var(--acc); font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; margin: 40px 0 8px; }
+.tag { color: var(--dim); margin: 0 0 32px; }
+a { color: var(--acc); }
+ul { padding-left: 20px; }
+li { margin: 6px 0; }
+footer { border-top: 1px solid var(--line); margin-top: 48px; padding-top: 16px; color: var(--dim); font-size: 13px; }

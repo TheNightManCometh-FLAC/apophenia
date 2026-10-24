@@ -1,0 +1,9 @@
+Piano samples: University of Iowa Electronic Music Studios, Musical Instrument Samples (MIS),
+Steinway & Sons model B, recorded by Lawrence Fritts. https://theremin.music.uiowa.edu/MISpiano.html
+
+Terms stated by the source (https://theremin.music.uiowa.edu/MIS.html): the recordings are "freely
+available on this website and may be downloaded and used for any projects, without restrictions."
+
+Apophenia ships 30 of the mf notes (every minor third, B0 to C8; G7 in place of Gb7, whose file the
+site doesn't serve), mixed to mono, aligned to the hammer, level-matched, trimmed to 2.5-7 s with a
+0.3 s fade, as 16-bit 44.1 kHz WAV. The tool that made them is tools/piano/PianoPrep.java.

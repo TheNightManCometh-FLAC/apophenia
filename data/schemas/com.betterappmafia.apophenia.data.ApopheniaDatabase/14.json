@@ -1,0 +1,1494 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 14,
+    "identityHash": "eca93b1e6d78f4a1d946acee4dd245c0",
+    "entities": [
+      {
+        "tableName": "project",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `edited_at` INTEGER NOT NULL, `deleted_at` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "editedAt",
+            "columnName": "edited_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deleted_at",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_project_deleted_at",
+            "unique": false,
+            "columnNames": [
+              "deleted_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_deleted_at` ON `${TABLE_NAME}` (`deleted_at`)"
+          }
+        ]
+      },
+      {
+        "tableName": "scrap",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `format` TEXT NOT NULL, `title` TEXT, `created_at` INTEGER NOT NULL, `edited_at` INTEGER NOT NULL, `project_id` INTEGER, `show_in_library` INTEGER NOT NULL DEFAULT 1, `bpm_low` REAL, `bpm_high` REAL, `free_time` INTEGER NOT NULL DEFAULT 0, `bpm_source` TEXT, `key` TEXT, `key_source` TEXT, `body` TEXT, `deleted_at` INTEGER, FOREIGN KEY(`project_id`) REFERENCES `project`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "format",
+            "columnName": "format",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "editedAt",
+            "columnName": "edited_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "projectId",
+            "columnName": "project_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "showInLibrary",
+            "columnName": "show_in_library",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "bpmLow",
+            "columnName": "bpm_low",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "bpmHigh",
+            "columnName": "bpm_high",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "freeTime",
+            "columnName": "free_time",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "bpmSource",
+            "columnName": "bpm_source",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "key",
+            "columnName": "key",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "keySource",
+            "columnName": "key_source",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "body",
+            "columnName": "body",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deleted_at",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_scrap_project_id",
+            "unique": false,
+            "columnNames": [
+              "project_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scrap_project_id` ON `${TABLE_NAME}` (`project_id`)"
+          },
+          {
+            "name": "index_scrap_deleted_at",
+            "unique": false,
+            "columnNames": [
+              "deleted_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scrap_deleted_at` ON `${TABLE_NAME}` (`deleted_at`)"
+          },
+          {
+            "name": "index_scrap_created_at",
+            "unique": false,
+            "columnNames": [
+              "created_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scrap_created_at` ON `${TABLE_NAME}` (`created_at`)"
+          },
+          {
+            "name": "index_scrap_bpm_low",
+            "unique": false,
+            "columnNames": [
+              "bpm_low"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scrap_bpm_low` ON `${TABLE_NAME}` (`bpm_low`)"
+          },
+          {
+            "name": "index_scrap_key",
+            "unique": false,
+            "columnNames": [
+              "key"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scrap_key` ON `${TABLE_NAME}` (`key`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "project",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "project_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "take",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `scrap_id` INTEGER NOT NULL, `letter` TEXT NOT NULL, `starred` INTEGER NOT NULL DEFAULT 0, `audio_path` TEXT NOT NULL, `duration_frames` INTEGER NOT NULL, `sample_rate` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `metronome_grid` TEXT, `latency_frames` INTEGER, `preroll_frames` INTEGER NOT NULL DEFAULT 0, `deleted_at` INTEGER, FOREIGN KEY(`scrap_id`) REFERENCES `scrap`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scrapId",
+            "columnName": "scrap_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "letter",
+            "columnName": "letter",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "starred",
+            "columnName": "starred",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "audioPath",
+            "columnName": "audio_path",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationFrames",
+            "columnName": "duration_frames",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sampleRate",
+            "columnName": "sample_rate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "metronomeGrid",
+            "columnName": "metronome_grid",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "latencyFrames",
+            "columnName": "latency_frames",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "prerollFrames",
+            "columnName": "preroll_frames",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deleted_at",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_take_scrap_id_letter",
+            "unique": true,
+            "columnNames": [
+              "scrap_id",
+              "letter"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_take_scrap_id_letter` ON `${TABLE_NAME}` (`scrap_id`, `letter`)"
+          },
+          {
+            "name": "index_take_deleted_at",
+            "unique": false,
+            "columnNames": [
+              "deleted_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_take_deleted_at` ON `${TABLE_NAME}` (`deleted_at`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "scrap",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "scrap_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "tag",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL COLLATE NOCASE, `created_at` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_tag_name",
+            "unique": true,
+            "columnNames": [
+              "name"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_tag_name` ON `${TABLE_NAME}` (`name`)"
+          }
+        ]
+      },
+      {
+        "tableName": "scrap_tag",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scrap_id` INTEGER NOT NULL, `tag_id` INTEGER NOT NULL, PRIMARY KEY(`scrap_id`, `tag_id`), FOREIGN KEY(`scrap_id`) REFERENCES `scrap`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`tag_id`) REFERENCES `tag`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "scrapId",
+            "columnName": "scrap_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tagId",
+            "columnName": "tag_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "scrap_id",
+            "tag_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_scrap_tag_tag_id",
+            "unique": false,
+            "columnNames": [
+              "tag_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scrap_tag_tag_id` ON `${TABLE_NAME}` (`tag_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "scrap",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "scrap_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "tag",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tag_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "scrap_group",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `deleted_at` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAt",
+            "columnName": "deleted_at",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_scrap_group_deleted_at",
+            "unique": false,
+            "columnNames": [
+              "deleted_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_scrap_group_deleted_at` ON `${TABLE_NAME}` (`deleted_at`)"
+          }
+        ]
+      },
+      {
+        "tableName": "group_member",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`group_id` INTEGER NOT NULL, `scrap_id` INTEGER NOT NULL, `added_at` INTEGER NOT NULL, PRIMARY KEY(`group_id`, `scrap_id`), FOREIGN KEY(`group_id`) REFERENCES `scrap_group`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`scrap_id`) REFERENCES `scrap`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "groupId",
+            "columnName": "group_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scrapId",
+            "columnName": "scrap_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "addedAt",
+            "columnName": "added_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "group_id",
+            "scrap_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_group_member_scrap_id",
+            "unique": false,
+            "columnNames": [
+              "scrap_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_group_member_scrap_id` ON `${TABLE_NAME}` (`scrap_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "scrap_group",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "group_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "scrap",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "scrap_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "project_ref",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`project_id` INTEGER NOT NULL, `scrap_id` INTEGER NOT NULL, `added_at` INTEGER NOT NULL, `trim_start_frames` INTEGER NOT NULL DEFAULT 0, `trim_end_frames` INTEGER, `loop_start_frames` INTEGER, `loop_end_frames` INTEGER, `gain_db` REAL NOT NULL DEFAULT 0, `fade_in_frames` INTEGER NOT NULL DEFAULT 0, `fade_out_frames` INTEGER NOT NULL DEFAULT 0, `conform` INTEGER NOT NULL DEFAULT 0, `offset_frames` INTEGER NOT NULL DEFAULT 0, `board_x` INTEGER, `board_y` INTEGER, `board_w` INTEGER, `board_h` INTEGER, `board_z` INTEGER NOT NULL DEFAULT 0, `body` TEXT, PRIMARY KEY(`project_id`, `scrap_id`), FOREIGN KEY(`project_id`) REFERENCES `project`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`scrap_id`) REFERENCES `scrap`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "projectId",
+            "columnName": "project_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scrapId",
+            "columnName": "scrap_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "addedAt",
+            "columnName": "added_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trimStartFrames",
+            "columnName": "trim_start_frames",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "trimEndFrames",
+            "columnName": "trim_end_frames",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "loopStartFrames",
+            "columnName": "loop_start_frames",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "loopEndFrames",
+            "columnName": "loop_end_frames",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "gainDb",
+            "columnName": "gain_db",
+            "affinity": "REAL",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "fadeInFrames",
+            "columnName": "fade_in_frames",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "fadeOutFrames",
+            "columnName": "fade_out_frames",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "conform",
+            "columnName": "conform",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "offsetFrames",
+            "columnName": "offset_frames",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "boardX",
+            "columnName": "board_x",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "boardY",
+            "columnName": "board_y",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "boardW",
+            "columnName": "board_w",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "boardH",
+            "columnName": "board_h",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "boardZ",
+            "columnName": "board_z",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "body",
+            "columnName": "body",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "project_id",
+            "scrap_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_project_ref_scrap_id",
+            "unique": false,
+            "columnNames": [
+              "scrap_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_ref_scrap_id` ON `${TABLE_NAME}` (`scrap_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "project",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "project_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "scrap",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "scrap_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "app_setting",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`key` TEXT NOT NULL, `value` TEXT NOT NULL, PRIMARY KEY(`key`))",
+        "fields": [
+          {
+            "fieldPath": "key",
+            "columnName": "key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "key"
+          ]
+        }
+      },
+      {
+        "tableName": "stack",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `project_id` INTEGER, `name` TEXT NOT NULL, `bpm` REAL, `key` TEXT, `created_at` INTEGER NOT NULL, `edited_at` INTEGER NOT NULL, FOREIGN KEY(`project_id`) REFERENCES `project`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "projectId",
+            "columnName": "project_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bpm",
+            "columnName": "bpm",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "key",
+            "columnName": "key",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "editedAt",
+            "columnName": "edited_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_stack_project_id",
+            "unique": false,
+            "columnNames": [
+              "project_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_stack_project_id` ON `${TABLE_NAME}` (`project_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "project",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "project_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "stack_layer",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `stack_id` INTEGER NOT NULL, `scrap_id` INTEGER NOT NULL, `take_id` INTEGER, `mode` TEXT NOT NULL, `start_frames` INTEGER NOT NULL DEFAULT 0, `from_frames` INTEGER NOT NULL DEFAULT 0, `to_frames` INTEGER, `gain_db` REAL NOT NULL DEFAULT 0, `muted` INTEGER NOT NULL DEFAULT 0, `solo` INTEGER NOT NULL DEFAULT 0, `conform` INTEGER NOT NULL DEFAULT 1, `position` INTEGER NOT NULL DEFAULT 0, `added_at` INTEGER NOT NULL, FOREIGN KEY(`stack_id`) REFERENCES `stack`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`scrap_id`) REFERENCES `scrap`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stackId",
+            "columnName": "stack_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scrapId",
+            "columnName": "scrap_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "takeId",
+            "columnName": "take_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "mode",
+            "columnName": "mode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startFrames",
+            "columnName": "start_frames",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "fromFrames",
+            "columnName": "from_frames",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "toFrames",
+            "columnName": "to_frames",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "gainDb",
+            "columnName": "gain_db",
+            "affinity": "REAL",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "muted",
+            "columnName": "muted",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "solo",
+            "columnName": "solo",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "conform",
+            "columnName": "conform",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "addedAt",
+            "columnName": "added_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_stack_layer_stack_id",
+            "unique": false,
+            "columnNames": [
+              "stack_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_stack_layer_stack_id` ON `${TABLE_NAME}` (`stack_id`)"
+          },
+          {
+            "name": "index_stack_layer_scrap_id",
+            "unique": false,
+            "columnNames": [
+              "scrap_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_stack_layer_scrap_id` ON `${TABLE_NAME}` (`scrap_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "stack",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "stack_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "scrap",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "scrap_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "lyric_sync",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`lyric_id` INTEGER NOT NULL, `take_id` INTEGER NOT NULL, `frames` TEXT NOT NULL, `edited_at` INTEGER NOT NULL, PRIMARY KEY(`lyric_id`, `take_id`), FOREIGN KEY(`lyric_id`) REFERENCES `scrap`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`take_id`) REFERENCES `take`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "lyricId",
+            "columnName": "lyric_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "takeId",
+            "columnName": "take_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "frames",
+            "columnName": "frames",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "editedAt",
+            "columnName": "edited_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "lyric_id",
+            "take_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_lyric_sync_take_id",
+            "unique": false,
+            "columnNames": [
+              "take_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_lyric_sync_take_id` ON `${TABLE_NAME}` (`take_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "scrap",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "lyric_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "take",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "take_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "take_mark",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `take_id` INTEGER NOT NULL, `frame` INTEGER NOT NULL, `end_frame` INTEGER, `label` TEXT NOT NULL, `created_at` INTEGER NOT NULL, FOREIGN KEY(`take_id`) REFERENCES `take`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "takeId",
+            "columnName": "take_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "frame",
+            "columnName": "frame",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endFrame",
+            "columnName": "end_frame",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_take_mark_take_id",
+            "unique": false,
+            "columnNames": [
+              "take_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_take_mark_take_id` ON `${TABLE_NAME}` (`take_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "take",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "take_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "practice",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `started_at` INTEGER NOT NULL, `seconds` INTEGER NOT NULL, `scrap_id` INTEGER, `project_id` INTEGER, `exercise` TEXT, `note` TEXT, FOREIGN KEY(`scrap_id`) REFERENCES `scrap`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`project_id`) REFERENCES `project`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAt",
+            "columnName": "started_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seconds",
+            "columnName": "seconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scrapId",
+            "columnName": "scrap_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "projectId",
+            "columnName": "project_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "exercise",
+            "columnName": "exercise",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_practice_scrap_id",
+            "unique": false,
+            "columnNames": [
+              "scrap_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_practice_scrap_id` ON `${TABLE_NAME}` (`scrap_id`)"
+          },
+          {
+            "name": "index_practice_project_id",
+            "unique": false,
+            "columnNames": [
+              "project_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_practice_project_id` ON `${TABLE_NAME}` (`project_id`)"
+          },
+          {
+            "name": "index_practice_started_at",
+            "unique": false,
+            "columnNames": [
+              "started_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_practice_started_at` ON `${TABLE_NAME}` (`started_at`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "scrap",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "scrap_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "project",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "project_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "take_analysis",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`take_id` INTEGER NOT NULL, `version` INTEGER NOT NULL, `analysed_at` INTEGER NOT NULL, `body` TEXT NOT NULL, PRIMARY KEY(`take_id`), FOREIGN KEY(`take_id`) REFERENCES `take`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "takeId",
+            "columnName": "take_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "analysedAt",
+            "columnName": "analysed_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "body",
+            "columnName": "body",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "take_id"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "take",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "take_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "take_transcription",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`take_id` INTEGER NOT NULL, `model` TEXT NOT NULL, `made_at` INTEGER NOT NULL, `body` TEXT NOT NULL, PRIMARY KEY(`take_id`), FOREIGN KEY(`take_id`) REFERENCES `take`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "takeId",
+            "columnName": "take_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "model",
+            "columnName": "model",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "madeAt",
+            "columnName": "made_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "body",
+            "columnName": "body",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "take_id"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "take",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "take_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "take_stem",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`source_take_id` INTEGER NOT NULL, `stem` TEXT NOT NULL, `take_id` INTEGER NOT NULL, `model` TEXT NOT NULL, `made_at` INTEGER NOT NULL, PRIMARY KEY(`source_take_id`, `stem`), FOREIGN KEY(`source_take_id`) REFERENCES `take`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`take_id`) REFERENCES `take`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "sourceTakeId",
+            "columnName": "source_take_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stem",
+            "columnName": "stem",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "takeId",
+            "columnName": "take_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "model",
+            "columnName": "model",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "madeAt",
+            "columnName": "made_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "source_take_id",
+            "stem"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_take_stem_take_id",
+            "unique": false,
+            "columnNames": [
+              "take_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_take_stem_take_id` ON `${TABLE_NAME}` (`take_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "take",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "source_take_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "take",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "take_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "take_speech",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`take_id` INTEGER NOT NULL, `model` TEXT NOT NULL, `made_at` INTEGER NOT NULL, `body` TEXT NOT NULL, PRIMARY KEY(`take_id`), FOREIGN KEY(`take_id`) REFERENCES `take`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "takeId",
+            "columnName": "take_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "model",
+            "columnName": "model",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "madeAt",
+            "columnName": "made_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "body",
+            "columnName": "body",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "take_id"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "take",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "take_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "ear_result",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `drill` TEXT NOT NULL, `mode` TEXT NOT NULL, `correct` INTEGER NOT NULL, `total` INTEGER NOT NULL, `best_streak` INTEGER NOT NULL, `finished_at` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "drill",
+            "columnName": "drill",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mode",
+            "columnName": "mode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "correct",
+            "columnName": "correct",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "total",
+            "columnName": "total",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bestStreak",
+            "columnName": "best_streak",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "finishedAt",
+            "columnName": "finished_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_ear_result_drill",
+            "unique": false,
+            "columnNames": [
+              "drill"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ear_result_drill` ON `${TABLE_NAME}` (`drill`)"
+          },
+          {
+            "name": "index_ear_result_finished_at",
+            "unique": false,
+            "columnNames": [
+              "finished_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ear_result_finished_at` ON `${TABLE_NAME}` (`finished_at`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'eca93b1e6d78f4a1d946acee4dd245c0')"
+    ]
+  }
+}

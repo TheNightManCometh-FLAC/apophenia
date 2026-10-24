@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the app icon (plan §2.2). Lyrics, Tuner and Metronome join when those screens exist. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="record"
+        android:enabled="true"
+        android:icon="@drawable/shortcut_record"
+        android:shortcutShortLabel="@string/shortcut_record_short"
+        android:shortcutLongLabel="@string/shortcut_record_long">
+        <intent
+            android:action="com.betterappmafia.apophenia.RECORD"
+            android:targetPackage="com.betterappmafia.apophenia"
+            android:targetClass="com.betterappmafia.apophenia.MainActivity" />
+    </shortcut>
+</shortcuts>

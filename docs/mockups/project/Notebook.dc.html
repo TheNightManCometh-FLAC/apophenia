@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Apophenia · Notebook</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.app{position:relative;width:390px;height:844px;overflow:hidden;background:#1B1916;color:#EAE3D3;font-family:'Source Serif 4',Georgia,serif;display:flex;flex-direction:column}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0;text-align:left}
+.sc{font-family:'IBM Plex Sans',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#A89F8E}
+.top{flex:none;display:flex;align-items:flex-end;gap:12px;padding:18px 18px 10px;border-bottom:1px solid #34302A}
+.title{font-size:28px;font-weight:700;line-height:1.05;letter-spacing:-0.01em}
+.title small{display:block;font-size:13px;font-weight:400;font-style:italic;color:#A89F8E;margin-top:4px}
+.mic{margin-left:auto;font-family:'IBM Plex Sans',sans-serif;font-size:12px;color:#A89F8E;display:flex;align-items:center;gap:6px;min-height:44px}
+.mic i{width:7px;height:7px;border-radius:4px;border:1.5px solid #A89F8E;display:block}
+.cap{font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:600;color:#E8643C;min-height:44px;display:flex;align-items:center;gap:6px}
+.page{flex:1;overflow-y:auto;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,#26231F 31px,#26231F 32px)}
+.blk{display:grid;grid-template-columns:58px minmax(0,1fr);border-bottom:1px solid #34302A}
+.gut{padding:14px 0 0 18px;writing-mode:horizontal-tb}
+.gut .sc{font-size:10px;display:block}
+.body{padding:12px 18px 16px 4px}
+.head{font-size:22px;font-weight:700;font-style:italic;padding:18px 18px 4px 62px}
+.ch{font-family:'IBM Plex Mono',monospace;font-size:13px;color:#E8643C;white-space:pre;height:18px}
+.ly{font-size:19px;line-height:1.3;white-space:pre}
+.bars{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-left:1px solid #6B6458}
+.bars div{height:44px;border-right:1px solid #6B6458;display:flex;align-items:center;padding-left:10px;font-size:19px;font-weight:600}
+.tab{font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.55;white-space:pre;color:#EAE3D3}
+.nr{font-family:'IBM Plex Mono',monospace;font-size:12px;white-space:pre;color:#A89F8E}
+.wave{display:flex;align-items:flex-end;gap:2px;height:34px}
+.wave span{display:block;width:2px;background:#EAE3D3}
+.note{font-size:16px;line-height:1.5;font-style:italic;color:#D6CEBC}
+.addline{padding:14px 18px 22px 62px;font-family:'IBM Plex Sans',sans-serif;font-size:14px;color:#A89F8E;min-height:44px}
+.player{flex:none;height:52px;display:flex;align-items:center;gap:12px;padding:0 18px;border-top:1px solid #6B6458;position:relative}
+.player .prog{position:absolute;left:0;top:-1px;height:2px;width:28%;background:#E8643C}
+.player .what{flex:1;min-width:0;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:44px;display:flex;align-items:center}
+.player .what em{color:#A89F8E;margin-left:6px}
+.play{width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:#EAE3D3}
+.nav-wrap{flex:none;height:56px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid #34302A;padding-bottom:6px}
+.nav{font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:500;color:#A89F8E;display:flex;align-items:center;justify-content:center;text-align:center}
+.nav.on{color:#EAE3D3;font-weight:600;text-decoration:underline;text-decoration-color:#E8643C;text-decoration-thickness:2px;text-underline-offset:6px}
+.search{display:flex;align-items:center;gap:10px;margin:12px 18px 4px;border-bottom:1px solid #6B6458;padding:6px 0}
+.search input{flex:1;background:none;border:0;color:#EAE3D3;font:italic 17px 'Source Serif 4',serif;outline:none;min-height:36px}
+.links{display:flex;gap:18px;padding:6px 18px 10px;font-family:'IBM Plex Sans',sans-serif;font-size:13px}
+.links button{color:#E8643C;font-weight:600;min-height:40px}
+.idx{display:grid;grid-template-columns:58px minmax(0,1fr) 44px;border-bottom:1px solid #34302A;align-items:start}
+.idx .t{font-size:18px;font-weight:600;line-height:1.25;padding-top:12px}
+.idx .tags{font-size:14px;font-style:italic;color:#D6CEBC;margin-top:2px}
+.idx .m{font-family:'IBM Plex Sans',sans-serif;font-size:11px;color:#A89F8E;margin:4px 0 12px}
+.toc{display:flex;align-items:baseline;gap:8px;padding:14px 18px;border-bottom:1px solid #34302A;font-size:20px;min-height:44px;box-sizing:border-box;width:100%}
+.toc .dots{flex:1;border-bottom:1px dotted #6B6458;transform:translateY(-5px)}
+.toc .v{font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#A89F8E}
+.huge{font-size:120px;font-weight:400;line-height:1;text-align:center;letter-spacing:-0.03em}
+.tally{display:flex;justify-content:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:28px}
+.tally .a{color:#E8643C}
+.ctl{display:flex;justify-content:center;gap:28px;font-family:'IBM Plex Sans',sans-serif;font-size:16px;font-weight:600}
+.ctl button{min-width:56px;min-height:56px;border:1px solid #6B6458;border-radius:28px;display:flex;align-items:center;justify-content:center;padding:0 18px}
+.ruler{position:relative;height:70px;margin:0 18px;border-bottom:1px solid #EAE3D3}
+.ruler i{position:absolute;bottom:0;width:1px;background:#6B6458;display:block}
+.ruler .z{left:50%;height:40px;background:#EAE3D3;width:2px}
+.ruler .h{left:46%;height:62px;background:#E8643C;width:3px}
+.ex{padding:16px 18px;border-bottom:1px solid #34302A}
+.ex h3{margin:0 0 6px;font-size:24px;font-weight:700}
+.answers{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:14px}
+.ans{font-size:22px;min-height:44px;min-width:44px;display:flex;align-items:center}
+.ans.right{color:#8FC79A;text-decoration:underline;text-underline-offset:5px}
+.ans.wrong{color:#E8643C;text-decoration:line-through}
+.entry{padding:18px 18px 8px}
+.entry .hw{font-size:44px;font-weight:700;line-height:1}
+.entry .hw sup{font-size:24px}
+.def{display:grid;grid-template-columns:96px minmax(0,1fr);gap:6px 10px;padding:8px 18px 14px;font-size:16px}
+.def .k{font-family:'IBM Plex Sans',sans-serif;font-size:12px;color:#A89F8E;padding-top:3px}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:15px}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#24211D;border-top:2px solid #E8643C;padding:16px 18px 24px;display:flex;flex-direction:column;gap:2px}
+.scrim{position:absolute;inset:0;background:rgba(10,9,8,0.6)}
+.sh{font-size:24px;font-weight:700;margin-bottom:6px}
+.line{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:46px;border-bottom:1px solid #34302A;font-size:17px}
+.line .k{font-family:'IBM Plex Sans',sans-serif;font-size:12px;color:#A89F8E;letter-spacing:0.08em;text-transform:uppercase}
+.on-txt{color:#E8643C}
+.btns{display:flex;justify-content:flex-end;gap:22px;margin-top:12px;font-family:'IBM Plex Sans',sans-serif;font-size:15px;font-weight:600}
+.btns button{min-height:44px;padding:0 4px}
+.btns .p{color:#E8643C}
+.full{position:absolute;inset:0;background:#1B1916;display:flex;flex-direction:column}
+.ledger{display:grid;grid-template-columns:58px minmax(0,1fr);border-bottom:1px solid #34302A;padding:6px 0}
+.ledger .n{font-size:18px;font-weight:600}
+.ledger .c{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8FC79A;margin-top:2px}
+.ledger .g{height:2px;background:#34302A;margin-top:8px;position:relative}
+.ledger .g i{position:absolute;left:0;top:0;bottom:0;background:#EAE3D3;display:block}
+.field{background:none;border:0;border-bottom:1px solid #6B6458;color:#EAE3D3;font:italic 18px 'Source Serif 4',serif;padding:10px 0;outline:none;width:100%}
+</style>
+</helmet>
+<div class="app">
+
+<sc-if value="{{isBoard}}" hint-placeholder-val="{{true}}">
+<div class="top">
+  <button class="title" aria-label="Switch project">Low Tide<small>Board · last opened tonight ▾</small></button>
+  <div class="mic"><i></i>mic off</div>
+  <button class="cap" onClick="{{openCapture}}">+ Capture</button>
+</div>
+<div class="page">
+  <div class="head">Verse</div>
+  <div class="blk"><div class="gut"><span class="sc">Lyr</span></div><div class="body">
+    <div class="ch">Dm7               G</div><div class="ly">Salt on the window, the</div>
+    <div class="ch">Am7          C</div><div class="ly">tide keeps the time</div>
+    <div class="ch">Dm7            G</div><div class="ly">I left the porch light on</div>
+  </div></div>
+  <div class="blk"><div class="gut"><span class="sc">Chd</span><span class="sc" style="margin-top: 4px">4/4</span></div><div class="body">
+    <div class="bars"><div>Dm7</div><div>G</div><div>Am7</div><div>C</div></div>
+  </div></div>
+  <div class="blk"><div class="gut"><span class="sc">Bass</span><span class="sc" style="margin-top: 4px">D std</span></div><div class="body">
+    <div class="tab">G|------------------|
+D|------5---7-------|
+A|---5--------------|
+D|-0--------0---3---|</div>
+    <div class="nr">   D  D  G  D  A  F
+   1  1  4  1  5  ♭3</div>
+  </div></div>
+  <div class="blk"><div class="gut"><span class="sc">Rec</span></div><div class="body">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <button class="play" onClick="{{togglePlay}}" aria-label="Play Verse riff B"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg></button>
+      <div class="wave"><sc-for list="{{wave}}" as="w" hint-placeholder-count="40"><span style="height: {{w.h}}"></span></sc-for></div>
+    </div>
+    <div style="font-size: 16px; margin-top: 4px">Verse riff <b>B</b> ★ <span style="color: #A89F8E; font-style: italic">· 92 BPM · 0:18</span></div>
+  </div></div>
+  <div class="blk"><div class="gut"><span class="sc">Note</span></div><div class="body"><div class="note">Chorus should drop to half-time. Try the walk-up from the Library before the bridge.</div></div></div>
+  <button class="addline">+ add a block — lyrics, chords, tab, notation, recording, text</button>
+</div>
+</sc-if>
+
+<sc-if value="{{isLibrary}}" hint-placeholder-val="{{false}}">
+<div class="top"><div class="title">Library<small>212 scraps · every format</small></div><div class="mic"><i></i>mic off</div><button class="cap" onClick="{{openCapture}}">+ Capture</button></div>
+<label class="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A89F8E" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><input type="text" placeholder="search titles, tags, words" aria-label="Search the Library"></label>
+<div class="links"><button onClick="{{openFilter}}">Filter</button><button>Sort: recently captured</button></div>
+<div class="page" style="background-image: none">
+  <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+    <div class="idx">
+      <div class="gut"><span class="sc">{{r.type}}</span></div>
+      <div><div class="t">{{r.title}}</div><div class="tags">{{r.tagline}}</div><div class="m">{{r.meta}}</div></div>
+      <button class="play" aria-label="Preview"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg></button>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isTools}}" hint-placeholder-val="{{false}}">
+<div class="top"><div class="title">Tools</div><div class="mic"><i></i>mic off</div><button class="cap" onClick="{{openCapture}}">+ Capture</button></div>
+<div class="page" style="background-image: none">
+  <button class="toc" onClick="{{goMetro}}">Metronome<span class="dots"></span><span class="v">96 · 7/8</span></button>
+  <button class="toc" onClick="{{goTuner}}">Tuner<span class="dots"></span><span class="v">bass · D std</span></button>
+  <button class="toc">Drone<span class="dots"></span><span class="v">D · 5th</span></button>
+  <button class="toc" onClick="{{startRec}}">Recorder<span class="dots"></span><span class="v">to Library</span></button>
+  <button class="toc">Slow-down player<span class="dots"></span><span class="v">0.6×</span></button>
+  <button class="toc">Isolator<span class="dots"></span><span class="v">bass, centre</span></button>
+  <button class="toc">Stem separation<span class="dots"></span><span class="v">4 stems</span></button>
+  <button class="toc">Practice log<span class="dots"></span><span class="v">42 min this week</span></button>
+  <button class="toc">Exercises<span class="dots"></span><span class="v">—</span></button>
+</div>
+</sc-if>
+
+<sc-if value="{{isMetro}}" hint-placeholder-val="{{false}}">
+<div class="top"><button class="cap" style="color: #EAE3D3" onClick="{{goTools}}">‹ Tools</button><div class="title" style="font-size: 22px">Metronome</div><div class="mic"><i></i>mic off</div></div>
+<div class="page" style="background-image: none; display: flex; flex-direction: column; justify-content: center; gap: 26px">
+  <div class="huge">{{bpm}}</div>
+  <div class="sc" style="text-align: center">beats per minute · quarter = beat</div>
+  <div class="tally"><span class="a">|</span><span>·</span><span class="a">|</span><span>·</span><span class="a">|</span><span>·</span><span>·</span></div>
+  <div style="text-align: center; font-style: italic; color: #D6CEBC">7/8, grouped 2 + 2 + 3</div>
+  <div class="ctl"><button onClick="{{bpmDown}}" aria-label="Slower">−</button><button>Tap</button><button onClick="{{bpmUp}}" aria-label="Faster">+</button></div>
+  <div class="links" style="justify-content: center"><button>count-in: 1 bar</button><button>swing: off</button><button>trainer: off</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isTuner}}" hint-placeholder-val="{{false}}">
+<div class="top"><button class="cap" style="color: #EAE3D3" onClick="{{goTools}}">‹ Tools</button><div class="title" style="font-size: 22px">Tuner</div><div class="mic"><i style="background: #8FC79A; border-color: #8FC79A"></i>listening</div></div>
+<div class="page" style="background-image: none; display: flex; flex-direction: column; justify-content: center; gap: 22px">
+  <div class="huge">D<span style="font-size: 48px; font-style: italic">1</span></div>
+  <div style="text-align: center; font-size: 24px; font-style: italic; color: #E8643C">four cents flat</div>
+  <div class="ruler"><i style="left: 10%; height: 14px"></i><i style="left: 20%; height: 14px"></i><i style="left: 30%; height: 22px"></i><i style="left: 40%; height: 14px"></i><i class="z"></i><i style="left: 60%; height: 14px"></i><i style="left: 70%; height: 22px"></i><i style="left: 80%; height: 14px"></i><i style="left: 90%; height: 14px"></i><i class="h"></i></div>
+  <div class="sc" style="text-align: center">bass · D standard · A4 = 440 · equal</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isTrainer}}" hint-placeholder-val="{{false}}">
+<div class="top"><div class="title">Pitch Trainer<small>intervals · degrees · chords · harmony · rhythm</small></div><div class="mic"><i></i>mic off</div></div>
+<div class="page" style="background-image: none">
+  <div class="ex">
+    <div class="sc">Exercise 14 · melodic, ascending · D Dorian</div>
+    <h3 style="margin-top: 10px">Name the interval.</h3>
+    <div class="links" style="padding: 0"><button>▶ hear again</button><button>compare</button></div>
+    <div class="answers"><sc-for list="{{opts}}" as="o" hint-placeholder-count="5"><button class="{{o.cls}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div>
+    <sc-if value="{{answered}}" hint-placeholder-val="{{false}}"><div class="note" style="margin-top: 8px">Major sixth — D up to B. Often confused with the minor sixth.</div></sc-if>
+  </div>
+  <div class="ex"><div class="sc">This week</div><div style="font-size: 17px; margin-top: 6px">212 answers, 81 % right. Sixths and sevenths weighted heavier.</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isTheory}}" hint-placeholder-val="{{false}}">
+<div class="top"><div class="title">Theory</div><div class="mic"><i></i>mic off</div></div>
+<label class="search"><input type="text" value="E7♯9" aria-label="Search Theory"></label>
+<div class="page" style="background-image: none">
+  <div class="entry"><div class="hw">E7<sup>♯9</sup></div><div class="note" style="margin-top: 6px">dominant seventh, sharp nine</div></div>
+  <div class="def">
+    <span class="k">Formula</span><span class="mono">1 3 5 ♭7 ♯9</span>
+    <span class="k">Spelling</span><span class="mono">E G♯ B D F𝄪</span>
+    <span class="k">Guitar</span><span class="mono" style="white-space: pre; font-size: 13px">e|----
+B|-8-- F𝄪
+G|-7-- D
+D|-6-- G♯
+A|-7-- E
+E|----</span>
+    <span class="k">In yours</span><span>Chorus walk-up, bar 3; Take C at 0:41</span>
+    <span class="k">See also</span><span style="font-style: italic">7alt, 7♭9, tritone substitution</span>
+  </div>
+</div>
+</sc-if>
+
+<div class="player">
+  <div class="prog"></div>
+  <button class="play" onClick="{{togglePlay}}" aria-label="Play or pause">
+    <sc-if value="{{paused}}" hint-placeholder-val="{{true}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg></sc-if>
+    <sc-if value="{{playing}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg></sc-if>
+  </button>
+  <button class="what" onClick="{{openPlayer}}">Low Tide, stack 1<em>3 layers · 96 · D Dorian</em></button>
+</div>
+<div class="nav-wrap">
+  <button class="{{navBoard}}" onClick="{{goBoard}}">Board</button>
+  <button class="{{navLibrary}}" onClick="{{goLibrary}}">Library</button>
+  <button class="{{navTools}}" onClick="{{goTools}}">Tools</button>
+  <button class="{{navTrainer}}" onClick="{{goTrainer}}">Trainer</button>
+  <button class="{{navTheory}}" onClick="{{goTheory}}">Theory</button>
+</div>
+
+<sc-if value="{{sheetFilter}}" hint-placeholder-val="{{false}}">
+<button class="scrim" onClick="{{closeSheet}}" aria-label="Close"></button>
+<div class="sheet">
+  <div class="sh">Filter</div>
+  <div class="line"><span class="k">Tags</span><span><span class="on-txt">bass</span>, guitar, lyrics, dark …</span></div>
+  <div class="line"><span class="k">Key</span><span><span class="on-txt">D Dorian</span>, any</span></div>
+  <div class="line"><span class="k">BPM</span><span><span class="on-txt">88–96</span>, with half/double</span></div>
+  <div class="line"><span class="k">Groups</span><span>Dark riffs, Possible choruses</span></div>
+  <div class="line"><span class="k">Projects</span><span class="on-txt">unused only</span></div>
+  <div class="btns"><button onClick="{{closeSheet}}">Clear</button><button class="p" onClick="{{closeSheet}}">Show 4</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetCapture}}" hint-placeholder-val="{{false}}">
+<button class="scrim" onClick="{{closeSheet}}" aria-label="Close"></button>
+<div class="sheet">
+  <div class="sh">Capture</div>
+  <div class="note" style="margin-bottom: 6px">Into the Library; you come back to this page.</div>
+  <button class="line" onClick="{{startRec}}"><span>Record audio</span><span class="on-txt">●</span></button>
+  <button class="line" onClick="{{closeSheet}}"><span>Write lyrics</span><span class="k">Lyr</span></button>
+  <button class="line" onClick="{{closeSheet}}"><span>Text note</span><span class="k">Note</span></button>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetRec}}" hint-placeholder-val="{{false}}">
+<div class="full" style="justify-content: space-between; padding: 28px 22px 44px; box-sizing: border-box">
+  <div style="display: flex; justify-content: space-between; align-items: center"><span class="on-txt" style="font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; font-size: 13px">● RECORDING</span><span class="sc">to Library · bass</span></div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 22px">
+    <div class="huge" style="font-size: 96px">0:07</div>
+    <div class="wave" style="height: 60px"><sc-for list="{{wave}}" as="w" hint-placeholder-count="40"><span style="height: {{w.h}}; background: #E8643C"></span></sc-for></div>
+    <div class="note">input −14 dB, no clipping</div>
+  </div>
+  <button onClick="{{stopRec}}" style="align-self: center; font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; font-size: 18px; border: 2px solid #E8643C; border-radius: 40px; min-height: 64px; padding: 0 44px">Stop</button>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetSave}}" hint-placeholder-val="{{false}}">
+<button class="scrim" onClick="{{closeSheet}}" aria-label="Close"></button>
+<div class="sheet">
+  <div class="sh">Take D</div>
+  <div class="note">0:07, saved. Nothing here is required.</div>
+  <input class="field" type="text" placeholder="title" aria-label="Title">
+  <div class="line"><span class="k">Tags</span><span><span class="on-txt">bass</span>, + add</span></div>
+  <div class="line"><span class="k">BPM</span><span style="font-style: italic; color: #A89F8E">analysing…</span></div>
+  <div class="line"><span class="k">Key</span><span style="font-style: italic; color: #A89F8E">analysing…</span></div>
+  <div class="line"><span class="k">In Library</span><span class="on-txt">yes</span></div>
+  <div class="line"><span class="k">Stack layer</span><span>no</span></div>
+  <div class="btns"><button class="p" onClick="{{closeSheet}}">Done</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{sheetPlayer}}" hint-placeholder-val="{{false}}">
+<div class="full">
+  <div class="top"><div class="title">Stack 1<small>Low Tide · 96 BPM · D Dorian · loop 4 bars</small></div><button class="cap" style="margin-left: auto; color: #EAE3D3" onClick="{{closeSheet}}">Close</button></div>
+  <div class="page" style="background-image: none">
+    <sc-for list="{{layers}}" as="l" hint-placeholder-count="3">
+      <div class="ledger"><div class="gut"><span class="sc">{{l.mode}}</span></div><div class="body" style="padding-top: 10px">
+        <div class="n">{{l.name}}</div>
+        <div class="wave" style="height: 24px; margin-top: 6px"><sc-for list="{{wave}}" as="w" hint-placeholder-count="40"><span style="height: {{w.small}}"></span></sc-for></div>
+        <div class="c">{{l.conf}}</div>
+        <div class="g"><i style="width: {{l.gain}}"></i></div>
+      </div></div>
+    </sc-for>
+    <button class="addline">+ add a layer — opens the Library, filtered to audio</button>
+  </div>
+  <div class="btns" style="padding: 0 22px 30px; justify-content: space-between"><button onClick="{{startRec}}" class="p">● Record over</button><button onClick="{{togglePlay}}">▶ Play stack</button></div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { screen: 'board', sheet: 'none', playing: false, bpm: 96, pick: '' };
+  }
+  renderVals() {
+    const s = this.state;
+    const go = (screen) => () => this.setState({ screen: screen, sheet: 'none' });
+    const sheet = (name) => () => this.setState({ sheet: name });
+    const nav = (keys) => keys.indexOf(s.screen) >= 0 ? 'nav on' : 'nav';
+    const wave = [];
+    for (let i = 0; i < 70; i++) {
+      const v = Math.abs(Math.sin(i * 0.7) * 0.6 + Math.sin(i * 0.23) * 0.4);
+      wave.push({ h: (3 + Math.round(v * 30)) + 'px', small: (2 + Math.round(v * 20)) + 'px' });
+    }
+    const opts = ['m6', 'M6', 'm7', 'M7', 'tritone'].map((o) => ({
+      label: o,
+      pick: () => this.setState({ pick: o }),
+      cls: s.pick === '' ? 'ans' : (o === 'M6' ? 'ans right' : (o === s.pick ? 'ans wrong' : 'ans'))
+    }));
+    return {
+      isBoard: s.screen === 'board', isLibrary: s.screen === 'library', isTools: s.screen === 'tools',
+      isMetro: s.screen === 'metro', isTuner: s.screen === 'tuner', isTrainer: s.screen === 'trainer', isTheory: s.screen === 'theory',
+      sheetFilter: s.sheet === 'filter', sheetCapture: s.sheet === 'capture', sheetRec: s.sheet === 'rec',
+      sheetSave: s.sheet === 'save', sheetPlayer: s.sheet === 'player',
+      playing: s.playing, paused: !s.playing, bpm: s.bpm, answered: s.pick !== '',
+      navBoard: nav(['board']), navLibrary: nav(['library']), navTools: nav(['tools', 'metro', 'tuner']),
+      navTrainer: nav(['trainer']), navTheory: nav(['theory']),
+      goBoard: go('board'), goLibrary: go('library'), goTools: go('tools'), goMetro: go('metro'),
+      goTuner: go('tuner'), goTrainer: go('trainer'), goTheory: go('theory'),
+      openFilter: sheet('filter'), openCapture: sheet('capture'), openPlayer: sheet('player'),
+      startRec: sheet('rec'), stopRec: sheet('save'), closeSheet: sheet('none'),
+      togglePlay: () => this.setState({ playing: !s.playing }),
+      bpmUp: () => this.setState({ bpm: Math.min(400, s.bpm + 1) }),
+      bpmDown: () => this.setState({ bpm: Math.max(20, s.bpm - 1) }),
+      wave: wave, opts: opts,
+      rows: [
+        { type: 'Rec', title: 'Verse riff B ★', tagline: 'bass, dark', meta: '92 BPM · D Dorian · in Low Tide' },
+        { type: 'Lyr', title: 'Salt on the window, the tide…', tagline: 'lyrics, love song, political song', meta: 'in Low Tide, Porch Light' },
+        { type: 'Tab', title: 'Chorus walk-up', tagline: 'bass, tab', meta: 'D Dorian · Possible choruses' },
+        { type: 'Rec', title: 'Take C', tagline: 'guitar', meta: 'free time · key unknown' },
+        { type: 'Chd', title: 'Dm7 – G – Am7 – C', tagline: 'chords, possible chorus', meta: '96 BPM · D Dorian' },
+        { type: 'Note', title: 'Bridge idea: half-time feel', tagline: 'note', meta: 'edited yesterday' },
+        { type: 'Midi', title: 'Hum melody (from Take A)', tagline: 'vocal, midi', meta: '88 BPM · A minor' }
+      ],
+      layers: [
+        { name: 'Verse riff B', mode: 'Loop', conf: '+0 st · 92→96 BPM', gain: '72%' },
+        { name: 'Hum melody', mode: 'Once', conf: '+2 st · 88→96 BPM', gain: '55%' },
+        { name: 'Room take', mode: 'Free', conf: 'free time · never conformed', gain: '40%' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

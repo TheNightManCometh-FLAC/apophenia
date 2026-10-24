@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Red record dot on the Console background, for the launcher shortcut. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape android:shape="oval"><solid android:color="#121314" /><size android:width="48dp" android:height="48dp" /></shape></item>
+    <item android:left="14dp" android:top="14dp" android:right="14dp" android:bottom="14dp"><shape android:shape="oval"><solid android:color="#C9564B" /></shape></item>
+</layer-list>
