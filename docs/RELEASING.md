@@ -14,7 +14,8 @@ F-Droid installs can't update each other (different signatures): expected.
   ```
   `keys/`, `*.jks` and `keystore.properties` are all gitignored. Never commit any of them.
 - Without the file, `bundleRelease` and `assembleRelease` build **unsigned** outputs (what F-Droid wants; Play and GitHub need it signed).
-- **Open (Christopher):** a new upload key for Apophenia, or an existing one. Play App Signing holds the app-signing key; this is the upload key.
+- **The key (made 24 Oct 2026):** `keys/apophenia-upload.jks`, alias `upload`, certificate SHA-256 C5:50:9F:E4:D7:A6:BB:A0:6C:37:FF:D4:A1:E4:42:A9:E1:F1:22:62:C9:7D:46:D2:62:8D:A5:99:28:35:F8:7C. Backups with its password and README: `C:\Users\Wi-Fi\Documents\Apophenia upload key\` and `D:\Backups\Apophenia upload key\`. Play App Signing holds the app-signing key; this is the upload key (Play can reset a lost upload key; GitHub installs can only be updated with this one).
+- Signed outputs are copied to `dist/release/` (gitignored).
 
 ## Per release
 1. Bump `versionCode` and `versionName` in `app/build.gradle.kts`.
@@ -55,5 +56,4 @@ bridge, Room and the ONNX/LiteRT runtimes would each need keep rules checked on 
 
 ## Store listing
 `fastlane/metadata/android/en-US/`: title, short description (74 of 80), full description (draft from the README), changelogs.
-**Missing:** the launcher icon (the app has none yet: Android shows its default), `images/icon.png` 512×512, the feature
-graphic 1024×500, phone screenshots.
+Icon: `images/icon.png` 512×512 from Christopher's artwork (`tools/store/icon.ps1` makes it and the launcher layers). **Missing:** the feature graphic 1024×500, phone screenshots.
