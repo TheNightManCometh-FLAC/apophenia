@@ -518,11 +518,12 @@ class AppModel(val app: ApopheniaApp) {
             notice("Importing ${uris.size} file${if (uris.size == 1) "" else "s"}…")
             var done = 0
             val refused = ArrayList<String>()
+            val partly = ArrayList<String>()
             var last: Long? = null
             val base = System.currentTimeMillis()
             uris.forEachIndexed { i, uri ->
                 when (val r = app.imports.import(uri, projectId, base + i)) {
-                    is com.betterappmafia.apophenia.capture.Imports.Result.Done -> { done++; last = r.scrapId }
+                    is com.betterappmafia.apophenia.capture.Imports.Result.Done -> { done++; last = r.scrapId; if (r.notRead.isNotEmpty()) partly += "${r.name} without " + r.notRead.joinToString(", ") }
                     is com.betterappmafia.apophenia.capture.Imports.Result.Refused -> refused += "${r.name}: ${r.why}"
                 }
                 importing = uris.size - i - 1
@@ -534,6 +535,7 @@ class AppModel(val app: ApopheniaApp) {
                 buildString {
                     append(if (done == 1) "Imported 1 file to $where" else "Imported $done files to $where")
                     if (refused.isNotEmpty()) append(". Not imported: ").append(refused.joinToString("; "))
+                    if (partly.isNotEmpty()) append(". Read ").append(partly.joinToString("; "))
                     append('.')
                 }
             )

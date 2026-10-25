@@ -216,7 +216,7 @@ object MusicXml {
                     if (staff == 1) {
                         e.chord?.let { harmony(it) }?.let { sb.append("      ").append(it).append('\n') }
                         e.dynamic?.let { sb.append("      <direction placement=\"below\"><direction-type><dynamics><${it.token}/></dynamics></direction-type><voice>$voiceNo</voice></direction>\n") }
-                        for (t in e.texts) sb.append("      <direction placement=\"above\"><direction-type><words>${esc(t.text)}</words></direction-type><voice>$voiceNo</voice></direction>\n")
+                        for (t in e.texts) sb.append("      <direction placement=\"${if (t.kind == TextKind.EXPRESSION) "below" else "above"}\"><direction-type><words${if (t.kind == TextKind.EXPRESSION) " font-style=\"italic\"" else ""}>${esc(t.text)}</words></direction-type><voice>$voiceNo</voice></direction>\n")
                     }
                     val notes: List<Note?> = if (e.isRest) listOf(null) else e.notes
                     val tiedIn = tiedFrom[voiceNo].orEmpty()

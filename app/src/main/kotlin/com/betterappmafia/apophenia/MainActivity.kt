@@ -44,7 +44,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         app.model.pickBackupFolder = { pickFolder.launch(null) }
         app.model.pickBackupFile = { pickFile.launch(arrayOf("application/zip", "application/octet-stream")) }
-        app.model.pickImport = { pickImports.launch(arrayOf("audio/*", "text/*", "video/*", "application/octet-stream")) }
+        app.model.pickImport = { pickImports.launch(arrayOf("audio/*", "text/*", "video/*", "application/octet-stream", "application/xml", "application/vnd.recordare.musicxml+xml", "application/vnd.recordare.musicxml", "application/zip")) }
         app.model.pickMidiTarget = { name -> pickMidiTarget.launch(name) }
         app.model.pickFileTarget = { name -> pickFileTarget.launch(name) }
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT), navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT))

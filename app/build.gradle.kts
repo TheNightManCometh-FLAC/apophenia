@@ -13,8 +13,8 @@ android {
         applicationId = "com.betterappmafia.apophenia"
         minSdk = 29
         targetSdk = 36
-        versionCode = 64
-        versionName = "0.7.3"
+        versionCode = 65
+        versionName = "0.7.4"
         ndk {
             abiFilters += "arm64-v8a"
         }

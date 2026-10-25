@@ -10,6 +10,8 @@ import android.provider.OpenableColumns
 import com.betterappmafia.apophenia.Breadcrumbs
 import com.betterappmafia.apophenia.audio.Resampler
 import com.betterappmafia.apophenia.audio.WavWriter
+import com.betterappmafia.apophenia.core.score.MusicXmlRead
+import com.betterappmafia.apophenia.core.score.ScoreText
 import com.betterappmafia.apophenia.data.ApopheniaDatabase
 import com.betterappmafia.apophenia.data.ScrapEntity
 import com.betterappmafia.apophenia.data.ScrapFormat
@@ -21,17 +23,18 @@ import java.nio.ByteOrder
  * Files from the phone as fragments (plan §3.1, Christopher 22 Oct 2026). Audio in any format the
  * phone decodes (MP3, AAC/M4A, FLAC, Ogg, Opus, WAV…) becomes a recording, converted to the app's
  * take format; .txt/.md become text notes; ChordPro files (.cho, .chopro, .chordpro, .crd, .pro)
- * become lyrics. Each is tagged "imported", titled from its file name.
+ * become lyrics; MusicXML (.musicxml, .xml, .mxl) becomes tab or sheet music. Each is tagged "imported", titled from its file name.
  */
 class Imports(private val context: Context, private val db: ApopheniaDatabase, private val audioDir: File) {
 
     sealed interface Result {
-        data class Done(val scrapId: Long, val name: String) : Result
+        data class Done(val scrapId: Long, val name: String, val notRead: List<String> = emptyList()) : Result
         data class Refused(val name: String, val why: String) : Result
     }
 
     private val chordPro = setOf("cho", "chopro", "chordpro", "crd", "pro")
     private val text = setOf("txt", "md", "text")
+    private val musicXml = setOf("musicxml", "xml", "mxl")
 
     suspend fun import(uri: Uri, projectId: Long?, now: Long = System.currentTimeMillis()): Result {
         val name = displayName(uri) ?: uri.lastPathSegment ?: "file"
@@ -41,6 +44,7 @@ class Imports(private val context: Context, private val db: ApopheniaDatabase, p
         return runCatching {
             when {
                 ext in chordPro -> written(ScrapFormat.LYRIC, readText(uri), title, projectId, now)
+                ext in musicXml || mime.contains("musicxml") -> score(uri, title, projectId, now)
                 ext in text || mime.startsWith("text/") -> written(ScrapFormat.TEXT, readText(uri), title, projectId, now)
                 ext == "mid" || ext == "midi" || mime.contains("midi") -> Result.Refused(name, "MIDI files arrive with written music (M5).")
                 mime.startsWith("audio/") || mime.startsWith("video/") || ext in setOf("mp3", "m4a", "aac", "wav", "flac", "ogg", "opus", "amr", "3gp", "mp4", "webm", "aif", "aiff") ->
@@ -60,6 +64,18 @@ class Imports(private val context: Context, private val db: ApopheniaDatabase, p
     private fun readText(uri: Uri): String {
         val bytes = context.contentResolver.openInputStream(uri)?.use { it.readNBytes(2_000_000) } ?: error("It couldn't be opened.")
         return String(bytes, Charsets.UTF_8).removePrefix("﻿").replace("\r\n", "\n")
+    }
+
+    /** A MusicXML score (plan §11) as written music: a tab scrap when a part is fretted, else sheet music. */
+    private suspend fun score(uri: Uri, title: String, projectId: Long?, now: Long): Result {
+        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readNBytes(32_000_000) } ?: error("It couldn't be opened.")
+        val read = MusicXmlRead.read(bytes)
+        val s = read.score
+        val format = if (s.parts.any { it.fretted }) ScrapFormat.TAB else ScrapFormat.SHEET
+        val name = s.title.ifBlank { title }.take(80)
+        val id = db.scraps().createWritten(ScrapEntity(format = format, title = name, body = ScoreText.encode(s), createdAt = now, editedAt = now), projectId)
+        db.tags().tag(id, "imported", now)
+        return Result.Done(id, name, read.dropped)
     }
 
     private suspend fun written(format: ScrapFormat, body: String, title: String, projectId: Long?, now: Long): Result {
