@@ -58,8 +58,9 @@ object PianoRoll {
     /**
      * The part's bars that [before] and [after] differ in rewritten from [after] (bars added at the end if notes
      * run past it, at the last bar's meter); every other bar is kept as it was.
+     * [division] is the grid the notes sit on (12 lets triplets be written).
      */
-    fun rebuild(score: Score, p: Int, before: List<RollNote>, after: List<RollNote>): Score {
+    fun rebuild(score: Score, p: Int, before: List<RollNote>, after: List<RollNote>, division: Int = 4): Score {
         val part0 = score.parts[p]
         // Room for every note: bars added at the end as needed.
         var s = score
@@ -87,7 +88,7 @@ object PianoRoll {
                 val v = (0 until voices).map { voice ->
                     val here = after.filter { it.voice == voice && it.start < starts[b + 1] && it.end > starts[b] }
                     if (here.isEmpty() && voice >= bar.voices.size) null
-                    else writeVoice(here, starts[b], starts[b + 1], meter)
+                    else writeVoice(here, starts[b], starts[b + 1], meter, division)
                 }
                 // Voices keep their numbers; empty top voices go away.
                 val kept = v.mapIndexed { i, x -> x ?: FromNotes.durations(0, meter.barTicks.toLong(), meter, 4).map { Event(it) } }
@@ -101,13 +102,13 @@ object PianoRoll {
     }
 
     /** One voice of one bar from the notes sounding in it: a beat wherever a note starts or ends, ties where notes go on. */
-    private fun writeVoice(notes: List<RollNote>, from: Long, to: Long, meter: com.betterappmafia.apophenia.core.rhythm.TimeSignature): List<Event> {
+    private fun writeVoice(notes: List<RollNote>, from: Long, to: Long, meter: com.betterappmafia.apophenia.core.rhythm.TimeSignature, division: Int = 4): List<Event> {
         val cuts = (notes.flatMap { listOf(it.start, it.end) }.filter { it in from..to } + from + to).distinct().sorted()
         val out = ArrayList<Event>()
         for (k in 0 until cuts.size - 1) {
             val a = cuts[k]; val z = cuts[k + 1]
             val sounding = notes.filter { it.start <= a && it.end > a }.sortedByDescending { it.pitch.midi }
-            val pieces = FromNotes.durations(a - from, z - a, meter, 4)
+            val pieces = FromNotes.durations(a - from, z - a, meter, division)
             // Markings of beats that start here travel with them.
             val starting = sounding.filter { it.start == a }.mapNotNull { it.event }
             pieces.forEachIndexed { i, d ->

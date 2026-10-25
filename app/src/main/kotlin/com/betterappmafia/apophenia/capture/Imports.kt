@@ -10,6 +10,7 @@ import android.provider.OpenableColumns
 import com.betterappmafia.apophenia.Breadcrumbs
 import com.betterappmafia.apophenia.audio.Resampler
 import com.betterappmafia.apophenia.audio.WavWriter
+import com.betterappmafia.apophenia.core.score.MidiRead
 import com.betterappmafia.apophenia.core.score.MusicXmlRead
 import com.betterappmafia.apophenia.core.score.ScoreText
 import com.betterappmafia.apophenia.data.ApopheniaDatabase
@@ -23,7 +24,7 @@ import java.nio.ByteOrder
  * Files from the phone as fragments (plan §3.1, Christopher 22 Oct 2026). Audio in any format the
  * phone decodes (MP3, AAC/M4A, FLAC, Ogg, Opus, WAV…) becomes a recording, converted to the app's
  * take format; .txt/.md become text notes; ChordPro files (.cho, .chopro, .chordpro, .crd, .pro)
- * become lyrics; MusicXML (.musicxml, .xml, .mxl) becomes tab or sheet music. Each is tagged "imported", titled from its file name.
+ * become lyrics; MusicXML (.musicxml, .xml, .mxl) and MIDI (.mid, .midi, .kar) become tab or sheet music. Each is tagged "imported", titled from its file name.
  */
 class Imports(private val context: Context, private val db: ApopheniaDatabase, private val audioDir: File) {
 
@@ -46,7 +47,7 @@ class Imports(private val context: Context, private val db: ApopheniaDatabase, p
                 ext in chordPro -> written(ScrapFormat.LYRIC, readText(uri), title, projectId, now)
                 ext in musicXml || mime.contains("musicxml") -> score(uri, title, projectId, now)
                 ext in text || mime.startsWith("text/") -> written(ScrapFormat.TEXT, readText(uri), title, projectId, now)
-                ext == "mid" || ext == "midi" || mime.contains("midi") -> Result.Refused(name, "MIDI files arrive with written music (M5).")
+                ext == "mid" || ext == "midi" || ext == "kar" || mime.contains("midi") -> midi(uri, title, projectId, now)
                 mime.startsWith("audio/") || mime.startsWith("video/") || ext in setOf("mp3", "m4a", "aac", "wav", "flac", "ogg", "opus", "amr", "3gp", "mp4", "webm", "aif", "aiff") ->
                     audio(uri, title, projectId, now)
                 else -> Result.Refused(name, "Not audio or text (${mime.ifEmpty { ext.ifEmpty { "unknown type" } }}).")
@@ -68,14 +69,24 @@ class Imports(private val context: Context, private val db: ApopheniaDatabase, p
 
     /** A MusicXML score (plan §11) as written music: a tab scrap when a part is fretted, else sheet music. */
     private suspend fun score(uri: Uri, title: String, projectId: Long?, now: Long): Result {
-        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readNBytes(32_000_000) } ?: error("It couldn't be opened.")
-        val read = MusicXmlRead.read(bytes)
-        val s = read.score
+        val read = MusicXmlRead.read(readBytes(uri))
+        return scoreScrap(read.score, read.dropped, title, projectId, now)
+    }
+
+    /** A MIDI file (plan §11) as written music, the same way: quantised and spelled by MidiRead. */
+    private suspend fun midi(uri: Uri, title: String, projectId: Long?, now: Long): Result {
+        val read = MidiRead.read(readBytes(uri), title)
+        return scoreScrap(read.score, read.dropped, title, projectId, now)
+    }
+
+    private fun readBytes(uri: Uri) = context.contentResolver.openInputStream(uri)?.use { it.readNBytes(32_000_000) } ?: error("It couldn't be opened.")
+
+    private suspend fun scoreScrap(s: com.betterappmafia.apophenia.core.score.Score, dropped: List<String>, title: String, projectId: Long?, now: Long): Result {
         val format = if (s.parts.any { it.fretted }) ScrapFormat.TAB else ScrapFormat.SHEET
         val name = s.title.ifBlank { title }.take(80)
         val id = db.scraps().createWritten(ScrapEntity(format = format, title = name, body = ScoreText.encode(s), createdAt = now, editedAt = now), projectId)
         db.tags().tag(id, "imported", now)
-        return Result.Done(id, name, read.dropped)
+        return Result.Done(id, name, dropped)
     }
 
     private suspend fun written(format: ScrapFormat, body: String, title: String, projectId: Long?, now: Long): Result {

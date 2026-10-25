@@ -7,7 +7,7 @@ import java.io.ByteArrayOutputStream
 
 /**
  * A score as a Standard MIDI File (plan §11), format 1 at 960 ticks a quarter: a conductor track with the tempo
- * and time-signature changes and rehearsal marks as markers, then one track per part (its name, a General MIDI
+ * and time-signature changes, key signatures (sharps or flats, major or minor; a mode goes out as its signature) and rehearsal marks as markers, then one track per part (its name, a General MIDI
  * program, its notes). Bars are written in playing order, repeats and endings taken as the app plays them
  * (ScoreTime.order); tied notes are one long note. Percussion parts go on channel 10. [Claude] Velocity is the
  * note's own playback velocity, else 80; dynamics, articulations and chord symbols aren't written yet.
@@ -62,10 +62,13 @@ object ScoreMidi {
         val starts = order.runningFold(0L) { t, b -> t + ticks(score.meterAt(b).barLength) }
         var lastMeter: TimeSignature? = null
         var lastBpm: Double? = null
+        var lastKey: com.betterappmafia.apophenia.core.catalog.KeyMode? = null
         order.forEachIndexed { i, b ->
             val t = starts[i]
             val meter = score.meterAt(b)
             if (meter != lastMeter) { conductor.meta(t, 0x58, timeSig(meter)); lastMeter = meter }
+            val key = score.keyAt(b)
+            if (i == 0 && key != null || i > 0 && key != lastKey) { key?.let { conductor.meta(t, 0x59, byteArrayOf(Notation.fifths(it).toByte(), if (it.scaleId == "aeolian") 1 else 0)) }; lastKey = key }
             val tempo = score.tempoAt(b)
             val quarterBpm = tempo.bpm * (tempo.beatUnit.length / Rational.of(1, 4)).let { it.num.toDouble() / it.den }
             if (quarterBpm != lastBpm) {
