@@ -2,6 +2,22 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.7.9 (25 Oct 2026): Ear as practice and high scores
+- **Ear (Learn › Ear)** reworked to Christopher's direction: no chapters to work through, no Listen / Practice / Test modes. Two sections: **PRACTICE** (Mixed: everything, then the drill types as rows that open on their drills, and Your music) and **HIGH SCORES** (every drill you've played, by its best streak, highest first; tap one to practise it). Every drill opens straight into practice.
+- **Streak counter** (Christopher: "A streak counter for how many in a row would make it feel like you're actually getting somewhere"): the drill screen shows STREAK large (right answers in a row; a wrong one resets it) and the drill's BEST beside it, which turns to NEW BEST when you pass it. The best run of each session is saved; a drill's high score is its longest run ever (`EarResultDao.streaks()`, no schema change).
+- [Claude] The drill types stay as grouping rows (they aren't lessons); old test scores stay in the database but aren't shown.
+- **Tests: 561** (+1: a drill's high score is its longest streak in any session, with sessions and last time).
+- **Unverified on device:** all of it.
+
+## Navigation: Christopher picked B (25 Oct 2026)
+- **Three bottom tabs by intent, each with sub-tabs: MAKE (Board, Library) · PRACTICE (Tools, Ear, high scores) · STUDY (Course, Reference, AI).** Exact sub-tab placement to be mocked up.
+- **Kept on every screen, unchanged:** the persistent player strip (player and stack), "Obviously leave the stack like player", plus the **metronome** and the **recorder** from Tools, and a **New +** button beside them for adding a fragment (record, lyrics, chord chart, tab, sheet music, note).
+
+## Christopher's first phone verdict (25 Oct 2026, on 0.7.8)
+- "It's well done, just needs polish and some deeper organization."
+- **Navigation:** "The menu layout in general. 5 tabs for everything isn't the best way." The five-mode bottom bar is to be replaced. Next: research how real music and notebook apps organise this, then materially different options as clickable mockups for his pick (CLAUDE.md §5.6 rule), then build.
+- **Ear training:** "The pitch training should drop the course approach and just have the practice and high score section to avoid being too close to Rick Beato's." Chapter chips and the Listen / Practice / Test structure go; drills to practice plus a high-score section stay. The theory Course wasn't part of this.
+
 ## M7 part 9 — build 0.7.8 (24 Oct 2026): the upload key and the icon
 - **Upload key made** (Christopher, 24 Oct 2026: "Back it up onto my actual computer"): `keys/apophenia-upload.jks`, PKCS12, alias `upload`, RSA 4096, valid to 11 Mar 2054, certificate SHA-256 `C5:50:9F:E4:D7:A6:BB:A0:6C:37:FF:D4:A1:E4:42:A9:E1:F1:22:62:C9:7D:46:D2:62:8D:A5:99:28:35:F8:7C`. Random 32-character password, the same for store and key, written only to files. `keystore.properties` and `keys/` are gitignored (checked with `git check-ignore`).
 - **Backed up on this PC, two drives:** `C:\Users\Wi-Fi\Documents\Apophenia upload key\` and `D:\Backups\Apophenia upload key\`, each with the .jks, password.txt, the certificate (.pem), a README, and `apophenia-upload-key.zip` holding all four (the Independent Video layout). Both copies byte-identical to the original.

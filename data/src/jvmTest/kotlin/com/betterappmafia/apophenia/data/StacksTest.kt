@@ -342,4 +342,17 @@ class StacksTest {
         assertEquals(18 to 20, best.bestCorrect to best.bestTotal)
         assertEquals(3, best.sessions)
     }
+
+    @Test fun `a drill's high score is its longest streak in any session`() = runBlocking<Unit> {
+        val ear = db.earResults()
+        ear.add(EarResultEntity(drill = "iv-simple", mode = "practice", correct = 12, total = 20, bestStreak = 7, finishedAt = now))
+        ear.add(EarResultEntity(drill = "iv-simple", mode = "practice", correct = 25, total = 26, bestStreak = 19, finishedAt = now + 5))
+        ear.add(EarResultEntity(drill = "iv-simple", mode = "practice", correct = 3, total = 9, bestStreak = 2, finishedAt = now + 9))
+        ear.add(EarResultEntity(drill = "ch-triads", mode = "practice", correct = 4, total = 4, bestStreak = 4, finishedAt = now + 1))
+        val s = ear.streaks().first().associateBy { it.drill }
+        assertEquals(19, s.getValue("iv-simple").best, "the best run, not the last session's")
+        assertEquals(3, s.getValue("iv-simple").sessions)
+        assertEquals(now + 9, s.getValue("iv-simple").last)
+        assertEquals(4, s.getValue("ch-triads").best)
+    }
 }

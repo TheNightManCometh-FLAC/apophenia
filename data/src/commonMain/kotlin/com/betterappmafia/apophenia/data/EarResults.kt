@@ -29,6 +29,9 @@ data class EarResultEntity(
 /** Per drill: the best test score and how many sessions there have been. */
 data class EarBest(val drill: String, @ColumnInfo(name = "best_correct") val bestCorrect: Int?, @ColumnInfo(name = "best_total") val bestTotal: Int?, val sessions: Int)
 
+/** A drill's high score: its best streak, how many sessions, and the last one's time. */
+data class EarStreak(val drill: String, val best: Int, val sessions: Int, @ColumnInfo(name = "last_at") val last: Long)
+
 @Dao
 interface EarResultDao {
     @Insert suspend fun insertRaw(r: EarResultEntity): Long
@@ -45,4 +48,8 @@ interface EarResultDao {
     fun bests(): Flow<List<EarBest>>
 
     @Query("SELECT * FROM ear_result ORDER BY finished_at DESC LIMIT :limit") suspend fun recent(limit: Int = 50): List<EarResultEntity>
+
+    /** Per drill, the high score (the longest run of right answers in any session), sessions played, and when last. */
+    @Query("SELECT drill, MAX(best_streak) AS best, COUNT(*) AS sessions, MAX(finished_at) AS last_at FROM ear_result GROUP BY drill")
+    fun streaks(): Flow<List<EarStreak>>
 }
