@@ -8,7 +8,7 @@
 - **Signed release builds:** `bundleRelease` and `assembleRelease` now sign with it: the APK verifies (apksigner, v2) and the AAB's certificate matches. Kept in `dist/release/` (Apophenia-0.7.8.aab for Play, .apk for GitHub). A release APK can't install over a debug install (different keys), so phone tests stay on the debug zips.
 - **Launcher icon:** Christopher's artwork (`art/apophenia-icon-source.png`, 1254 px) as an adaptive icon: black background, the art 66 dp across the 108 dp layer, so every launcher shape (circle, squircle, square) shows all of it; PNG layers for every density, regular and round. Play listing icon `fastlane/.../images/icon.png` 512 px. `tools/store/icon.ps1` regenerates them all.
 - **Tests: 560**, all passing. First release changelog moved to `changelogs/69.txt`.
-- **Still needed for Play:** feature graphic 1024×500, phone screenshots; and the Play Console setup is Christopher's.
+- **Feature graphic** (Christopher OK'd making it from the artwork, 24 Oct 2026): `fastlane/metadata/android/en-US/images/featureGraphic.png` 1024×500, made by `tools/store/feature.ps1`. **Still needed for Play:** phone screenshots; the Play Console setup is Christopher's.
 - **Unverified on device:** the icon on the S22's launcher, and everything since 0.5.2. Christopher still has not seen notation drawn (0.5.2–0.7.8).
 
 ## M7 part 8 — build 0.7.7 (24 Oct 2026): release prep, and the network permission fixed
