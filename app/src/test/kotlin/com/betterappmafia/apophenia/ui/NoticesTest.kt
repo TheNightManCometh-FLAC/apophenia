@@ -21,7 +21,13 @@ class NoticesTest {
     @Test
     fun theManifestHasNoInternetPermission() {
         val manifest = File("src/main/AndroidManifest.xml").readText()
-        assertFalse("the privacy text says there is no internet permission", manifest.contains("android.permission.INTERNET"))
+        // The only mention allowed is the one that strips ONNX Runtime's request from the merged manifest.
+        val asks = Regex("<uses-permission[^>]*android.permission.INTERNET[^>]*>").findAll(manifest).map { it.value }.toList()
+        assertTrue("INTERNET is named only to remove it", asks.all { "tools:node=\"remove\"" in it })
+        // The merged manifest, libraries included, is what the phone sees (when this build has made one).
+        File("build/intermediates/packaged_manifests").walkTopDown().filter { it.name == "AndroidManifest.xml" }.forEach { merged ->
+            assertFalse("the privacy text says there is no internet permission: ${merged.path}", merged.readText().contains("\"android.permission.INTERNET\""))
+        }
     }
 
     @Test

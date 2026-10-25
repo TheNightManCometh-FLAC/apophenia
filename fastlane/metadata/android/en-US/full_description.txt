@@ -1,0 +1,21 @@
+Apophenia is a notebook for musicians. Catch a rough idea the moment it happens (a hummed melody, a riff, a lyric line, a chord change), keep every scrap in one place, and work through them with real tools, full-depth theory and ear training.
+
+No account, no internet permission, no ads, no analytics. Everything stays on your phone.
+
+<b>Board</b>: one scrolling working sheet per project, with lyrics, chord charts, tab, sheet music, recordings and notes side by side.
+
+<b>Library</b>: every scrap you've caught. Recordings are kept as takes A, B, C (star or delete them, they're never edited), plus lyrics in ChordPro, chord charts, tab, sheet music, drum charts and text. Search, filter, tag, group, and back up to a folder you choose.
+
+<b>Tools</b>: metronome with additive meters and the 40 PAS rudiments, chromatic tuner, drone, recorder, playback speed, an isolator with note finder, a practice log.
+
+<b>Learn</b>: a Course (nine categories, 123 lessons, beginner to advanced, nothing locked), a Reference (every interval, 55 scales and modes, 41 chord types, 27 named progressions and 45 guitar tunings, each on any root, on your fretboard, piano and staff, with sound) and Ear training (56 drills, including drills built from your own music).
+
+<b>AI, on the phone</b>: Spotify's Basic Pitch turns a recording into notes, Spleeter splits a song into stems, Moonshine turns a spoken lyric idea into text, and the app finds tempo, key and chords. Nothing is sent anywhere.
+
+<b>Stacks</b>: layer your recordings; loop and one-shot layers follow the stack's tempo and key (the amount shown, always reversible), free-time layers are never touched.
+
+<b>In and out</b>: MusicXML 4.0 (with tab), MIDI, ChordPro and plain-text tab, imports of audio, MIDI, MusicXML and text from the phone, and an FL Studio package (stems, takes, MIDI and a manifest).
+
+The app doesn't make connections or suggestions. You do, in your head. It puts your material in front of you and gives you tools.
+
+Free software (GPL-3.0-or-later) by Better App Mafia. Source: https://github.com/TheNightManCometh-FLAC/apophenia

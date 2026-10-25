@@ -11,3 +11,4 @@ captures/
 dist/
 .kotlin/
 .claude/
+keystore.properties

@@ -1,0 +1,29 @@
+# DRAFT F-Droid recipe (fdroiddata metadata/com.betterappmafia.apophenia.yml). Not yet checked with `fdroid lint`
+# or built by F-Droid. Open questions are in docs/RELEASING.md (prebuilt AARs, model files).
+Categories:
+  - Multimedia
+License: GPL-3.0-or-later
+AuthorName: Better App Mafia
+AuthorEmail: cporter31415@gmail.com
+WebSite: https://thenightmancometh-flac.github.io/apophenia/
+SourceCode: https://github.com/TheNightManCometh-FLAC/apophenia
+IssueTracker: https://github.com/TheNightManCometh-FLAC/apophenia/issues
+
+AutoName: Apophenia
+
+RepoType: git
+Repo: https://github.com/TheNightManCometh-FLAC/apophenia.git
+
+Builds:
+  - versionName: 0.7.7
+    versionCode: 68
+    commit: v0.7.7
+    subdir: app
+    gradle:
+      - yes
+    ndk: 29.0.14206865
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 0.7.7
+CurrentVersionCode: 68

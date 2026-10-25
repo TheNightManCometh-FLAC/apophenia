@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- No INTERNET permission: Apophenia is offline by design (official plan §1). -->
 <!-- allowBackup is off: Android auto-backup uploads to the cloud; the app has its own backup to a chosen folder (plan §11). -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ONNX Runtime 1.31.0's own manifest asks for these; Apophenia never touches the network, so they're taken out of the
+         merged manifest (the build checks the result: app/build.gradle.kts, checkNoNetwork). -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
 
     <!-- The microphone, asked for the first time you record or open the tuner. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
