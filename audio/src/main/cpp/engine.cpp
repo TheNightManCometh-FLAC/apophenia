@@ -1260,7 +1260,9 @@ JNI() void JNICALL FN(nativeStackState)(JNIEnv *env, jobject, jlongArray outArr)
 // The stack's ● (confirmed by Christopher, 21 Oct 2026): its own output, no mic. [Claude] Rendered
 // offline, one pass of the stack at the current gains, mutes and solos, to partPath, then renamed.
 // Returns frames written, or -1. Writes peak (0..) into peakOut[0] so the UI can say if it clipped.
-JNI() jlong JNICALL FN(nativeBounceStack)(JNIEnv *env, jobject, jstring partPath, jstring finalPath, jfloatArray peakOut) {
+// The stack's output to a 24-bit WAV; with onlyLayer != 0, that one layer alone at its gain (a stem for the FL Studio
+// package), whatever mute and solo say, over the whole stack length so every stem lines up from 0.
+JNI() jlong JNICALL FN(nativeBounceStack)(JNIEnv *env, jobject, jstring partPath, jstring finalPath, jfloatArray peakOut, jlong onlyLayer) {
     Engine &e = engine();
     Mix *m = e.mix.load();
     if (!m || m->length <= 0) return -1;
@@ -1276,7 +1278,8 @@ JNI() jlong JNICALL FN(nativeBounceStack)(JNIEnv *env, jobject, jstring partPath
         const int n = static_cast<int>(std::min<int64_t>(buf.size(), m->length - t0));
         std::fill(buf.begin(), buf.begin() + n, 0.0f);
         for (const auto &l : m->layers) {
-            if (l->mute.load() || (m->anySolo && !l->solo.load())) continue;
+            if (onlyLayer != 0) { if (l->id != onlyLayer) continue; }
+            else if (l->mute.load() || (m->anySolo && !l->solo.load())) continue;
             const float g = l->gain.load();
             for (int i = 0; i < n; ++i) buf[static_cast<size_t>(i)] += g * l->at(t0 + i);
         }

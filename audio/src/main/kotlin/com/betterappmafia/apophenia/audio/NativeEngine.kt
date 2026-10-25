@@ -135,9 +135,10 @@ object NativeEngine {
     }
 
     /** Renders one pass of the stack to [partPath], renamed to [finalPath]. Returns frames and the peak (above 1 = it clipped), or null. */
-    fun bounceStack(partPath: String, finalPath: String): Pair<Long, Float>? {
+    /** The stack's mix, or with [onlyLayer] that layer alone (a stem), over the whole stack length. */
+    fun bounceStack(partPath: String, finalPath: String, onlyLayer: Long = 0): Pair<Long, Float>? {
         val peak = FloatArray(1)
-        val n = nativeBounceStack(partPath, finalPath, peak)
+        val n = nativeBounceStack(partPath, finalPath, peak, onlyLayer)
         return if (n > 0) n to peak[0] else null
     }
 
@@ -148,7 +149,7 @@ object NativeEngine {
     private external fun nativeStackPlay(play: Boolean)
     private external fun nativeStackSeek(frame: Long)
     private external fun nativeStackState(out: LongArray)
-    private external fun nativeBounceStack(partPath: String, finalPath: String, peak: FloatArray): Long
+    private external fun nativeBounceStack(partPath: String, finalPath: String, peak: FloatArray, onlyLayer: Long): Long
 
     /**
      * Conform render (Signalsmith Stretch): the whole take at [lengthFactor] × its length, shifted [semitones].

@@ -487,11 +487,40 @@ class AppModel(val app: ApopheniaApp) {
     private var pendingExport: Pair<ByteArray, String>? = null
 
     fun exportFile(bytes: ByteArray, name: String, what: String) {
+        pendingStream = null
         pendingExport = bytes to what
         pickFileTarget(name)
     }
 
+    /** A large export written straight to the file picked (the FL Studio package): [write] returns a summary for the notice. */
+    private var pendingStream: Pair<suspend (java.io.OutputStream) -> String, String>? = null
+    var exporting by mutableStateOf(false)
+        private set
+
+    fun exportStream(name: String, what: String, write: suspend (java.io.OutputStream) -> String) {
+        pendingExport = null
+        pendingStream = write to what
+        pickFileTarget(name)
+    }
+
     fun fileTargetPicked(uri: android.net.Uri?) {
+        pendingStream?.let { (write, what) ->
+            pendingStream = null
+            if (uri == null) return
+            app.io.launch {
+                exporting = true
+                notice("Making the $what…")
+                runCatching { app.contentResolver.openOutputStream(uri, "w")!!.use { write(it) } }
+                    .onSuccess { notice("$what saved: $it.") }
+                    .onFailure {
+                        Breadcrumbs.add("export failed: $it")
+                        runCatching { android.provider.DocumentsContract.deleteDocument(app.contentResolver, uri) }
+                        notice("The $what couldn't be written: ${it.message}")
+                    }
+                exporting = false
+            }
+            return
+        }
         val (bytes, what) = pendingExport ?: return
         pendingExport = null
         if (uri == null) return

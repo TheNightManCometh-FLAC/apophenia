@@ -110,6 +110,7 @@ private fun NoProjectBoard(model: AppModel, projects: List<ProjectRow>, requestM
 private fun ProjectBoard(model: AppModel, project: ProjectEntity, requestMic: (() -> Unit) -> Unit) {
     val rows by remember(project.id) { model.app.db.projects().boardRows(project.id) }.collectAsState(null)
     var menu by remember { mutableStateOf(false) }
+    var flMenu by remember { mutableStateOf(false) }
     var playMenu by remember { mutableStateOf(false) }
     val stackHere by remember(project.id) { model.app.db.stacks().scrapIdsInProjectStack(project.id) }.collectAsState(emptyList())
     val record = { requestMic { model.startRecording(RecordTarget.Project(project.id, project.name)) } }
@@ -131,8 +132,10 @@ private fun ProjectBoard(model: AppModel, project: ProjectEntity, requestMic: ((
                     MenuItem("Stand mode", "LANDSCAPE · LARGE TYPE") { model.standProject = project.id },
                 ) + WRITABLE.map { (f, label, _) -> MenuItem("Write ${label.lowercase()}", formatTag(f)) { model.write(f, project.id) } } +
                     listOf(MenuItem("Write a guitar tab", "TAB") { model.writeTab(false, project.id) }, MenuItem("Write a bass tab", "TAB") { model.writeTab(true, project.id) }, MenuItem("Write sheet music", "NOT") { model.writeSheet(project.id) }) +
-                    MenuItem("Import from the phone", "INTO ${project.name.uppercase()} ›", enabled = model.importing == 0) { model.startImport(project.id) }
+                    MenuItem("Import from the phone", "INTO ${project.name.uppercase()} ›", enabled = model.importing == 0) { model.startImport(project.id) } +
+                    MenuItem("Export for FL Studio", "ZIP ▾", enabled = !model.exporting) { flMenu = true }
                 )
+                ConsoleMenu(flMenu, { flMenu = false }, "FL STUDIO PACKAGE · WHICH AUDIO", flStudioItems { model.stacks.flPackage(it, project.id) })
             }
         }
         val list = rows ?: return@Column

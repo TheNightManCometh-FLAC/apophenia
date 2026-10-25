@@ -58,6 +58,7 @@ fun StackScreen(model: AppModel) {
     val layers by sm.layers.collectAsState()
     val st by model.app.audio.stack.collectAsState()
     var menu by remember { mutableStateOf(false) }
+    var flMenu by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
         TitleBar {
             Sq("‹", { model.showStack = false }, modifier = Modifier.semantics { contentDescription = "Back" })
@@ -77,8 +78,10 @@ fun StackScreen(model: AppModel) {
                 ConsoleMenu(menu, { menu = false }, "STACK", listOf(
                     MenuItem("Add a layer", "FROM THE LIBRARY ›") { sm.pickLayers() },
                     MenuItem("Bounce the stack", "● NO MIC", enabled = layers.isNotEmpty()) { sm.bounce() },
+                    MenuItem("Export for FL Studio", "ZIP ▾", enabled = layers.isNotEmpty() && !model.exporting) { flMenu = true },
                     MenuItem("Take it out of the player", "STAYS SAVED") { model.showStack = false; model.app.audio.unloadStack(); },
                 ))
+                ConsoleMenu(flMenu, { flMenu = false }, "FL STUDIO PACKAGE · WHICH AUDIO", flStudioItems { sm.flPackage(it) })
             }
         }
         // The transport line: tap to move the playhead.
@@ -202,4 +205,13 @@ private fun LayerWave(model: AppModel, row: LayerRow) {
             )
         }
     }
+}
+
+/** The FL Studio package's audio choice (plan §11: "originals and/or conformed stems"); MIDI and the manifest always go in. */
+fun flStudioItems(go: (com.betterappmafia.apophenia.export.FlStudioExport.Audio) -> Unit) = com.betterappmafia.apophenia.export.FlStudioExport.Audio.entries.map { a ->
+    MenuItem(a.label, when (a) {
+        com.betterappmafia.apophenia.export.FlStudioExport.Audio.BOTH -> "LARGEST"
+        com.betterappmafia.apophenia.export.FlStudioExport.Audio.STEMS -> "LINED UP"
+        com.betterappmafia.apophenia.export.FlStudioExport.Audio.TAKES -> "UNTOUCHED"
+    }) { go(a) }
 }

@@ -19,7 +19,12 @@ import com.betterappmafia.apophenia.data.TakeEntity
 import java.io.File
 import kotlin.math.pow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import com.betterappmafia.apophenia.core.score.FlPackage
+import com.betterappmafia.apophenia.export.FlStudioExport
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -203,6 +208,34 @@ class StackModel(private val model: AppModel) {
      * The stack's ● (plan §2.4, confirmed 21 Oct 2026): the stack's own output, no mic. Saved as a new
      * recording in the stack's project (and the Library), tagged "stack mix", with the save sheet.
      */
+    /**
+     * The FL Studio package (plan §11) of [projectId]'s stack (null = the temporary stack), saved where the user
+     * picks. The stack is put in the player first, since stems are the engine's own render of it; a layer still
+     * being conformed stops the export, so no stem comes out unconformed by accident.
+     */
+    fun flPackage(audio: FlStudioExport.Audio, projectId: Long? = loaded?.projectId) {
+        use(projectId) { s ->
+            app.io.launch {
+                val rows = db.stacks().layers(s.id).first()
+                if (rows.isEmpty() && s.projectId == null) { model.notice("The stack is empty: nothing to export."); return@launch }
+                // The engine has this stack once its layers have been pushed to it.
+                val playable = rows.count { it.audioPath != null }
+                val ready = withTimeoutOrNull(5_000) {
+                    while (app.audio.stack.value?.stackId != s.id || app.audio.stack.value?.layers != playable) delay(50)
+                    true
+                }
+                if (audio.stems && playable > 0 && ready == null) { model.notice("The stack didn't load, so there are no stems to write. Try again."); return@launch }
+                if (audio.stems && _conforms.value.values.any { it.state == LayerConform.State.RENDERING }) {
+                    model.notice("A layer is still being conformed to the stack's tempo and key. Export when it's ready."); return@launch
+                }
+                val name = FlPackage.fileName((s.projectId?.let { model.projectName(it) } ?: s.name) + " - FL Studio") + ".zip"
+                val conforms = _conforms.value.mapValues { it.value.amounts }
+                val bpm = tempo(rows); val key = key(rows)
+                model.exportStream(name, "FL Studio package") { out -> FlStudioExport(app).write(out, s, rows, conforms, bpm, key, audio) }
+            }
+        }
+    }
+
     fun bounce() {
         val s = loaded ?: return
         app.io.launch {

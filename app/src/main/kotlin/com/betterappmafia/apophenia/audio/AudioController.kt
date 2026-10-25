@@ -341,6 +341,12 @@ class AudioController(private val context: Context, private val audioDir: File) 
     }
 
     /** The stack's ●: one pass of its own output, no mic, written as a new take file. Returns it with its peak, or null. */
+    /** The loaded stack's mix ([layer] 0) or one layer's stem into [file] (for exports, not a take). Frames written, or null. */
+    suspend fun bounceTo(file: File, layer: Long = 0): Long? = withContext(dispatcher) {
+        val part = File(file.path + ".part")
+        NativeEngine.bounceStack(part.absolutePath, file.absolutePath, layer)?.first
+    }
+
     suspend fun bounceStack(): Pair<Recorded, Float>? = withContext(dispatcher) {
         audioDir.mkdirs()
         val name = "take-${System.currentTimeMillis()}.wav"
