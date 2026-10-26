@@ -2,6 +2,13 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.9.7 (26 Oct 2026): emulator pass done; drum charts, exercises and switching items fixed
+- **The emulator pass is finished** (`docs/reviews/emulator-pass-2026-10-26.md`: 20 findings, what was checked, what wasn't walked). Fixed only what broke the walk; the rest waits for Christopher.
+- **Every drum chart crashed the app** (finding 9, since 0.3.6): the chart reader's `{meter: …}` pattern had a bare `}`, which desktop Java accepts and Android's ICU regex refuses. Escaped. **`RegexBracesTest`** (core) reads the app's sources and fails on any pattern with a bare brace; with the old line it fails.
+- **Opening an item over another showed the old one's content** (finding 8): + NEW › Sheet music over an open tab opened with the tab in it, and an edit would have saved it there. `ScrapDetail` now starts fresh per item (`key`).
+- **No exercise could be added** (finding 10): + ADD ▾'s type step closed the menu. It reopens on the list now.
+- **Tests: 604** (+2). Emulator-verified: the three fixes. Not on the phone yet.
+
 ## Build 0.9.6 (26 Oct 2026): tab and sheet music open again
 - **Found in the emulator pass** (`docs/reviews/emulator-pass-2026-10-26.md`, finding 6): every tab and sheet-music editor crashed on opening, since 0.5.3. The score screen's meter menu held a bare "5/8", which `TimeSignature.of` refuses (two groupings), and that list is built when the screen's file loads. Now 5/8 is listed as 2+3/8 and 3+2/8, like 7/8's two groupings.
 - **`ScreenTablesTest`** (app) loads every UI file's top-level values and fails on any that throw; with the old list it fails naming this exact error, so it guards the whole class of bug, not just this list.

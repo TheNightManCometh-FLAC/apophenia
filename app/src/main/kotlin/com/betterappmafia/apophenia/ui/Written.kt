@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.key
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,11 +69,16 @@ import kotlinx.coroutines.launch
 /** A scrap opened full size: recordings get the recording view, everything written gets its editor. */
 @Composable
 fun ScrapDetail(model: AppModel, scrapId: Long, requestMic: (() -> Unit) -> Unit) {
-    val row by remember(scrapId) { model.app.db.scraps().row(scrapId) }.collectAsState(null)
-    val r = row ?: return
-    if (r.scrap.format == ScrapFormat.RECORDING) RecordingDetail(model, scrapId, requestMic)
-    else if (r.scrap.format == ScrapFormat.TAB || r.scrap.format == ScrapFormat.SHEET) ScoreDetail(model, r, model.detailProject)
-    else WrittenDetail(model, r, model.detailProject)
+    // A fresh composition per item: collectAsState keeps the last item's value until the new flow emits, and the
+    // editors read their first text from it, so + NEW over an open tab opened the new sheet music with the tab in it.
+    key(scrapId, model.detailProject) {
+        val row by remember(scrapId) { model.app.db.scraps().row(scrapId) }.collectAsState(null)
+        val r = row
+        if (r == null) Unit
+        else if (r.scrap.format == ScrapFormat.RECORDING) RecordingDetail(model, scrapId, requestMic)
+        else if (r.scrap.format == ScrapFormat.TAB || r.scrap.format == ScrapFormat.SHEET) ScoreDetail(model, r, model.detailProject)
+        else WrittenDetail(model, r, model.detailProject)
+    }
 }
 
 /** Lyrics auto-scroll speeds 1–6 (C4), in dp per second. [Claude] values; dial them in on the phone. */

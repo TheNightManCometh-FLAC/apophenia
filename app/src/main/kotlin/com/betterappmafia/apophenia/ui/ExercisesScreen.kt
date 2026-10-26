@@ -92,7 +92,7 @@ fun ExercisesScreen(model: AppModel) {
                     addMenu, { addMenu = false }, if (f == null) "FROM THE LIBRARY" else formatWord(f),
                     if (f == null) EXERCISE_FORMATS.map { fm ->
                         val n = library.count { it.format == fm }
-                        MenuItem("${formatWord(fm)} ›", "$n", enabled = n > 0) { family = fm }
+                        MenuItem("${formatWord(fm)} ›", "$n", enabled = n > 0) { family = fm; addMenu = true }
                     } else library.filter { it.format == f }.map { s -> MenuItem(displayTitle(s), s.bpmLow?.let { "${it.toInt()} BPM" } ?: "") { addMenu = false; add(s) } },
                 )
             }

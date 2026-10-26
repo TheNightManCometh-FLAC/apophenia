@@ -269,7 +269,8 @@ data class DrumChart(val grid: DrumGrid, val swing: Double = 0.5, val problems: 
         /** [Claude] A new chart: one bar of 4/4 in sixteenths, hi-hat, snare and kick, nothing written yet. */
         fun starter() = DrumChart(DrumGrid.of("4/4", 4, 1, DrumVoice.HAT to "-".repeat(16), DrumVoice.SNARE to "-".repeat(16), DrumVoice.KICK to "-".repeat(16)))
 
-        private val DIRECTIVE = Regex("""^\{\s*(\w+)\s*:\s*(.*?)\s*}$""")
+        // The } is escaped: desktop Java takes a bare one, Android's ICU regex refuses it (every drum chart crashed).
+        private val DIRECTIVE = Regex("""^\{\s*(\w+)\s*:\s*(.*?)\s*\}$""")
         private val ROW = Regex("""^([A-Za-z0-9]{2})\s*\|(.*)$""")
 
         fun parse(text: String): DrumChart {
