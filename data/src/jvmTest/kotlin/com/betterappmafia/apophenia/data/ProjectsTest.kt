@@ -222,23 +222,36 @@ class ProjectsTest {
 }
 
 class BoardLayoutTest {
-    @Test fun `new windows fill two columns left to right, then the next row`() {
+    @Test fun `new windows are squares laid out staggered and nudged, never in rows`() {
         val width = 384
-        val w = BoardLayout.defaultWidth(width)
-        assertEquals(180, w)
+        assertEquals(168, BoardLayout.defaultWidth(width))
         val first = BoardLayout.nextFree(emptyList(), width)
         val second = BoardLayout.nextFree(listOf(first), width)
         val third = BoardLayout.nextFree(listOf(first, second), width)
-        assertEquals(BoardRect(8, 8, 180, 132), first)
-        assertEquals(BoardRect(196, 8, 180, 132), second)
-        assertEquals(BoardRect(8, 148, 180, 132), third)
+        assertEquals(BoardRect(12, 11, 168, 168), first)
+        assertEquals(BoardRect(201, 74, 168, 168), second)
+        assertEquals(BoardRect(13, 198, 168, 168), third)
+        assertFalse(first.overlaps(second) || first.overlaps(third) || second.overlaps(third))
+    }
+
+    @Test fun `a wide Board gets more columns rather than bigger squares`() {
+        val r = BoardLayout.nextFree(emptyList(), 900)
+        assertEquals(BoardLayout.MAX_SIDE, r.w)
+        assertEquals(r.w, r.h)
     }
 
     @Test fun `a new window never covers one the musician moved`() {
         val moved = BoardRect(100, 20, 200, 200)
         val r = BoardLayout.nextFree(listOf(moved), 384)
         assertFalse(r.overlaps(moved))
-        assertEquals(BoardRect(8, 288, 180, 132), r)
+        assertEquals(BoardRect(201, 258, 168, 168), r)
+    }
+
+    @Test fun `windows left where old builds put them by default are found, moved ones are not`() {
+        assertTrue(BoardLayout.isOldDefault(BoardRect(8, 8, 180, 132), 384))
+        assertTrue(BoardLayout.isOldDefault(BoardRect(196, 148, 180, 132), 384))
+        assertFalse(BoardLayout.isOldDefault(BoardRect(196, 150, 180, 132), 384))
+        assertFalse(BoardLayout.isOldDefault(BoardRect(8, 8, 180, 200), 384))
     }
 
     @Test fun `a dragged window stays on the Board and never shrinks below the minimum`() {

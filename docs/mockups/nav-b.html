@@ -51,6 +51,13 @@ body { font-family: var(--mono); font-size: 13px; padding-left: max(16px, env(sa
 .scrap .h { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--line); }
 .scrap pre { margin: 0; padding: 10px; font-family: var(--mono); font-size: 11.5px; line-height: 1.5; color: var(--text); white-space: pre; overflow-x: auto; }
 .chord { color: var(--acc); font-weight: 700; }
+.loose { position: relative; height: 450px; }
+.sq { position: absolute; width: 160px; height: 160px; background: var(--panel); border: 1px solid var(--line2); padding: 8px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+.sq .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.sq .tags span { font-size: 9px; font-weight: 700; letter-spacing: .1em; color: var(--hi); border: 1px solid var(--line2); padding: 2px 5px; }
+.sq .tags .kind { background: var(--acc); color: var(--bg); border-color: var(--acc); font-weight: 800; }
+.sq .st { color: var(--hi); font-weight: 800; }
+.sq pre { margin: 0; font-family: var(--mono); font-size: 10.5px; line-height: 1.45; color: var(--text); white-space: pre; }
 .takes { display: flex; gap: 8px; padding: 10px; }
 .takes span { border: 1px solid var(--line2); padding: 6px 10px; font-weight: 800; color: var(--hi); font-size: 11px; }
 .takes span.star { border-color: var(--acc); color: var(--acc); }
@@ -120,9 +127,9 @@ body { font-family: var(--mono); font-size: 13px; padding-left: max(16px, env(sa
 
     <h2>What moves where</h2>
     <div class="map">
-      <span class="k">MAKE</span><span>Board · Library</span>
+      <span class="k">MAKE</span><span>Board · Library · AI</span>
       <span class="k">PRACTICE</span><span>Tools · Ear (practice + high scores)</span>
-      <span class="k">STUDY</span><span>Course · Reference · AI</span>
+      <span class="k">STUDY</span><span>Course · Reference</span>
     </div>
     <p>The sub-tabs sit at the top of each tab. Each tab remembers the sub-tab you left it on, so tapping PRACTICE takes you back to Ear if that's where you were.</p>
     <p>Unchanged on every screen: the project ▾ and mic state, the click / tools / ● REC strip, and the player and stack at the bottom. Stand mode, the stack workspace, recording details, Trash and the save sheet work as they do now.</p>
@@ -160,9 +167,9 @@ body { font-family: var(--mono); font-size: 13px; padding-left: max(16px, env(sa
 (() => {
   const S = { tab: "make", sub: { make: "board", practice: "tools", study: "course" }, menu: null, strip: "top", dest: "board", earView: "practice", drill: null, toast: null };
   const TABS = {
-    make: { label: "MAKE", subs: [["board", "BOARD"], ["library", "LIBRARY"]] },
+    make: { label: "MAKE", subs: [["board", "BOARD"], ["library", "LIBRARY"], ["ai", "AI"]] },
     practice: { label: "PRACTICE", subs: [["tools", "TOOLS"], ["ear", "EAR"]] },
-    study: { label: "STUDY", subs: [["course", "COURSE"], ["reference", "REFERENCE"], ["ai", "AI"]] },
+    study: { label: "STUDY", subs: [["course", "COURSE"], ["reference", "REFERENCE"]] },
   };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const row = (n, s, right, act, count) =>
@@ -176,18 +183,15 @@ body { font-family: var(--mono); font-size: 13px; padding-left: max(16px, env(sa
     </div>`;
 
   const screens = {
-    board: () => `<div class="title"><b>NIGHT DRIVE · BOARD</b><span class="lbl">WRITE ▾ · ● REC · ⋯</span></div>
-      <div class="scrap"><div class="h"><span class="btn">VERSE 1</span><span class="lbl">LYRICS</span></div><pre><span class="chord">Am</span>               <span class="chord">F</span>
-Headlights on the overpass
-<span class="chord">C</span>                    <span class="chord">G</span>
-counting every sign I pass</pre></div>
-      <div class="scrap"><div class="h"><span class="btn">RIFF IDEA</span><span class="lbl">RECORDING · 0:42 · 92 BPM</span></div><div class="takes"><span>A</span><span>B</span><span class="star">★ C</span></div><div class="wave"></div></div>
-      <div class="scrap"><div class="h"><span class="btn">CHORUS</span><span class="lbl">CHORD CHART · 4/4</span></div><pre>| <span class="chord">Am</span>  /  /  / | <span class="chord">F</span>   /  /  / |
-| <span class="chord">C</span>   /  /  / | <span class="chord">G</span>   /  /  / ‖</pre></div>
-      <div class="scrap"><div class="h"><span class="btn">BASS LINE</span><span class="lbl">BASS TAB · E STANDARD</span></div><pre>G|---------------------|
-D|---------------------|
-A|-0-0-------3-3-------|
-E|-----1-1-------3-3---|</pre></div>`,
+    board: () => {
+      const sq = (x, y, rot, kind, tags, title, body) => `<div class="sq tap" data-act="open" style="left:${x}px;top:${y}px;transform:rotate(${rot}deg)"><div class="tags"><span class="kind">${kind}</span>${tags.map(t => `<span>${t}</span>`).join("")}</div><div class="st">${title}</div><pre>${body}</pre></div>`;
+      return `<div class="title"><b>NIGHT DRIVE · BOARD</b><span class="lbl">▶ PLAY ▾ · ⋯</span></div><div class="loose">` +
+        sq(12, 11, -0.6, "LYRICS", ["VERSE"], "Verse 1", `<span class="chord">Am</span>         <span class="chord">F</span>\nHeadlights on\nthe overpass`) +
+        sq(196, 74, 1.2, "RECORDING", ["RIFF", "GTR"], "Riff idea", `★ C · 3 TAKES\n92 BPM · Am`) +
+        sq(13, 198, 0.6, "CHORDS", ["CHORUS"], "Chorus", `| <span class="chord">Am</span> | <span class="chord">F</span> |\n| <span class="chord">C</span>  | <span class="chord">G</span> ‖`) +
+        sq(200, 258, -1.2, "TAB", ["BASS"], "Bass line", `A|-0-0----3-\nE|----1-1---`) +
+        `</div>`;
+    },
     library: () => `<div class="title"><b>LIBRARY</b><span class="lbl">FILTER ▾ · SELECT</span></div>
       <div class="row"><div class="m"><div class="s">⌕  search titles, tags, lyrics</div></div></div>
       ${row("Riff idea", "3 takes · 0:42 · 92 BPM · A minor · Night Drive", "▶")}
@@ -309,6 +313,7 @@ E|-----1-1-------3-3---|</pre></div>`,
     else if (d.act === "rec") return toast("● Recording into the Library…");
     else if (d.act === "play") return toast("▶ The stack plays (unchanged).");
     else if (d.act === "stack") return toast("Opens the stack workspace (unchanged).");
+    else if (d.act === "open") return toast("Opens the full view of the fragment.");
     else if (d.act === "earP") S.earView = "practice";
     else if (d.act === "earS") S.earView = "scores";
     else if (d.act === "back") S.drill = null;

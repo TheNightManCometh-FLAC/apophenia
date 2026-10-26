@@ -354,3 +354,9 @@ private fun Section(label: String, content: @Composable () -> Unit) {
 
 private fun <T> Set<T>.toggle(x: T): Set<T> = if (x in this) this - x else this + x
 
+
+/** The kind of fragment as a word, for the Board's squares. */
+fun formatWord(f: ScrapFormat) = when (f) {
+    ScrapFormat.RECORDING -> "RECORDING"; ScrapFormat.LYRIC -> "LYRICS"; ScrapFormat.TEXT -> "NOTE"; ScrapFormat.CHORD_CHART -> "CHORDS"
+    ScrapFormat.TAB -> "TAB"; ScrapFormat.MIDI -> "MIDI"; ScrapFormat.SHEET -> "SHEET MUSIC"; ScrapFormat.DRUM_CHART -> "DRUMS"
+}

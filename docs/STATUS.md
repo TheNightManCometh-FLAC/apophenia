@@ -2,6 +2,14 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.8.2 (25 Oct 2026): the Board as loose squares; AI under MAKE
+- Christopher: "again the board should be loose squares that you can instantly understand what they are by the tags, and interact with for the full view of the fragment" and "not a list". The Board already had free windows, but new ones landed in a tidy two-column grid of short wide boxes, which read as a list (and the nav mockup drew it as one).
+- **Squares:** new windows are squares (168 dp on the S22 Ultra's width, at most 200 dp so wider screens get more columns), on a staggered layout (every other column a third of a square lower), nudged a few dp each and tilted under a degree and a half, so they look laid down by hand. Windows still where an older build put them by default are laid out again as squares; ones you moved or resized stay where you put them. [Claude] the stagger, nudge and tilt.
+- **What it is at a glance:** each square leads with its kind as a filled tag (RECORDING, LYRICS, NOTE, CHORDS, TAB, MIDI, SHEET MUSIC, DRUMS), then its own tags as chips, then the title, the glimpse, and BPM · key · takes. Tap opens the full view; hold and drag moves; the corner resizes (as before).
+- **AI moved to MAKE** (Christopher: "ai is not study It's make"): MAKE is Board · Library · AI; STUDY is Course · Reference.
+- **Tests: 563** (Board layout: squares staggered and never overlapping, wide Boards get more columns, a new square never covers a moved one, old default windows found and moved ones not, clamping).
+- **Unverified on device:** all of it.
+
 ## Build 0.8.1 (25 Oct 2026): piano roll as a way to write sheet music
 - Christopher: "Its an alternative mode of writing sheet music as I see a piano roll." **+ NEW › Piano roll** (also WRITE ▾ › Piano roll and Board ⋯ › Write in the piano roll) makes new sheet music and opens it straight in the piano-roll view. It is the same sheet-music scrap: VIEW ▾ switches it to notation, tab or chord chart and back.
 - Plumbing: `AppModel.writeSheet(projectId, roll = true)` → `open(..., view = "roll")` → `detailView`, which ScoreView takes as its first view.

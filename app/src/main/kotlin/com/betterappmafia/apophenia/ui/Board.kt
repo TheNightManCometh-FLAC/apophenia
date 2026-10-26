@@ -38,6 +38,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
@@ -156,7 +157,7 @@ private fun ProjectBoard(model: AppModel, project: ProjectEntity, requestMic: ((
             val layout = remember(list, boardW) { layoutOf(list, boardW) }
             // New windows get the first free spot once; after that they stay where the musician puts them.
             LaunchedEffect(layout, list) {
-                val fresh = list.filter { !it.placed }
+                val fresh = list.filter { isFresh(it, boardW) }
                 if (fresh.isNotEmpty()) model.app.io.launch {
                     fresh.forEach { r -> layout[r.scrap.id]?.let { b -> model.app.db.projects().place(project.id, r.scrap.id, b.x, b.y, b.w, b.h, r.z) } }
                 }
@@ -186,11 +187,14 @@ private fun ProjectBoard(model: AppModel, project: ProjectEntity, requestMic: ((
     }
 }
 
-/** Saved places, plus the first free grid spot for each window not placed yet, in the order they were added. */
+/** Not placed yet, or still where an older build put it by default (laid out again as a square). */
+private fun isFresh(r: BoardRow, boardW: Int) = !r.placed || BoardLayout.isOldDefault(BoardRect(r.x!!, r.y!!, r.w!!, r.h!!), boardW)
+
+/** Saved places, plus the first free spot for each fresh window, in the order they were added. */
 private fun layoutOf(rows: List<BoardRow>, boardW: Int): Map<Long, BoardRect> {
     val out = LinkedHashMap<Long, BoardRect>()
-    rows.filter { it.placed }.forEach { out[it.scrap.id] = BoardRect(it.x!!, it.y!!, it.w!!, it.h!!) }
-    rows.filter { !it.placed }.sortedBy { it.addedAt }.forEach { out[it.scrap.id] = BoardLayout.nextFree(out.values.toList(), boardW) }
+    rows.filter { !isFresh(it, boardW) }.forEach { out[it.scrap.id] = BoardRect(it.x!!, it.y!!, it.w!!, it.h!!) }
+    rows.filter { isFresh(it, boardW) }.sortedBy { it.addedAt }.forEach { out[it.scrap.id] = BoardLayout.nextFree(out.values.toList(), boardW) }
     return out
 }
 
@@ -227,6 +231,8 @@ private fun BoardWindow(model: AppModel, projectId: Long, row: BoardRow, rect: B
             .offset { IntOffset(shown.x.dp.roundToPx(), shown.y.dp.roundToPx()) }
             .size(shown.w.dp, shown.h.dp)
             .zIndex(if (active) 10_000f else row.z.toFloat())
+            // Laid down by hand, not in rows: a slight tilt, the same for a scrap every time; straight while it's being moved.
+            .graphicsLayer { rotationZ = if (active) 0f else ((s.id * 37 % 5) - 2) * 0.6f }
             .background(C.panel)
             .border(1.dp, if (active) C.acc else C.line2)
             .pointerInput(s.id) { detectTapGestures(onTap = { open() }, onLongPress = {}) }
@@ -242,11 +248,25 @@ private fun BoardWindow(model: AppModel, projectId: Long, row: BoardRow, rect: B
                 onClick("Open") { open(); true }
             },
     ) {
-        Column(Modifier.fillMaxSize().padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(formatTag(s.format), style = T.label.copy(fontWeight = FontWeight.ExtraBold, fontSize = 9.sp, color = C.acc), modifier = Modifier.padding(end = 6.dp))
-                Line1(title, T.hi.copy(fontSize = 12.sp))
+        Column(Modifier.fillMaxSize().padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 6.dp)) {
+            // What it is, at a glance (Christopher, 25 Oct 2026: "instantly understand what they are by the tags"):
+            // the kind of fragment as a filled tag, then its own tags, then the title.
+            @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+            androidx.compose.foundation.layout.FlowRow(
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp),
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp),
+                maxLines = 2,
+            ) {
+                Text(
+                    formatWord(s.format), style = T.label.copy(fontWeight = FontWeight.ExtraBold, fontSize = 9.sp, color = C.bg),
+                    modifier = Modifier.background(C.acc).padding(horizontal = 5.dp, vertical = 2.dp),
+                )
+                row.tagList.forEach { t ->
+                    Text(t.uppercase(), style = T.label.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp, color = C.hi), maxLines = 1,
+                        modifier = Modifier.border(1.dp, C.line2).padding(horizontal = 5.dp, vertical = 2.dp))
+                }
             }
+            Line1(title, T.hi.copy(fontSize = 13.sp), Modifier.padding(top = 6.dp))
             Box(Modifier.weight(1f).fillMaxWidth().padding(vertical = 5.dp)) { Glimpse(model, row) }
             val meta = buildList {
                 if (bpmText(s) != "—") add(bpmText(s) + if (s.freeTime) "" else " BPM")
@@ -254,9 +274,8 @@ private fun BoardWindow(model: AppModel, projectId: Long, row: BoardRow, rect: B
                 if (row.takes > 1) add("${row.takes} TAKES")
                 if (row.starred > 0) add("★ ${row.starred}")
             }
-            if (meta.isNotEmpty()) Line1(meta.joinToString(" · "), T.label.copy(fontSize = 9.sp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Line1(row.tagList.joinToString(" · ").ifEmpty { "no tags" }, T.small.copy(fontSize = 10.sp, color = if (row.tagList.isEmpty()) C.faint else C.text), Modifier.weight(1f))
+                Line1(meta.joinToString(" · "), T.label.copy(fontSize = 9.sp), Modifier.weight(1f))
                 if (s.format == ScrapFormat.RECORDING) {
                     // C4: + STACK puts it in this project's stack (and the stack in the player); IN STACK takes it out.
                     Box(
