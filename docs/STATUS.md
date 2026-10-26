@@ -2,6 +2,12 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.8.6 (25 Oct 2026): triplet snaps and a chord stamp in the piano roll
+- **SNAP ▾ › 1/8 triplet and 1/16 triplet** (FL Studio has both). Notes drawn on them are written as real triplets in the notation and tab (three eighth-note triplets on a beat come out as one bracketed group). Bars with only straight notes are written exactly as before: triplets are switched on only once a note sits off the straight grid. In compound meters the roll writes the nearest straight values.
+- **TOOL ▾ › Chord stamp** (FL Studio's Stamp): pick a chord in **CHORD ▾** (family, then chord: the whole chord catalog), tap a row and the chord appears with its root there, every note the snap length, in the voice being entered. Tones are spelled from the root by their degrees, so E7♯9 gets F𝄪 and C°7 B𝄫. A root that would need a triple accidental is respelled (E♯7♯9 becomes F7♯9). It's a drawing tool, not a suggestion: nothing is proposed, you pick the chord.
+- **Tests: 572** (+3: three notes on a triplet snap become an eighth-note triplet with their pitches, straight notes stay straight; the stamp spells E7♯9, C°7 and F♭7♯9, and respells E♯7♯9 as F7♯9).
+- **Unverified on device:** all of it.
+
 ## Build 0.8.5 (25 Oct 2026): tenor clef key signatures
 - **Tenor clef now shows its key signature** (it showed none since 0.5.2). Flats take the usual shape a step above alto's (E♭ major: B♭3 third space, E♭4 top line, A♭3 middle line). Sharps take tenor's own shape so they stay on the staff, as Dorico's documentation and standard engraving have it: F♯3 on the second line, C♯4 fourth line, then G♯ D♯ A♯ E♯ B♯ alternating down and up inside the staff.
 - **Test:** for treble, bass, alto and tenor, every sharp and flat of every key up to seven lands on its own letter (F C G D A E B for sharps, the reverse for flats), and tenor's all stay on the staff.
@@ -477,9 +483,9 @@ Unit-tested and build-verified; **not device-verified.** Tests 401/401 (core 282
 - **How an edit becomes notation** (`core/score/PianoRoll.kt`): the roll is the score's notes as start, length and pitch in ticks, ties joined into one bar. After an edit, only the bars the changed notes touched (before or after) are rewritten: beat-aware durations with ties (as transcription does), notes overlapping in one voice as chords and ties; bars it didn't reach keep their tuplets, spelling and everything on them exactly. A note's articulations, lyrics and other beat markings go with it; bars are added when notes are drawn past the end; fretted parts are fingered again.
 - [Claude] choices:
   - No velocity lane yet: notes have no velocity in the model (dynamics are the markings). Adding one is a model change for a later build.
-  - Snap stops at 1/32 and has no triplet grid, so the roll only writes what notation can (tuplets are kept in bars the roll doesn't touch, and can be entered in step mode).
+  - Snap stops at 1/32; triplet snaps (1/8 and 1/16 triplet) came in 0.8.6.
   - Notes that overlap in one voice become chords with ties rather than being moved into another voice (MuseScore's MIDI import would split them into voices).
-  - Not built from FL's list: paint, slice, chord stamp, mute, strum, arpeggiate, flam, ghost channels of other parts, background waveform; generators (riff machine, chord progression, randomize) stay out (no suggestions).
+  - Not built from FL's list (chord stamp came in 0.8.6): paint, slice, mute, strum, arpeggiate, flam, ghost channels of other parts, background waveform; generators (riff machine, chord progression, randomize) stay out (no suggestions).
 - **Unverified on device:** all of it, especially dragging notes inside the scrolling roll and the edge-drag to lengthen.
 
 

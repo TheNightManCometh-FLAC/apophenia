@@ -123,4 +123,29 @@ class PianoRollTest {
         assertEquals(p("A1"), n.pitch)
         assertEquals(p("A1").midi, bass.midiAt(n.string!!, n.fret!!))
     }
+
+    @Test fun three_notes_on_a_triplet_snap_are_written_as_an_eighth_note_triplet() {
+        val s = sheet(listOf(Event(Duration.WHOLE)))
+        val before = PianoRoll.notes(s, s.parts[0])
+        var after = before
+        for ((i, n) in listOf("C4", "D4", "E4").withIndex()) after = PianoRoll.add(after, i * 320L, 320L, p(n).midi, 0, cMajor)
+        assertEquals(12, PianoRoll.divisionFor(after))
+        val out = PianoRoll.rebuild(s, 0, before, after, PianoRoll.divisionFor(after))
+        val triplet = Duration.EIGHTH.inTuplet(3, 2)
+        assertEquals(listOf(triplet, triplet, triplet), voice(out, 0).take(3).map { it.duration })
+        assertEquals(listOf(p("C4"), p("D4"), p("E4")), voice(out, 0).take(3).map { it.notes.single().pitch })
+        assertEquals(4, PianoRoll.divisionFor(PianoRoll.add(emptyList(), 120, 120, 60, 0, cMajor)))
+    }
+
+    @Test fun a_chord_stamp_spells_every_tone_from_the_root() {
+        val e7s9 = PianoRoll.stamp(emptyList(), 0, Q, p("E3"), com.betterappmafia.apophenia.core.catalog.Chords.byId("7#9"), 0)
+        assertEquals(listOf("E3", "G#3", "B3", "D4", "Fx4").map(::p), e7s9.map { it.pitch })
+        val cdim7 = PianoRoll.stamp(emptyList(), 0, Q, p("C4"), com.betterappmafia.apophenia.core.catalog.Chords.byId("dim7"), 1)
+        assertEquals(listOf("C4", "Eb4", "Gb4", "Bbb4").map(::p), cdim7.map { it.pitch })
+        assertTrue(cdim7.all { it.voice == 1 && it.length == Q })
+        // Fb7#9 needs no triple accidental, so it keeps its root: Fb Ab Cb Ebb G.
+        assertEquals(listOf("Fb3", "Ab3", "Cb4", "Ebb4", "G4").map(::p), PianoRoll.stamp(emptyList(), 0, Q, p("Fb3"), com.betterappmafia.apophenia.core.catalog.Chords.byId("7#9"), 0).map { it.pitch })
+        // E#7#9 would need F#x (a triple sharp) for its #9, so the root is respelled F: F A C Eb G#.
+        assertEquals(listOf("F3", "A3", "C4", "Eb4", "G#4").map(::p), PianoRoll.stamp(emptyList(), 0, Q, p("E#3"), com.betterappmafia.apophenia.core.catalog.Chords.byId("7#9"), 0).map { it.pitch })
+    }
 }

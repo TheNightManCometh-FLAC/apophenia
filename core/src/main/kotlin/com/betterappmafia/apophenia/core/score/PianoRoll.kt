@@ -2,6 +2,7 @@ package com.betterappmafia.apophenia.core.score
 
 import com.betterappmafia.apophenia.core.catalog.KeyMode
 import com.betterappmafia.apophenia.core.catalog.Scales
+import com.betterappmafia.apophenia.core.interval.plus
 import com.betterappmafia.apophenia.core.pitch.SpelledPitch
 import com.betterappmafia.apophenia.core.rhythm.TICKS_PER_WHOLE
 import com.betterappmafia.apophenia.core.tools.KeySpeller
@@ -135,6 +136,25 @@ object PianoRoll {
     /** Draw: a new note; spelled in the key. */
     fun add(notes: List<RollNote>, start: Long, length: Long, midi: Int, voice: Int, sp: KeySpeller): List<RollNote> =
         notes + RollNote((notes.maxOfOrNull { it.id } ?: -1) + 1, start, length, sp.spell(midi), voice)
+
+    /** The grid notes sit on for [rebuild]: triplets (12 a quarter) once a note is off the straight 1/32 grid, as triplet snaps draw. */
+    fun divisionFor(notes: List<RollNote>): Int = if (notes.any { it.start % 120 != 0L || it.length % 120 != 0L }) 12 else 4
+
+    /**
+     * FL Studio's chord stamp: [chord] built up from [root] (the note tapped, spelled in the key), every note [length]
+     * long. Tones are spelled from the root by their degrees (E7♯9 has F𝄪, not G); if a tone would need a triple
+     * accidental the root is respelled (G♯ → A♭), as the music core does.
+     */
+    fun stamp(notes: List<RollNote>, start: Long, length: Long, root: SpelledPitch, chord: com.betterappmafia.apophenia.core.catalog.ChordDef, voice: Int): List<RollNote> {
+        fun tones(r: SpelledPitch) = runCatching { chord.degrees.map { r + it.interval } }.getOrNull()
+        val roots = listOf(root) + (-2..2).filter { it != 0 }.mapNotNull { d ->
+            val base = SpelledPitch(root.letter + d, 0, root.octave + Math.floorDiv(root.letter.ordinal + d, 7))
+            (root.midi - base.midi).takeIf { it in -2..2 }?.let { base.copy(alter = it) }
+        }.sortedBy { kotlin.math.abs(it.alter) }
+        val pitches = roots.firstNotNullOfOrNull(::tones) ?: return notes
+        var id = (notes.maxOfOrNull { it.id } ?: -1)
+        return notes + pitches.map { RollNote(++id, start, length, it, voice) }
+    }
 
     fun delete(notes: List<RollNote>, ids: Set<Int>) = notes.filter { it.id !in ids }
 

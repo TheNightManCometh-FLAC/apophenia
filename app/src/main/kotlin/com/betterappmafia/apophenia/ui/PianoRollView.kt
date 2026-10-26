@@ -48,9 +48,10 @@ import com.betterappmafia.apophenia.ui.theme.T
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+import com.betterappmafia.apophenia.core.catalog.Chords
 
-/** Snap values (FL Studio's grid menu, trimmed to what notation can write): label and ticks; 0 = one bar. */
-private val SNAPS = listOf("Bar" to 0L, "Beat (♩)" to 960L, "♪ 1/8" to 480L, "1/16" to 240L, "1/32" to 120L)
+/** Snap values (FL Studio's grid menu, trimmed to what notation can write; the triplet snaps are written as triplets): label and ticks; 0 = one bar. */
+private val SNAPS = listOf("Bar" to 0L, "Beat (♩)" to 960L, "♪ 1/8" to 480L, "1/8 triplet" to 320L, "1/16" to 240L, "1/16 triplet" to 160L, "1/32" to 120L)
 
 /**
  * The piano-roll view (plan §10.5a, C4; FL Studio's piano roll): pitch up the side, time along, every voice's
@@ -69,6 +70,10 @@ fun PianoRollPane(
     val notes = remember(score, part) { PianoRoll.notes(score, part) }
     val starts = remember(score, part) { PianoRoll.barStarts(score, part) }
     var tool by remember { mutableStateOf("draw") }
+    // Chord stamp: the chord a tap draws, and its family menu then chord menu (long lists open on family rows).
+    var stampChord by remember { mutableStateOf("maj") }
+    var stampFamilies by remember { mutableStateOf(false) }
+    var stampFamily by remember { mutableStateOf<String?>(null) }
     var snap by remember { mutableStateOf(240L) }
     var scaleSnap by remember { mutableStateOf(false) }
     var zoom by remember { mutableStateOf(1f) }
@@ -83,7 +88,7 @@ fun PianoRollPane(
     fun barAt(t: Long) = (starts.indexOfLast { it <= t }).coerceIn(0, part.bars.lastIndex.coerceAtLeast(0))
     fun grid(t: Long): Long = if (snap == 0L) score.meterAt(barAt(t)).barTicks.toLong() else snap
     fun apply(after: List<PianoRoll.RollNote>, newSel: Set<Int> = sel) {
-        commit(PianoRoll.rebuild(score, 0, notes, after)); selection = newSel
+        commit(PianoRoll.rebuild(score, 0, notes, after, PianoRoll.divisionFor(after))); selection = newSel
     }
     val targets = sel.ifEmpty { notes.map { it.id }.toSet() }
     val targetWord = if (sel.isEmpty()) "ALL" else "${sel.size} SELECTED"
@@ -95,7 +100,17 @@ fun PianoRollPane(
                 MenuItem("Draw", if (tool == "draw") "✓ TAP TO ADD · DRAG TO MOVE" else "TAP TO ADD · DRAG TO MOVE") { tool = "draw" },
                 MenuItem("Select", if (tool == "select") "✓ TAP TO PICK SEVERAL" else "TAP TO PICK SEVERAL") { tool = "select" },
                 MenuItem("Delete", if (tool == "delete") "✓ TAP A NOTE" else "TAP A NOTE") { tool = "delete" },
+                MenuItem("Chord stamp", if (tool == "stamp") "✓ TAP FOR A WHOLE CHORD" else "TAP FOR A WHOLE CHORD") { tool = "stamp" },
             ))
+        }
+        if (tool == "stamp") Box {
+            Sq("CHORD: ${chordName(stampChord)} ▾", { stampFamilies = true }, on = true)
+            ConsoleMenu(stampFamilies, { stampFamilies = false }, "CHORD STAMP", Chords.all.groupBy { it.family }.map { (fam, list) ->
+                MenuItem(fam.replace('-', ' ').replaceFirstChar(Char::uppercase), "${list.size} ›") { stampFamily = fam }
+            })
+            ConsoleMenu(stampFamily != null, { stampFamily = null }, stampFamily?.replace('-', ' ')?.uppercase(), Chords.all.filter { it.family == stampFamily }.map { c ->
+                MenuItem(chordName(c.id), if (c.id == stampChord) "✓" else com.betterappmafia.apophenia.core.learn.accidentals(c.degrees.joinToString(" "))) { stampChord = c.id }
+            })
         }
         Box {
             Sq("SNAP: ${SNAPS.first { it.second == snap }.first.uppercase()} ▾", { snapMenu = true })
@@ -158,6 +173,7 @@ fun PianoRollPane(
     val cursorTick = cursor?.let { (b, i) -> starts.getOrNull(b)?.plus(part.bars.getOrNull(b)?.voices?.get(0)?.take(i)?.sumOf { e -> (e.length.toDouble() * 3840).roundToLong() } ?: 0L) }
     val slop = LocalViewConfiguration.current.touchSlop
     val toolNow by rememberUpdatedState(tool)
+    val stampNow by rememberUpdatedState(stampChord)
     val notesNow by rememberUpdatedState(notes)
     val selNow by rememberUpdatedState(sel)
     val applyNow by rememberUpdatedState<(List<PianoRoll.RollNote>, Set<Int>) -> Unit>({ a, s -> apply(a, s) })
@@ -197,6 +213,16 @@ fun PianoRollPane(
                                         play(m)
                                         val added = PianoRoll.add(notesNow, st, g, m, voice, sp)
                                         applyNow(added, setOf(added.last().id))
+                                    }
+                                    "stamp" -> {
+                                        val g = grid(t0)
+                                        val bar = barAt(t0)
+                                        val st = starts[bar] + ((t0 - starts[bar]) / g) * g
+                                        val m = if (scaleSnap) PianoRoll.snapToScale(midiAt(p0.y), score.key) else midiAt(p0.y)
+                                        val before = notesNow
+                                        val added = PianoRoll.stamp(before, st, g, sp.spell(m), Chords.byId(stampNow), voice)
+                                        added.drop(before.size).forEach { play(it.pitch.midi) }
+                                        applyNow(added, added.drop(before.size).map { it.id }.toSet())
                                     }
                                     else -> selection = emptySet()
                                 }
@@ -323,9 +349,13 @@ fun PianoRollPane(
     Text(
         when (tool) {
             "draw" -> "Draw: tap empty space for a note of the snap length in voice ${voice + 1}; drag a note to move it, its right end to lengthen it. Drag empty space to scroll. Slide a stem in VEL to set how hard it plays."
+            "stamp" -> "Chord stamp: tap empty space for the chord picked in CHORD ▾, its root on the row you tap, every note the snap length, spelled from the root. Drag a note to move it."
             "select" -> "Select: tap notes to pick several (EDIT ▾ and TOOLS ▾ then work on them); drag one to move them all."
             else -> "Delete: tap a note to take it out."
         } + " Notation and tab show every change. Bars an edit doesn't reach are left exactly as they were.",
         style = T.small, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
     )
 }
+
+/** A chord quality as written after a root (maj7, m7♭5, 7♯9), or "Major". */
+private fun chordName(id: String) = Chords.byId(id).symbols.first().removePrefix("C").ifEmpty { "Major" }.let { com.betterappmafia.apophenia.core.learn.accidentals(it) }
