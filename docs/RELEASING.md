@@ -31,7 +31,7 @@ F-Droid installs can't update each other (different signatures): expected.
 ## Size
 0.7.7: AAB 170 MB, release APK 208 MB, arm64-v8a only. Most of it is the models (140 MB: Spleeter 4-stems, Moonshine base,
 Basic Pitch) and ONNX Runtime's native library (34 MB). Play's limit is 200 MB for the compressed base download
-([measure] with `bundletool get-size total` once bundletool is on this machine). Past it, the models move to an
+(**measured 25 Oct 2026 on 0.8.8:** `bundletool get-size total` says 156.5 MB on every arm64-v8a phone, Android 10 through 16, so 43 MB under; bundletool 1.18.3 runs from the Gradle cache with the SDK's aapt2, see below). Past it, the models move to an
 install-time asset pack (Play Asset Delivery). [Claude] R8 is off: the code is a small part of the size, and the JNI
 bridge, Room and the ONNX/LiteRT runtimes would each need keep rules checked on the phone.
 
@@ -57,3 +57,13 @@ bridge, Room and the ONNX/LiteRT runtimes would each need keep rules checked on 
 ## Store listing
 `fastlane/metadata/android/en-US/`: title, short description (74 of 80), full description (draft from the README), changelogs.
 Icon: `images/icon.png` 512×512 from Christopher's painting (new 25 Oct 2026, full bleed) (`tools/store/icon.ps1` makes it and the launcher layers). Feature graphic: `images/featureGraphic.png` 1024×500 (`tools/store/feature.ps1`: the artwork right, name, tagline and "offline · no account · no ads" in JetBrains Mono and the app's colours). **Missing:** phone screenshots.
+
+### Measuring the Play download size
+bundletool 1.18.3 is in the Gradle cache (no download needed). Put its jar and dependencies on a classpath of Windows
+paths, then, after `./gradlew.bat bundleRelease`:
+```
+java -cp "<classpath>" com.android.tools.build.bundletool.BundleToolMain build-apks --aapt2=D:\Android\Sdk\build-tools\36.1.0\aapt2.exe --bundle=app\build\outputs\bundle\release\app-release.aab --output=app.apks
+java -cp "<classpath>" com.android.tools.build.bundletool.BundleToolMain get-size total --apks=app.apks --dimensions=ABI,SDK
+```
+0.8.8: 156,532,363–156,536,559 bytes. The largest pieces: Moonshine base 60 MB, Spleeter 4×18.8 MB, ONNX Runtime 32.6 MB,
+dex 24.6 MB (R8 off).

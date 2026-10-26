@@ -2,6 +2,11 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Play download size measured (25 Oct 2026, on 0.8.8)
+- **156.5 MB** (`bundletool get-size total` on the signed release AAB: 156,532,363–156,536,559 bytes, the same for Android 10–11 and 12–16 on arm64-v8a). Play's limit for the compressed base download is 200 MB, so it fits with 43 MB to spare; no asset pack needed yet. This closes that [measure] item (measured on this PC, which is what Play's number is).
+- Biggest pieces: Moonshine base (60 MB), the four Spleeter stems (75 MB), ONNX Runtime's native library (32.6 MB), the app's dex (24.6 MB with R8 off). If the margin is ever needed, R8 on the dex is the cheap first step (needs keep rules checked on the phone).
+- bundletool runs from the Gradle cache with the SDK's aapt2 (`docs/RELEASING.md` has the commands).
+
 ## Build 0.8.8 (25 Oct 2026): paint, slice and ghost notes in the piano roll
 - **TOOL ▾ › Paint** (FL Studio's brush): drag across the grid and every snap cell the finger crosses gets a note, at the pitch under the finger there (SCALE snaps it to the key). The stroke shows as you drag and sounds each new note; cells that already hold that note are skipped. While painting, the grid doesn't scroll (switch to Draw to scroll).
 - **TOOL ▾ › Slice** (FL's knife): tap inside a note to cut it in two at the nearest snap line.
@@ -90,7 +95,7 @@
 - **Store listing drafts:** `fastlane/metadata/android/en-US/` title, short description, full description (from the README), `changelogs/68.txt`. F-Droid recipe draft `tools/release/fdroid/com.betterappmafia.apophenia.yml`. The whole procedure, sizes, and the F-Droid open questions (prebuilt ONNX Runtime/LiteRT AARs, model weights) in **docs/RELEASING.md**.
 - **Missing for Play (Christopher):** the release (upload) key; a launcher icon (the app has none, so Android shows its default) and the 512×512 store icon, feature graphic and screenshots.
 - **Tests: 560**, all passing.
-- **[measure] not done:** Basic Pitch transcription with the Play libraries excluded (LiteRT's Interpreter shouldn't need them; check on the phone); `bundletool get-size` against Play's 200 MB limit.
+- **[measure] not done:** Basic Pitch transcription with the Play libraries excluded (LiteRT's Interpreter shouldn't need them; check on the phone); (`bundletool get-size`: measured 25 Oct 2026, 156.5 MB of 200).
 - **Unverified on device:** all of it. Christopher still has not seen notation drawn (0.5.2–0.7.7).
 
 ## M7 part 7 — build 0.7.6 (24 Oct 2026): the FL Studio package
