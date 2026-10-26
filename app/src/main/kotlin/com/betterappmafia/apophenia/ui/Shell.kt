@@ -377,6 +377,7 @@ private fun NewButton(model: AppModel, requestMic: (() -> Unit) -> Unit, modifie
             add(MenuItem("Guitar tab", "STANDARD TUNING") { model.writeTab(bass = false, into) })
             add(MenuItem("Bass tab", "E STANDARD") { model.writeTab(bass = true, into) })
             add(MenuItem("Sheet music", "PIANO KEYS OR TAP THE STAFF") { model.writeSheet(into) })
+            add(MenuItem("Piano roll", "SHEET MUSIC, FL STUDIO STYLE") { model.writeSheet(into, roll = true) })
             add(MenuItem("Import from the phone", "AUDIO · TEXT · MUSICXML · MIDI ›", enabled = model.importing == 0) { model.startImport(into) })
         }, header = {
             Column(Modifier.width(280.dp).underline()) {

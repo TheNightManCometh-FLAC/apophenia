@@ -357,10 +357,11 @@ class AppModel(val app: ApopheniaApp) {
     }
 
     /** Opens a scrap full size. [fromProject] = opened on that project's Board, so a written scrap shows and edits that project's version. */
-    fun open(scrapId: Long, fromProject: Long? = null, edit: Boolean = false) {
+    fun open(scrapId: Long, fromProject: Long? = null, edit: Boolean = false, view: String? = null) {
         Breadcrumbs.add("open scrap $scrapId from $fromProject")
         detailProject = fromProject
         detailEdit = edit
+        detailView = view
         detail = scrapId
     }
 
@@ -374,6 +375,9 @@ class AppModel(val app: ApopheniaApp) {
     var detailProject by mutableStateOf<Long?>(null)
         private set
     var detailEdit by mutableStateOf(false)
+        private set
+    /** The view a score opens in ("roll" for a new piano roll), or null for its usual one. */
+    var detailView by mutableStateOf<String?>(null)
         private set
 
     /**
@@ -395,8 +399,11 @@ class AppModel(val app: ApopheniaApp) {
         }
     }
 
-    /** New sheet music: four empty treble-clef bars in the metronome's meter and tempo (the clef changes with ADD ▾ later). */
-    fun writeSheet(projectId: Long? = null) {
+    /**
+     * New sheet music: four empty treble-clef bars in the metronome's meter and tempo (the clef changes with ADD ▾ later).
+     * [roll]: it opens in the piano roll, the other way of writing sheet music (Christopher, 25 Oct 2026).
+     */
+    fun writeSheet(projectId: Long? = null, roll: Boolean = false) {
         app.io.launch {
             val now = System.currentTimeMillis()
             val m = tools.metronome
@@ -411,7 +418,7 @@ class AppModel(val app: ApopheniaApp) {
                 bpmLow = m.bpm, bpmHigh = m.bpm, bpmSource = ValueSource.METRONOME, createdAt = now, editedAt = now,
             )
             val id = app.db.scraps().createWritten(scrap, projectId)
-            open(id, projectId, edit = true)
+            open(id, projectId, edit = true, view = if (roll) "roll" else null)
         }
     }
 

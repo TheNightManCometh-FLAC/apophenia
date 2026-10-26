@@ -2,6 +2,11 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.8.1 (25 Oct 2026): piano roll as a way to write sheet music
+- Christopher: "Its an alternative mode of writing sheet music as I see a piano roll." **+ NEW › Piano roll** (also WRITE ▾ › Piano roll and Board ⋯ › Write in the piano roll) makes new sheet music and opens it straight in the piano-roll view. It is the same sheet-music scrap: VIEW ▾ switches it to notation, tab or chord chart and back.
+- Plumbing: `AppModel.writeSheet(projectId, roll = true)` → `open(..., view = "roll")` → `detailView`, which ScoreView takes as its first view.
+- **Tests: 561.** build-verified. **Unverified on device:** all of it.
+
 ## Build 0.8.0 (25 Oct 2026): navigation B and + NEW
 - **Three bottom tabs** (Christopher picked option B from the mockup `docs/mockups/nav-b.html`): **MAKE** (Board, Library) · **PRACTICE** (Tools, Ear) · **STUDY** (Course, Reference, AI). Each tab's sub-tabs sit along the top of its screen; a tab reopens on the sub-tab you left it on. "Learn" is gone as a name; Course, Ear and Reference are sub-tabs, and a Course link to an Ear drill switches to PRACTICE › Ear with the lesson kept behind it.
 - **Unchanged on every screen:** project ▾ and mic state, the player and stack at the bottom, and the strip at the top (Christopher: "At the top"), which now reads CLICK ▾ · TOOLS ▾ · ● REC · **+ NEW**.

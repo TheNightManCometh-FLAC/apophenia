@@ -123,7 +123,7 @@ fun ScoreDetail(model: AppModel, row: LibraryRow, projectId: Long?) {
     var viewMenu by remember { mutableStateOf(false) }
     var editMenu by remember { mutableStateOf(false) }
     var rowMenu by remember { mutableStateOf(false) }
-    var view by remember(s.id) { mutableStateOf(if (s.format == com.betterappmafia.apophenia.data.ScrapFormat.SHEET) "notation" else "tab") }
+    var view by remember(s.id) { mutableStateOf(model.detailView ?: if (s.format == com.betterappmafia.apophenia.data.ScrapFormat.SHEET) "notation" else "tab") }
     var input by remember(s.id) { mutableStateOf(if (s.format == com.betterappmafia.apophenia.data.ScrapFormat.SHEET) "piano" else "frets") }
     var chordAdd by remember(s.id) { mutableStateOf(false) }
     var addMenu by remember { mutableStateOf(false) }

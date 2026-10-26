@@ -131,7 +131,7 @@ private fun ProjectBoard(model: AppModel, project: ProjectEntity, requestMic: ((
                     MenuItem("Add from the Library", "PICK ›") { model.pickFromLibrary(project.id) },
                     MenuItem("Stand mode", "LANDSCAPE · LARGE TYPE") { model.standProject = project.id },
                 ) + WRITABLE.map { (f, label, _) -> MenuItem("Write ${label.lowercase()}", formatTag(f)) { model.write(f, project.id) } } +
-                    listOf(MenuItem("Write a guitar tab", "TAB") { model.writeTab(false, project.id) }, MenuItem("Write a bass tab", "TAB") { model.writeTab(true, project.id) }, MenuItem("Write sheet music", "NOT") { model.writeSheet(project.id) }) +
+                    listOf(MenuItem("Write a guitar tab", "TAB") { model.writeTab(false, project.id) }, MenuItem("Write a bass tab", "TAB") { model.writeTab(true, project.id) }, MenuItem("Write sheet music", "NOT") { model.writeSheet(project.id) }, MenuItem("Write in the piano roll", "NOT") { model.writeSheet(project.id, roll = true) }) +
                     MenuItem("Import from the phone", "INTO ${project.name.uppercase()} ›", enabled = model.importing == 0) { model.startImport(project.id) } +
                     MenuItem("Export for FL Studio", "ZIP ▾", enabled = !model.exporting) { flMenu = true }
                 )
@@ -384,6 +384,7 @@ fun androidx.compose.foundation.layout.RowScope.WriteButton(model: AppModel, pro
             MenuItem("Guitar tab", "STANDARD TUNING · TUNING ▾ CHANGES IT") { model.writeTab(bass = false, projectId) },
             MenuItem("Bass tab", "E STANDARD · TUNING ▾ CHANGES IT") { model.writeTab(bass = true, projectId) },
             MenuItem("Sheet music", "NOTATION · PIANO KEYS OR TAP THE STAFF") { model.writeSheet(projectId) },
+            MenuItem("Piano roll", "SHEET MUSIC, FL STUDIO STYLE") { model.writeSheet(projectId, roll = true) },
         ))
     }
 }
