@@ -174,20 +174,20 @@ fun PerformanceScreen(model: AppModel) {
             )
             Box {
                 Kv("REFERENCE", onClick = { refMenu = true }) {
-                    Text(ref?.label ?: if (refs == null) "Loading…" else if (refs!!.isEmpty()) "No tab, sheet music or transcription yet" else "Pick ▾", style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
+                    Text(ref?.label ?: if (refs == null) "Loading…" else if (refs!!.isEmpty()) "No tab, sheet music or transcription yet" else "Pick", style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
                     ref?.let { Text(it.note, style = T.label) }
                 }
                 ConsoleMenu(refMenu, { refMenu = false }, "MEASURED AGAINST", refs.orEmpty().map { c -> MenuItem(c.label, c.note) { ref = c; result = null } })
             }
             Box {
                 Kv("YOUR TAKE", onClick = { takeMenu = true }) {
-                    Text(take?.label ?: if (takes == null) "Loading…" else if (takes!!.isEmpty()) "No recordings yet" else "Pick ▾", style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
+                    Text(take?.label ?: if (takes == null) "Loading…" else if (takes!!.isEmpty()) "No recordings yet" else "Pick", style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
                 }
                 ConsoleMenu(takeMenu, { takeMenu = false }, "YOUR TAKE", takes.orEmpty().map { c -> MenuItem(c.label, clock(c.take.durationFrames, c.take.sampleRate)) { take = c; result = null; needsMidi = null } })
             }
             if (ref != null && !ref!!.drums) Box {
                 Kv("YOU PLAYED", onClick = { playedMenu = true }) {
-                    Text("${played.label} ▾", style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
+                    Text(played.label, style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
                     Text(played.note, style = T.label)
                 }
                 ConsoleMenu(playedMenu, { playedMenu = false }, "YOU PLAYED", Played.entries.map { p -> MenuItem(p.label, p.note) { played = p; result = null } })

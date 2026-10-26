@@ -139,7 +139,7 @@ internal fun EarHome(model: AppModel) {
         ) {
             Column(Modifier.weight(1f)) {
                 Text(d.name, style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
-                Text(d.note.ifEmpty { null } ?: if (d.id.startsWith("mixed")) "" else d.answers.joinToString(" · ") { Ear.label(d, it) }.uppercase(), style = T.label, maxLines = 2)
+                Text(d.note.ifEmpty { null } ?: if (d.id.startsWith("mixed")) "" else d.answers.joinToString(" · ") { Ear.label(d, it) }, style = T.label, maxLines = 2)
             }
             if (best > 0) Column(horizontalAlignment = Alignment.End) {
                 Text("$best", style = T.hi.copy(fontSize = 20.sp, color = C.acc))

@@ -170,8 +170,14 @@ fun PianoRollPane(
     val inst = part.instrument
     val lowNote = (notes.minOfOrNull { it.pitch.midi } ?: 60) - 3
     val highNote = (notes.maxOfOrNull { it.pitch.midi } ?: 72) + 3
-    val lo = minOf(lowNote, inst?.let { it.tuning.strings.minOf { s -> s.midi } } ?: 55, highNote - 24)
-    val hi = maxOf(highNote, lo + 24)
+    val lo0 = minOf(lowNote, inst?.let { it.tuning.strings.minOf { s -> s.midi } } ?: 55, highNote - 24)
+    val hi0 = maxOf(highNote, lo0 + 24)
+    // The range only grows while the roll is open: worked out from the notes alone, the first note drawn shrank it
+    // and the roll jumped an octave from under the finger (emulator pass, finding 14).
+    val seen = remember { intArrayOf(lo0, hi0) }
+    seen[0] = minOf(seen[0], lo0); seen[1] = maxOf(seen[1], hi0)
+    val lo = seen[0]
+    val hi = seen[1]
     val rows = hi - lo + 1
     val totalTicks = maxOf(starts.last(), (notes.maxOfOrNull { it.end } ?: 0L)) + 3840L
     val widthPx = totalTicks * perTick

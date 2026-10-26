@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -82,7 +83,7 @@ fun LibraryScreen(model: AppModel) {
                     MenuItem("Select", "TAG · GROUP · DELETE SEVERAL", enabled = rows.isNotEmpty()) { model.selecting = true },
                     MenuItem("Trash", "${trash.size} · KEPT $TRASH_DAYS DAYS ›") { model.showTrash = true },
                 ) + WRITABLE.map { (f, label, _) -> MenuItem("Write ${label.lowercase()}", formatTag(f)) { model.write(f) } } + listOf(
-                    MenuItem("Write a guitar tab", "TAB") { model.writeTab(false) }, MenuItem("Write a bass tab", "TAB") { model.writeTab(true) }, MenuItem("Write sheet music", "NOT") { model.writeSheet() },
+                    MenuItem("Write a guitar tab", "TAB") { model.writeTab(false) }, MenuItem("Write a bass tab", "TAB") { model.writeTab(true) }, MenuItem("Write sheet music", "SHT") { model.writeSheet() },
                     MenuItem("Import from the phone", "AUDIO · TEXT · CHORDPRO ›", enabled = model.importing == 0) { model.startImport() },
                     MenuItem("Back up now", last?.let { "LAST " + SimpleDateFormat("d MMM HH:mm", Locale.getDefault()).format(Date(it)) } ?: "PICK A FOLDER ›", enabled = !model.backupBusy) { model.backupNow() },
                     MenuItem("Backup folder", "CHANGE ›") { model.pickBackupFolder() },
@@ -101,6 +102,15 @@ fun LibraryScreen(model: AppModel) {
             Text("Nothing matches. ${if (model.filter.activeCount > 0) "Filters are on." else ""}", style = T.body, modifier = Modifier.padding(14.dp))
         }
         LazyColumn(Modifier.weight(1f)) {
+            // The two columns named once (they were bare numbers), lined up with every row's.
+            if (rows.isNotEmpty()) item(key = "head") {
+                Row(Modifier.fillMaxWidth().underline().padding(vertical = 4.dp)) {
+                    Spacer(Modifier.weight(1f))
+                    Text("BPM", style = T.label, modifier = Modifier.width(52.dp))
+                    Text("KEY", style = T.label, modifier = Modifier.width(64.dp))
+                    if (!model.selecting) Spacer(Modifier.width(48.dp))
+                }
+            }
             items(rows, key = { it.scrap.id }) { row -> LibraryRowView(model, row) }
         }
     }
@@ -194,7 +204,7 @@ fun keyShort(s: ScrapEntity): String = KeyMode.parseOrNull(s.key)?.short ?: "—
 
 fun formatTag(f: ScrapFormat) = when (f) {
     ScrapFormat.RECORDING -> "REC"; ScrapFormat.LYRIC -> "LYR"; ScrapFormat.TEXT -> "TXT"; ScrapFormat.CHORD_CHART -> "CHD"
-    ScrapFormat.TAB -> "TAB"; ScrapFormat.MIDI -> "MID"; ScrapFormat.SHEET -> "NOT"; ScrapFormat.DRUM_CHART -> "DRM"
+    ScrapFormat.TAB -> "TAB"; ScrapFormat.MIDI -> "MID"; ScrapFormat.SHEET -> "SHT"; ScrapFormat.DRUM_CHART -> "DRM"
 }
 
 @Composable
@@ -236,7 +246,7 @@ private fun LibraryRowView(model: AppModel, row: LibraryRow) {
                     .semantics { contentDescription = "Play ${displayTitle(s)}" },
                 contentAlignment = Alignment.Center,
             ) { Text("▶", style = T.hi.copy(color = C.acc)) }
-        }
+        } else if (!model.selecting) Spacer(Modifier.width(48.dp))
     }
 }
 

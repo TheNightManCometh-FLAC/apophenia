@@ -65,7 +65,8 @@ fun PlaybackSpeedScreen(model: AppModel) {
         }
         if (p == null) {
             Text(
-                "Play a recording first (▶ on any row in the Library), or import a song from the phone: it lands in the Library, then ▶ it. It stays in the player while you come back here.",
+                (player?.let { "The player has \"${it.title}\", which isn't a recording: this works on recordings and imported songs only. " } ?: "") +
+                    "Play a recording first (▶ on any row in the Library), or import a song from the phone: it lands in the Library, then ▶ it. It stays in the player while you come back here.",
                 style = T.body.copy(lineHeight = 20.sp), modifier = Modifier.padding(14.dp),
             )
             Row {

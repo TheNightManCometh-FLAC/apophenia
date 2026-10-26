@@ -77,6 +77,10 @@ abstract class ScrapDao {
     @Query("UPDATE scrap SET title = :title, edited_at = :now WHERE id = :id")
     abstract suspend fun rename(id: Long, title: String?, now: Long)
 
+    /** Titles that are [base] or [base] plus a number, trash included: what a new item's name is counted from. */
+    @Query("SELECT title FROM scrap WHERE title = :base OR title LIKE :base || ' %'")
+    abstract suspend fun titlesLike(base: String): List<String>
+
     @Query("UPDATE scrap SET edited_at = :now WHERE id = :id") abstract suspend fun touch(id: Long, now: Long)
 
     @Insert protected abstract suspend fun insertTake(take: TakeEntity): Long

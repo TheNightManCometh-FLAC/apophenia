@@ -34,3 +34,6 @@ Tab: fret entry, NEXT, ▶ PLAY (4 bars at 96 = 0:10). Sheet music: piano entry,
 
 ## Not walked (emulator can't, or left for the phone)
 Import from the phone (system picker), stacks and overdub, a recording's AI jobs (Notes → MIDI, stems, speech), backup and restore, the widget and shortcuts, Stand mode, Name a chord, Reference scale / progression / tuning / groove pages, PICK YOUR OWN in Ear.
+
+## Fixed in 0.9.8
+1, 3, 4, 7, 11, 12, 15, 16, 17, 18, 19; part of 5 (the empty Board's text) and 14 (the octave jump). Open: 2, 5's add row, 13, 14's two toolbars, 20. Details in `docs/STATUS.md` (0.9.8).

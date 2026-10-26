@@ -132,7 +132,7 @@ private fun ProjectBoard(model: AppModel, project: ProjectEntity, requestMic: ((
                     MenuItem("Add from the Library", "PICK ›") { model.pickFromLibrary(project.id) },
                     MenuItem("Stand mode", "LANDSCAPE · LARGE TYPE") { model.standProject = project.id },
                 ) + WRITABLE.map { (f, label, _) -> MenuItem("Write ${label.lowercase()}", formatTag(f)) { model.write(f, project.id) } } +
-                    listOf(MenuItem("Write a guitar tab", "TAB") { model.writeTab(false, project.id) }, MenuItem("Write a bass tab", "TAB") { model.writeTab(true, project.id) }, MenuItem("Write sheet music", "NOT") { model.writeSheet(project.id) }, MenuItem("Write in the piano roll", "NOT") { model.writeSheet(project.id, roll = true) }) +
+                    listOf(MenuItem("Write a guitar tab", "TAB") { model.writeTab(false, project.id) }, MenuItem("Write a bass tab", "TAB") { model.writeTab(true, project.id) }, MenuItem("Write sheet music", "SHT") { model.writeSheet(project.id) }, MenuItem("Write in the piano roll", "SHT") { model.writeSheet(project.id, roll = true) }) +
                     MenuItem("Import from the phone", "INTO ${project.name.uppercase()} ›", enabled = model.importing == 0) { model.startImport(project.id) } +
                     MenuItem("Export for FL Studio", "ZIP ▾", enabled = !model.exporting) { flMenu = true }
                 )
@@ -142,7 +142,7 @@ private fun ProjectBoard(model: AppModel, project: ProjectEntity, requestMic: ((
         val list = rows ?: return@Column
         if (list.isEmpty()) {
             Text(
-                "Nothing on this Board yet. Record, write lyrics, a note or a chord chart, or add scraps from the Library (they stay there, and in any other project too).",
+                "Nothing on this Board yet. Record, write anything (WRITE ▾ or + NEW at the top: lyrics, a note, a chord or drum chart, tab, sheet music, the piano roll), or add scraps from the Library (they stay there, and in any other project too).",
                 style = T.body.copy(lineHeight = 20.sp), modifier = Modifier.padding(14.dp).weight(1f),
             )
             Row(Modifier.fillMaxWidth()) {
@@ -244,7 +244,7 @@ private fun BoardWindow(model: AppModel, projectId: Long, row: BoardRow, rect: B
                 ) { change, amount -> change.consume(); moveBy += amount }
             }
             .semantics {
-                contentDescription = "${formatTag(s.format)} window: $title. Hold and drag to move it."
+                contentDescription = "${formatWord(s.format).lowercase().replaceFirstChar(Char::uppercase)}: $title. Hold and drag to move it."
                 onClick("Open") { open(); true }
             },
     ) {
@@ -348,7 +348,7 @@ private fun Glimpse(model: AppModel, row: BoardRow) {
                 else -> null
             }
             val text = following ?: when (row.scrap.format) {
-                ScrapFormat.LYRIC -> LyricSheet.plainText(body)
+                ScrapFormat.LYRIC -> LyricSheet.glimpse(body, titled = !row.scrap.title.isNullOrBlank())
                 ScrapFormat.CHORD_CHART -> ChordChart.preview(body, 8).takeIf { body.isNotBlank() }.orEmpty()
                 ScrapFormat.DRUM_CHART -> DrumChart.parse(body).grid.let { g ->
                     "${g.meter} · ${g.bars} BAR${if (g.bars > 1) "S" else ""}\n" +

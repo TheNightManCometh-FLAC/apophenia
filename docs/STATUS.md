@@ -2,6 +2,24 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.9.8 (26 Oct 2026): emulator-pass findings fixed
+Christopher said "Continue" on fixing the emulator-pass findings (`docs/reviews/emulator-pass-2026-10-26.md`). Fixed:
+- **11** Music labels no longer go through `uppercase()`: Ear's drill lists read m2 · M2 · m3 · M3; a Reference chord page lists its other names as written (Cmin · Cmi · C-, not "CM · CM · CM").
+- **12** Tab and sheet editors: in step mode the length bar follows the selected beat (it opened on 1/4 over a whole rest).
+- **16** A new chord chart starts at the click's tempo, as drum charts and sheet music do [Claude].
+- **15** New items get a name and a number when it's taken: "Chord chart", "Drum chart", "Sheet music 2", "Guitar tab 2" [Claude] (`ScrapDao.titlesLike`).
+- **4** A lyric's Board square shows the chords over the words, without repeating its title line (`LyricSheet.glimpse`, tested); the screen reader says "Lyrics: <title>", not "LYR window".
+- **18** The Library names its columns (BPM, KEY) and lines every row up under them; sheet music's tag is SHT, not NOT [Claude].
+- **17** A row whose value already ends in ▾ or › has no second ▾ (drum chart, Performance check, Exercises, a recording's FROM).
+- **1** The bottom bar's sub-tab hints fit (TOOLS · EAR · EXERCISES).
+- **7** The editors' sideways rows fade at the edge they can still scroll to (`Modifier.scrollCue`).
+- **3** Bottom sheets sit above the gesture bar and the keyboard (the New project sheet was hidden); name fields take the keyboard when they open.
+- **14** (part) The piano roll's pitch range only grows while it's open: the first note no longer makes it jump an octave.
+- **19** Playback speed and Isolator say when the player holds something that isn't a recording.
+- **5** (part) The empty Board's text lists everything WRITE ▾ makes.
+- Left for Christopher: 2 (Device Lab icon in debug builds), 5 (the empty Board's own add row), 13 (hearing a note takes over the player), 14's two toolbars, 20 (the key guess on a short take).
+- **Tests: 605** (+1). Emulator-verified: 1, 3, 4, 11, 12, 15, 17, 18. Not on the phone.
+
 ## Build 0.9.7 (26 Oct 2026): emulator pass done; drum charts, exercises and switching items fixed
 - **The emulator pass is finished** (`docs/reviews/emulator-pass-2026-10-26.md`: 20 findings, what was checked, what wasn't walked). Fixed only what broke the walk; the rest waits for Christopher.
 - **Every drum chart crashed the app** (finding 9, since 0.3.6): the chart reader's `{meter: …}` pattern had a bare `}`, which desktop Java accepts and Android's ICU regex refuses. Escaped. **`RegexBracesTest`** (core) reads the app's sources and fails on any pattern with a bare brace; with the old line it fails.

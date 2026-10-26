@@ -55,6 +55,14 @@ class LyricSheetTest {
         assertEquals("Salt on the window, the", LyricSheet.firstWords("{c: Verse 1}\n\n[Dm7]Salt on the [G]window, the"))
         assertEquals("Verse 1\nSalt", LyricSheet.plainText("{c: Verse 1}\n[Dm7]Salt"))
     }
+
+    @Test fun `a board square shows the chords over the words and doesn't repeat its title`() {
+        val sheet = "Down by the water\n[G]Salt on the [D]window"
+        assertEquals("G           D\nSalt on the window", LyricSheet.glimpse(sheet, titled = false) { it })
+        assertEquals("Down by the water\nG           D\nSalt on the window", LyricSheet.glimpse(sheet, titled = true) { it })
+        // A first line with chords over it stays: the chords are what the title doesn't show.
+        assertEquals("Am\nDown by the water", LyricSheet.glimpse("[Am]Down by the water", titled = false) { it })
+    }
 }
 
 class ChordTextTest {

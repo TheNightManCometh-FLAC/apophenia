@@ -100,6 +100,27 @@ object LyricSheet {
         }
     }.trim()
 
+    /**
+     * A Board square's look at the sheet: the chords over the words, as the editor shows them. [titled] false means
+     * the square's title is already the first line of words, so that line is left out unless it has chords over it
+     * (the square showed "Down by the water" twice, and no chord).
+     */
+    fun glimpse(source: String, titled: Boolean, display: (String) -> String = ChordText::display): String {
+        val lines = parse(source)
+        val first = lines.indexOfFirst { it is Line.Words && it.text.isNotBlank() }
+        return lines.withIndex().flatMap { (i, line) ->
+            when (line) {
+                is Line.Section -> listOf(line.label)
+                Line.Blank -> listOf("")
+                is Line.Words -> when {
+                    line.chords.isNotEmpty() -> chordsOverWords(line, display).toList()
+                    i == first && !titled -> emptyList()
+                    else -> listOf(line.text)
+                }
+            }
+        }.joinToString("\n").trim('\n')
+    }
+
     /** The first line of words, for a title when the scrap has none. */
     fun firstWords(source: String): String? =
         parse(source).firstNotNullOfOrNull { (it as? Line.Words)?.text?.trim()?.takeIf(String::isNotEmpty) }

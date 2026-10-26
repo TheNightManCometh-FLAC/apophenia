@@ -9,6 +9,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -26,6 +32,10 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -37,6 +47,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -83,7 +94,7 @@ fun TitleBar(modifier: Modifier = Modifier, content: @Composable RowScope.() -> 
 
 /** Label column + value, the Console's key-value row. */
 @Composable
-fun Kv(label: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, value: @Composable ColumnScope.() -> Unit) {
+fun Kv(label: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, mark: Boolean = true, value: @Composable ColumnScope.() -> Unit) {
     Row(
         modifier.fillMaxWidth().underline().let { if (onClick != null) it.clickable(role = Role.Button, onClick = onClick) else it }
             .heightIn(min = 48.dp),
@@ -91,13 +102,14 @@ fun Kv(label: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = nu
     ) {
         Text(label, style = T.label, modifier = Modifier.width(96.dp).padding(start = 12.dp, end = 6.dp))
         Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 10.dp), content = value)
-        if (onClick != null) Text("▾", style = T.label.copy(fontSize = 10.sp), modifier = Modifier.padding(end = 12.dp))
+        if (onClick != null && mark) Text("▾", style = T.label.copy(fontSize = 10.sp), modifier = Modifier.padding(end = 12.dp))
     }
 }
 
 @Composable
 fun KvText(label: String, value: String, onClick: (() -> Unit)? = null) =
-    Kv(label, onClick = onClick) { Text(value, style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold)) }
+    // A value that already ends in ▾ or › gets no second ▾ at the edge (the drum chart's rows had two).
+    Kv(label, onClick = onClick, mark = !(value.endsWith("▾") || value.endsWith("›"))) { Text(value, style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold)) }
 
 /** One item in a Console menu. */
 data class MenuItem(val label: String, val note: String = "", val enabled: Boolean = true, val onClick: () -> Unit)
@@ -135,10 +147,13 @@ fun ConsoleMenu(expanded: Boolean, onDismiss: () -> Unit, title: String? = null,
 @Composable
 fun ConsoleField(
     label: String, value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier, placeholder: String = "",
-    number: Boolean = false, onDone: (() -> Unit)? = null,
+    number: Boolean = false, onDone: (() -> Unit)? = null, focus: Boolean = false,
 ) {
     Row(modifier.fillMaxWidth().underline().heightIn(min = 48.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = T.label, modifier = Modifier.padding(end = 10.dp))
+        // [focus]: the field takes the cursor and the keyboard when it appears (a name sheet needed a tap first).
+        val asked = remember { FocusRequester() }
+        if (focus) LaunchedEffect(Unit) { asked.requestFocus() }
         Box(Modifier.weight(1f)) {
             if (value.isEmpty()) Text(placeholder, style = T.body.copy(color = C.faint, fontSize = 14.sp))
             BasicTextField(
@@ -147,7 +162,7 @@ fun ConsoleField(
                 cursorBrush = SolidColor(C.acc),
                 keyboardOptions = KeyboardOptions(keyboardType = if (number) KeyboardType.Decimal else KeyboardType.Text, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { onDone?.invoke() }),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().then(if (focus) Modifier.focusRequester(asked) else Modifier),
             )
         }
     }
@@ -175,11 +190,13 @@ fun RowScope.BigButton(text: String, onClick: () -> Unit, primary: Boolean = fal
 fun BoxScope.Sheet(onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     Box(Modifier.matchParentSize().background(C.scrim).clickable(onClick = onDismiss))
     Column(
-        Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+        Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.statusBars).fillMaxWidth()
             .heightIn(max = 760.dp)
             .background(C.panel)
             .drawBehindTop(C.acc)
-            .clickable(enabled = false) {},
+            .clickable(enabled = false) {}
+            // Above the gesture bar and the keyboard (edge to edge, the keyboard covered the New project sheet whole).
+            .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)),
         content = content,
     )
 }
@@ -227,3 +244,20 @@ fun Gap(h: Dp) = Spacer(Modifier.height(h))
 @Composable
 fun Line1(text: String, style: androidx.compose.ui.text.TextStyle = T.body, modifier: Modifier = Modifier) =
     Text(text, style = style, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = modifier)
+
+/**
+ * A row that scrolls sideways fades out at the edge it can still scroll to, so it's plain there's more (the tab
+ * editor's length and INPUT rows ran off the right edge with nothing to say so). Put it before horizontalScroll.
+ */
+fun Modifier.scrollCue(state: androidx.compose.foundation.ScrollState): Modifier = drawWithContent {
+    drawContent()
+    val w = 28.dp.toPx()
+    if (state.canScrollForward) drawRect(
+        androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(C.bg.copy(alpha = 0f), C.bg), startX = size.width - w, endX = size.width),
+        topLeft = Offset(size.width - w, 0f), size = androidx.compose.ui.geometry.Size(w, size.height),
+    )
+    if (state.canScrollBackward) drawRect(
+        androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(C.bg, C.bg.copy(alpha = 0f)), startX = 0f, endX = w),
+        size = androidx.compose.ui.geometry.Size(w, size.height),
+    )
+}

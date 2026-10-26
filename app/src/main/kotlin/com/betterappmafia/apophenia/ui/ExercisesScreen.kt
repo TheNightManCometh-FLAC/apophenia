@@ -153,7 +153,7 @@ private fun ExerciseDetail(model: AppModel, row: ExerciseRow) {
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             e.scrapId?.let { id ->
-                Kv("THE MUSIC", onClick = { model.open(id) }) {
+                Kv("THE MUSIC", onClick = { model.open(id) }, mark = false) {
                     Text("$name ›", style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
                     row.scrapFormat?.let { Text(formatWord(ScrapFormat.of(it)) + " · OPENS IN ITS EDITOR", style = T.label) }
                 }

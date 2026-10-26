@@ -176,7 +176,7 @@ fun RecordingDetail(model: AppModel, scrapId: Long, requestMic: (() -> Unit) -> 
                 }
             }
             from?.let { (srcId, text) ->
-                Kv("FROM", onClick = { model.open(srcId, null) }) { Text("$text ›", style = T.body.copy(color = C.hi)) }
+                Kv("FROM", onClick = { model.open(srcId, null) }, mark = false) { Text("$text ›", style = T.body.copy(color = C.hi)) }
             }
             Kv("BPM", onClick = { model.sheet = Sheet.Bpm(scrapId) }) { ValueWithSource(bpmText(s).let { if (it == "—") "unknown" else it }, s.bpmSource) }
             Kv("KEY", onClick = { model.sheet = Sheet.Key(scrapId) }) { ValueWithSource(KeyMode.parseOrNull(s.key)?.display ?: "unknown", s.keySource) }

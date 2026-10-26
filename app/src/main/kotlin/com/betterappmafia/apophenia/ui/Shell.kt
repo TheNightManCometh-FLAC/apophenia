@@ -339,7 +339,7 @@ private fun NavBar(model: AppModel) {
                 verticalArrangement = Arrangement.Center,
             ) {
                 Text(t.label, style = T.button.copy(fontSize = 12.sp, color = if (on) C.hi else C.dim, letterSpacing = 0.1.sp))
-                Text(t.modes.joinToString(" · ") { it.label }, style = T.label.copy(fontSize = 8.sp, color = if (on) C.dim else C.faint), maxLines = 1)
+                Text(t.modes.joinToString(" · ") { it.label }, style = T.label.copy(fontSize = 8.sp, letterSpacing = 0.sp, color = if (on) C.dim else C.faint), maxLines = 1, softWrap = false)
             }
         }
     }

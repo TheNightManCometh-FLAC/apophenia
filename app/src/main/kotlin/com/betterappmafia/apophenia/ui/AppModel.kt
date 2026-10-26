@@ -405,6 +405,17 @@ class AppModel(val app: ApopheniaApp) {
      * Write lyrics, a text note or a chord chart (plan §2.2): a new scrap, opened straight in its
      * editor. On a project's Board it goes to that project (and the Library), elsewhere to the Library.
      */
+    /**
+     * [Claude] A new item's name: [base], or "[base] 2", "3"… when that's taken, so pickers don't list identical rows
+     * (the emulator pass found three "Sheet music" and two "Guitar tab" side by side).
+     */
+    private suspend fun freshTitle(base: String): String {
+        val taken = app.db.scraps().titlesLike(base)
+        if (base !in taken) return base
+        val n = taken.mapNotNull { if (it == base) 1 else it.removePrefix("$base ").toIntOrNull() }.maxOrNull() ?: 1
+        return "$base ${n + 1}"
+    }
+
     fun write(format: ScrapFormat, projectId: Long? = null) {
         app.io.launch {
             val now = System.currentTimeMillis()
@@ -413,7 +424,11 @@ class AppModel(val app: ApopheniaApp) {
                 val m = tools.metronome
                 val start = com.betterappmafia.apophenia.core.tools.DrumChart.starter()
                 val chart = if (m.meter in com.betterappmafia.apophenia.core.tools.DrumChart.METERS) start.copy(grid = start.grid.resized(meter = m.meter)) else start
-                ScrapEntity(format = format, body = chart.text(), bpmLow = m.bpm, bpmHigh = m.bpm, bpmSource = ValueSource.METRONOME, createdAt = now, editedAt = now)
+                ScrapEntity(format = format, title = freshTitle("Drum chart"), body = chart.text(), bpmLow = m.bpm, bpmHigh = m.bpm, bpmSource = ValueSource.METRONOME, createdAt = now, editedAt = now)
+            } else if (format == ScrapFormat.CHORD_CHART) {
+                // [Claude] A chord chart, like a drum chart, starts at the click's tempo (it said 100, not set, beside a click at 96).
+                val m = tools.metronome
+                ScrapEntity(format = format, title = freshTitle("Chord chart"), body = "", bpmLow = m.bpm, bpmHigh = m.bpm, bpmSource = ValueSource.METRONOME, createdAt = now, editedAt = now)
             } else ScrapEntity(format = format, body = "", createdAt = now, editedAt = now)
             val id = app.db.scraps().createWritten(scrap, projectId)
             open(id, projectId, edit = true)
@@ -435,7 +450,7 @@ class AppModel(val app: ApopheniaApp) {
             )
             val score = com.betterappmafia.apophenia.core.score.ScoreEdit.emptySheet("Notes", com.betterappmafia.apophenia.core.score.Clef.TREBLE, m.meter, com.betterappmafia.apophenia.core.rhythm.Tempo(m.bpm, unit), null)
             val scrap = ScrapEntity(
-                format = ScrapFormat.SHEET, title = "Sheet music", body = com.betterappmafia.apophenia.core.score.ScoreText.encode(score),
+                format = ScrapFormat.SHEET, title = freshTitle("Sheet music"), body = com.betterappmafia.apophenia.core.score.ScoreText.encode(score),
                 bpmLow = m.bpm, bpmHigh = m.bpm, bpmSource = ValueSource.METRONOME, createdAt = now, editedAt = now,
             )
             val id = app.db.scraps().createWritten(scrap, projectId)
@@ -457,7 +472,7 @@ class AppModel(val app: ApopheniaApp) {
             )
             val score = com.betterappmafia.apophenia.core.score.ScoreEdit.emptyTab(if (bass) "Bass" else "Guitar", inst, m.meter, com.betterappmafia.apophenia.core.rhythm.Tempo(m.bpm, unit), null)
             val scrap = ScrapEntity(
-                format = ScrapFormat.TAB, title = if (bass) "Bass tab" else "Guitar tab", body = com.betterappmafia.apophenia.core.score.ScoreText.encode(score),
+                format = ScrapFormat.TAB, title = freshTitle(if (bass) "Bass tab" else "Guitar tab"), body = com.betterappmafia.apophenia.core.score.ScoreText.encode(score),
                 bpmLow = m.bpm, bpmHigh = m.bpm, bpmSource = ValueSource.METRONOME, createdAt = now, editedAt = now,
             )
             val id = app.db.scraps().createWritten(scrap, projectId)

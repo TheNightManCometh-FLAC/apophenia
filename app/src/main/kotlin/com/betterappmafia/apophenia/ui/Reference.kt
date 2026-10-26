@@ -239,7 +239,7 @@ private typealias Open = (RefKind, String, PitchName) -> Unit
 private fun Header(big: AnnotatedString, also: String) {
     Column(Modifier.fillMaxWidth().underline().padding(horizontal = 14.dp, vertical = 12.dp)) {
         Text(big, style = T.hi.copy(fontSize = 34.sp))
-        if (also.isNotEmpty()) Text(also.uppercase(), style = T.label, modifier = Modifier.padding(top = 4.dp))
+        if (also.isNotEmpty()) Text(also, style = T.label, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
@@ -279,7 +279,7 @@ private fun Para(label: String, text: String) = Kv(label) { Text(text, style = T
 @Composable
 private fun IntervalBody(model: AppModel, i: Interval, root: PitchName, open: Open) {
     val page = remember(i, root) { IntervalPages.page(i, root) }
-    Header(AnnotatedString(i.toString()), page.name)
+    Header(AnnotatedString(i.toString()), page.name.uppercase())
     val above = page.above
     NotesRow(model, listOfNotNull(root, above), listOf("ROOT · 0", "${i} · ${i.semitones}"))
     val lowMidi = RefSound.midis(root.pitchClass, listOf(0), 60).first()
@@ -309,7 +309,7 @@ private fun ScaleBody(model: AppModel, id: String, root: PitchName, open: Open) 
     val def = Scales.byId(id)
     val page = remember(id, root) { ScalePages.page(def, root) }
     val r = page.root
-    Header(AnnotatedString("${refName(model, r)} ${def.names.first()}"), def.names.drop(1).joinToString(" · "))
+    Header(AnnotatedString("${refName(model, r)} ${def.names.first()}"), def.names.drop(1).joinToString(" · ").uppercase())
     page.respelledFrom?.let { Para("SPELLED ON", "${refName(model, r)}: on ${refName(model, it)} this scale would need triple accidentals.") }
     NotesRow(model, page.notes, def.degrees.map { d -> degreeText(d.toString()) + " · " + Math.floorMod(d.interval.semitones, 12) })
     val semis = def.semitones
@@ -342,7 +342,7 @@ private fun ChordBody(model: AppModel, id: String, root: PitchName, open: Open) 
     val def = Chords.byId(id)
     val page = remember(id, root) { ChordPages.page(def, root) }
     val r = page.root
-    Header(chordShown(model, page.symbols.first(), null), (listOf(Reference.CHORD_NAMES[id] ?: "") + page.symbols.drop(1).map { chordShown(model, it, null).text }).joinToString(" · "))
+    Header(chordShown(model, page.symbols.first(), null), (listOf((Reference.CHORD_NAMES[id] ?: "").uppercase()) + page.symbols.drop(1).map { com.betterappmafia.apophenia.core.sheet.ChordText.display(it) }.distinct()).joinToString(" · "))
     page.respelledFrom?.let { Para("SPELLED ON", "${refName(model, r)}: on ${refName(model, it)} this chord would need triple accidentals.") }
     NotesRow(model, page.notes, def.degrees.map { d -> d.interval.toString() + " · " + d.interval.semitones })
     val midis = RefSound.midis(r.pitchClass, def.semitones, 48)
@@ -418,7 +418,7 @@ private fun TuningBody(model: AppModel, id: String) {
     val t = entry.tuning
     val page = remember(id) { TuningReference.page(entry) }
     fun open(s: List<com.betterappmafia.apophenia.core.pitch.SpelledPitch>) = s.mapIndexed { i, p -> PlayNote(i * 0.06, 2.6, p.midi, RefSound.VELOCITY) }
-    Header(AnnotatedString(t.strings.joinToString(" ") { refName(model, it.name) }), "${t.stringCount} strings · ${entry.family}")
+    Header(AnnotatedString(t.strings.joinToString(" ") { refName(model, it.name) }), "${t.stringCount} STRINGS · ${entry.family.uppercase()}")
     Kv("STRINGS") {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             page.strings.forEach { s ->

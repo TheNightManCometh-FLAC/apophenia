@@ -73,7 +73,7 @@ private fun ProjectNameSheet(model: AppModel, projectId: Long?) {
     Box(Modifier.fillMaxSize()) {
         Sheet({ model.sheet = Sheet.None }) {
             TitleBar { Text(if (projectId == null) "NEW PROJECT" else "RENAME", style = T.title, modifier = Modifier.weight(1f)); Text("ONE SONG'S WORKING SPACE", style = T.label) }
-            ConsoleField("NAME", text, { text = it.replace(Regex("[\\u0000-\\u001F]"), "").take(80) }, placeholder = "Low Tide", onDone = done)
+            ConsoleField("NAME", text, { text = it.replace(Regex("[\\u0000-\\u001F]"), "").take(80) }, placeholder = "Low Tide", onDone = done, focus = true)
             Row {
                 BigButton("CANCEL", { model.sheet = Sheet.None })
                 BigButton(if (projectId == null) "MAKE IT" else "RENAME", done, primary = true, enabled = ok)
@@ -282,7 +282,7 @@ private fun RenameSheet(model: AppModel, scrapId: Long) {
         model.sheet = Sheet.None
     }
     SimpleSheet(model, "Title", "EMPTY = UNTITLED", done = done) {
-        ConsoleField("TITLE", text.orEmpty(), { text = it }, placeholder = "Verse riff", onDone = done)
+        ConsoleField("TITLE", text.orEmpty(), { text = it }, placeholder = "Verse riff", onDone = done, focus = true)
     }
 }
 

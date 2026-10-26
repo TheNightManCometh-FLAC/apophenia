@@ -238,6 +238,12 @@ fun ScoreDetail(model: AppModel, row: LibraryRow, projectId: Long?) {
         val selAt = selected ?: At(0, voice, 0)
         val pos = ScoreEdit.Pos(selAt.bar, selAt.index, selAt.voice)
         val selEvent = ScoreEdit.event(score, 0, pos)
+        // In step mode the length bar shows the selected beat's length (it opened on 1/4 over a whole rest, and the
+        // first note went in whole); NEXT and the first beat on opening move it too, not only a tap.
+        LaunchedEffect(selAt, selEvent?.duration, mode) {
+            val d = selEvent?.duration
+            if (mode == "step" && d != null) { entryValue = d.value; entryDots = d.dots; entryTuplet = d.tuplets.firstOrNull() }
+        }
         fun select(p: ScoreEdit.Pos, note: Int = 0) { selected = At(p.bar, p.voice, p.index); selNote = note }
         fun entry() = Duration(entryValue, entryDots, if (entryTuplet == null) emptyList() else listOf(entryTuplet!!))
         /** The middle line of the staff at [bar]: where rhythm mode puts its notes, as MuseScore does. */
@@ -266,7 +272,8 @@ fun ScoreDetail(model: AppModel, row: LibraryRow, projectId: Long?) {
         }
 
         // C4's duration bar: pick a length (it goes on the selected beat and on what NEXT adds), dots, rest, tie, tuplet, voice.
-        Row(Modifier.fillMaxWidth().underline().horizontalScroll(rememberScrollState()).padding(horizontal = 6.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        val lenScroll = rememberScrollState()
+        Row(Modifier.fillMaxWidth().underline().scrollCue(lenScroll).horizontalScroll(lenScroll).padding(horizontal = 6.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             DURATION_BAR.forEach { (v, glyph, name) ->
                 DurKey(glyph, name, on = entryValue == v) { entryValue = v; applyDuration(enter = true) }
             }
@@ -309,7 +316,8 @@ fun ScoreDetail(model: AppModel, row: LibraryRow, projectId: Long?) {
             }
         }
         // C4's tab toolbar: INPUT, EFFECTS, TUNING, EDIT, SCORE.
-        Row(Modifier.fillMaxWidth().underline().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        val menuScroll = rememberScrollState()
+        Row(Modifier.fillMaxWidth().underline().scrollCue(menuScroll).horizontalScroll(menuScroll).padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Box {
                 Sq("INPUT: ${when (input) { "frets" -> "FRETS"; "staff" -> "STAFF"; else -> "PIANO" }} ▾", { inputMenu = true })
                 ConsoleMenu(inputMenu, { inputMenu = false }, "ENTER NOTES WITH", listOf(

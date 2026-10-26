@@ -66,7 +66,8 @@ fun IsolatorScreen(model: AppModel) {
         }
         if (p == null) {
             Text(
-                "Play a recording first (▶ on any row in the Library), or import a song. Stereo songs can be split by where things are panned; your own recordings are mono, so tone ⇄ hit and the band work on them.",
+                (player?.let { "The player has \"${it.title}\", which isn't a recording: this works on recordings and imported songs only. " } ?: "") +
+                    "Play a recording first (▶ on any row in the Library), or import a song. Stereo songs can be split by where things are panned; your own recordings are mono, so tone ⇄ hit and the band work on them.",
                 style = T.body.copy(lineHeight = 20.sp), modifier = Modifier.padding(14.dp),
             )
             Row {
