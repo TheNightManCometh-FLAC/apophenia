@@ -332,6 +332,39 @@ class StacksTest {
         conn.close()
     }
 
+    @Test fun `version 14 migrates to 15 with no exercises yet`() {
+        val dir = Files.createTempDirectory("migr15")
+        val helper = MigrationTestHelper(
+            schemaDirectoryPath = Paths.get("schemas"),
+            databasePath = dir.resolve("m.db"),
+            driver = BundledSQLiteDriver(),
+            databaseClass = ApopheniaDatabase::class,
+        )
+        helper.createDatabase(14).apply { close() }
+        val conn = helper.runMigrationsAndValidate(15)
+        conn.prepare("SELECT COUNT(*) FROM exercise").use { st -> assertTrue(st.step()); assertEquals(0L, st.getLong(0)) }
+        conn.close()
+    }
+
+    @Test fun `a scrap is an exercise once, hides while in the trash and goes when purged`() = runBlocking<Unit> {
+        val tab = db.scraps().createWritten(ScrapEntity(format = ScrapFormat.TAB, title = "Spider walk", createdAt = now, editedAt = now))
+        val ex = db.exercises()
+        val e = ExerciseEntity(scrapId = tab, startBpm = 60, goalBpm = 120, stepBpm = 4, currentBpm = 60, addedAt = now)
+        val id = ex.add(e)
+        assertTrue(id != null)
+        assertNull(ex.add(e), "the same scrap twice")
+        val row = ex.all().first().single()
+        assertEquals("Spider walk" to "tab", row.scrapTitle to row.scrapFormat)
+        db.scraps().moveToTrash(tab, now)
+        assertEquals(0, ex.all().first().size)
+        db.scraps().restore(tab)
+        assertEquals(1, ex.all().first().size)
+        db.scraps().moveToTrash(tab, now)
+        db.scraps().purgeExpired(now)
+        db.scraps().restore(tab)
+        assertEquals(0, ex.all().first().size, "purged with its scrap")
+    }
+
     @Test fun `ear sessions keep the best test score per drill and skip empty sessions`() = runBlocking<Unit> {
         val ear = db.earResults()
         assertNull(ear.add(EarResultEntity(drill = "iv-simple", mode = "practice", correct = 0, total = 0, bestStreak = 0, finishedAt = now)))

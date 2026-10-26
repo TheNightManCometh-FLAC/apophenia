@@ -30,7 +30,7 @@ enum class Tab(val label: String) { MAKE("MAKE"), PRACTICE("PRACTICE"), STUDY("S
 /** The screens, each a sub-tab of one [Tab]. AI is under MAKE (Christopher, 25 Oct 2026: "ai is not study It's make"). */
 enum class Mode(val label: String, val tab: Tab) {
     BOARD("BOARD", Tab.MAKE), LIBRARY("LIBRARY", Tab.MAKE), AI("AI", Tab.MAKE),
-    TOOLS("TOOLS", Tab.PRACTICE), EAR("EAR", Tab.PRACTICE),
+    TOOLS("TOOLS", Tab.PRACTICE), EAR("EAR", Tab.PRACTICE), EXERCISES("EXERCISES", Tab.PRACTICE),
     COURSE("COURSE", Tab.STUDY), REFERENCE("REFERENCE", Tab.STUDY);
 
     /** The screens that were Learn: Course, Ear and Reference share its screen code. */
@@ -104,6 +104,9 @@ class AppModel(val app: ApopheniaApp) {
     var showNotices by mutableStateOf(false)
     /** AI › Performance check open over the AI screen. */
     var performanceOpen by mutableStateOf(false)
+
+    /** The exercise open in PRACTICE › EXERCISES, by id. */
+    var exerciseOpen by mutableStateOf<Long?>(null)
 
     /** Settings (the ⚙ in the top bar) over the current screen. */
     var showSettings by mutableStateOf(false)
