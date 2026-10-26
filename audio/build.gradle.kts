@@ -11,6 +11,8 @@ android {
         minSdk = 29
         ndk {
             abiFilters += "arm64-v8a"
+            // `-Pemulator` adds x86_64 for the Android emulator on the PC; builds for the phone stay arm64-only.
+            if (project.hasProperty("emulator")) abiFilters += "x86_64"
         }
         externalNativeBuild {
             cmake {
