@@ -103,13 +103,17 @@ object Notation {
     // Treble positions, the standard pattern: sharps F5 C5 G5 D5 A4 E5 B4, flats B4 E5 A4 D5 G4 C5 F4.
     private val TREBLE_SHARPS = listOf(8, 5, 9, 6, 3, 7, 4)
     private val TREBLE_FLATS = listOf(4, 7, 3, 6, 2, 5, 1)
+    // Tenor sharps keep inside the staff, so their own shape (Dorico's and Gould's convention): F3 (2nd line), C4 (4th line),
+    // G3, D4, A3, E4, B3. Tenor flats are the usual shape, a step above the alto's.
+    private val TENOR_SHARPS = listOf(2, 6, 3, 7, 4, 8, 5)
 
     /**
      * The signature's accidentals in order with their steps: the same shape on every clef, a line lower in bass
-     * clef and a step lower in alto. Tenor clef's sharps use a different shape and aren't drawn yet [Claude].
+     * clef and a step lower in alto; tenor clef's flats a step higher, its sharps their own shape ([TENOR_SHARPS]).
      */
     fun signature(clef: Clef, fifths: Int): List<Pair<Int, Int>> {
-        val shift = when (clef) { Clef.BASS -> -2; Clef.ALTO -> -1; Clef.TENOR -> return emptyList(); else -> 0 }
+        val shift = when (clef) { Clef.BASS -> -2; Clef.ALTO -> -1; Clef.TENOR -> 1; else -> 0 }
+        if (clef == Clef.TENOR && fifths > 0) return (0 until fifths).map { 1 to TENOR_SHARPS[it] }
         return if (fifths >= 0) (0 until fifths).map { 1 to TREBLE_SHARPS[it] + shift }
         else (0 until -fifths).map { -1 to TREBLE_FLATS[it] + shift }
     }

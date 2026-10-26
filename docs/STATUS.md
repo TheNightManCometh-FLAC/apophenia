@@ -2,6 +2,11 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.8.5 (25 Oct 2026): tenor clef key signatures
+- **Tenor clef now shows its key signature** (it showed none since 0.5.2). Flats take the usual shape a step above alto's (E♭ major: B♭3 third space, E♭4 top line, A♭3 middle line). Sharps take tenor's own shape so they stay on the staff, as Dorico's documentation and standard engraving have it: F♯3 on the second line, C♯4 fourth line, then G♯ D♯ A♯ E♯ B♯ alternating down and up inside the staff.
+- **Test:** for treble, bass, alto and tenor, every sharp and flat of every key up to seven lands on its own letter (F C G D A E B for sharps, the reverse for flats), and tenor's all stay on the staff.
+- **Tests: 569** (+1). **Unverified on device:** how it looks (a cello or trombone part in tenor clef with a key).
+
 ## Build 0.8.4 (25 Oct 2026): pick your own Ear drills; the new icon
 - **Ear › PICK YOUR OWN** (Christopher: "There's no way to practice specific intervals and so on for the rest of the mode"): every chapter (Intervals, Chords, Pitch, Scale degrees, Scales, Harmony and the others) lists, under its drills, every answer it has as a chip (m2 … M13; Major, m7, 7♯9…; root position, 1st inversion…; each degree; each mode…), grouped by the drill it first appears in. Tap the ones you want, then PRACTISE THESE n. The same sound is listed once (m3 is in two interval drills); a degree in a minor key is its own chip. Mic drills and tap-back are left out, as in mixed practice. Picks are kept per chapter while the app runs; your pick has its own high score (its id carries the picks) and shows in HIGH SCORES as "Your pick: m3 · P5". [Claude] at least two picks (one alone always has the same answer).
 - **New app icon** (Christopher's painting): it fills the whole adaptive-icon layer (it's a full-bleed image, not a logo on black), so launcher masks trim the edges and the waveform sits in the centre. The Play icon and feature graphic are re-rendered from it.
@@ -31,7 +36,7 @@
 - **Unchanged on every screen:** project ▾ and mic state, the player and stack at the bottom, and the strip at the top (Christopher: "At the top"), which now reads CLICK ▾ · TOOLS ▾ · ● REC · **+ NEW**.
 - **+ NEW** (Christopher: "You select the type of fragment at new + and that determines if it opens a notepad or midi or tab or the recorder"): Record, Lyrics, Text note, Chord chart, Drum chart, Guitar tab, Bass tab, Sheet music, Import from the phone. Each opens its editor (or the recorder). At the top of the menu: **INTO LIBRARY** or **INTO <PROJECT> + LIBRARY** (his rule: "either just the library or project and library"). [Claude] It starts on the project when you're on its Board, on the Library everywhere else.
 - [Claude] The Board keeps its own WRITE ▾ and ⋯ › Record; mic permission and overdub latency stay under PRACTICE › Tools.
-- **Not built:** a blank MIDI / piano-roll fragment (there is no empty piano-roll scrap yet; Sheet music with piano keys is the nearest). Asked Christopher.
+- Piano roll: answered in 0.8.1 (it is another way of writing sheet music).
 - **Tests: 561** (no new tests; navigation is UI only). build-verified.
 - **Unverified on device:** all of it.
 
@@ -532,7 +537,7 @@ Unit-tested and build-verified; **not device-verified, and the staff drawing has
 - **New sheet music:** WRITE ▾ › Sheet music (four empty treble bars), and the MIDI tab's **MAKE TAB · SHEET ▾ › Sheet music, no tab**.
 - [Claude] choices:
   - Flat beams.
-  - Tenor clef key signatures aren't drawn: its sharps use a different shape, not yet done.
+  - Tenor clef key signatures: drawn from 0.8.5 (sharps in their own shape).
   - Keys past seven sharps or flats get no signature; their accidentals go in the bars.
 - **Unverified on device:** the whole notation drawing (glyph sizes, positions, beams, ties) and the entry methods.
 

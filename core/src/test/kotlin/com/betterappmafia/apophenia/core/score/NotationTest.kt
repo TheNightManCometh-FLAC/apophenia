@@ -69,6 +69,23 @@ class NotationTest {
         assertEquals(7, Notation.signature(Clef.TREBLE, -7).size)
     }
 
+    @Test fun tenor_clef_signatures_sit_on_their_letters_inside_the_staff() {
+        // Tenor clef: bottom line D3. A major: F#3 second line, C#4 fourth line, G#3 second space.
+        assertEquals(listOf(1 to 2, 1 to 6, 1 to 3), Notation.signature(Clef.TENOR, 3))
+        // E-flat major: B-flat3 third space, E-flat4 top line, A-flat3 middle line.
+        assertEquals(listOf(-1 to 5, -1 to 8, -1 to 4), Notation.signature(Clef.TENOR, -3))
+        val letters = "CDEFGAB"
+        val sharps = "FCGDAEB"
+        for ((clef, bottom) in listOf(Clef.TREBLE to 'E', Clef.BASS to 'G', Clef.ALTO to 'F', Clef.TENOR to 'D')) {
+            for (n in 1..7) {
+                val sig = Notation.signature(clef, n)
+                assertEquals("$clef $n sharps", sharps.take(n).toList(), sig.map { letters[(letters.indexOf(bottom) + it.second) % 7] })
+                assertEquals("$clef $n flats", sharps.reversed().take(n).toList(), Notation.signature(clef, -n).map { letters[(letters.indexOf(bottom) + it.second) % 7] })
+            }
+            if (clef == Clef.TENOR) assertTrue("tenor stays on the staff", Notation.signature(clef, 7).all { it.second in 0..8 } && Notation.signature(clef, -7).all { it.second in 0..8 })
+        }
+    }
+
     @Test fun accidentals_last_the_bar_and_respect_the_signature() {
         // G major (F#): F#4 needs nothing, F4 needs a natural, a second F4 then nothing, F#4 a sharp again.
         val bar = listOf("F#4", "F4", "F4", "F#4", "F#5").map { listOf(p(it)) to listOf(false) }
