@@ -84,6 +84,7 @@ private const val CHORD_STYLE = "chords.style"
 private const val LEARN_SHOW = "learn.show"
 private const val LEARN_GUITAR = "learn.guitar"
 private const val LEARN_BASS = "learn.bass"
+private const val THEME = "theme"
 
 /** UI state that outlives the Activity (rotation, returning from the background). */
 class AppModel(val app: ApopheniaApp) {
@@ -101,6 +102,8 @@ class AppModel(val app: ApopheniaApp) {
     var detail by mutableStateOf<Long?>(null)
     var showTrash by mutableStateOf(false)
     var showNotices by mutableStateOf(false)
+    /** Settings (the ⚙ in the top bar) over the current screen. */
+    var showSettings by mutableStateOf(false)
     var sheet by mutableStateOf<Sheet>(Sheet.None)
     var search by mutableStateOf("")
     var filter by mutableStateOf(LibraryFilter())
@@ -215,6 +218,16 @@ class AppModel(val app: ApopheniaApp) {
     fun chooseChordDialect(d: com.betterappmafia.apophenia.core.chord.ChordDialect) {
         chordDialect = d
         app.io.launch { app.db.settings().put(AppSettingEntity(CHORD_DIALECT, d.token)) }
+    }
+
+    init {
+        app.io.launch { com.betterappmafia.apophenia.ui.theme.C.palette = com.betterappmafia.apophenia.ui.theme.Palettes.byId(app.db.settings().get(THEME)) }
+    }
+
+    /** The colour scheme (Settings › THEME), kept. */
+    fun chooseTheme(p: com.betterappmafia.apophenia.ui.theme.Palette) {
+        com.betterappmafia.apophenia.ui.theme.C.palette = p
+        app.io.launch { app.db.settings().put(AppSettingEntity(THEME, p.id)) }
     }
 
     fun projectName(id: Long?): String? = projects.value.firstOrNull { it.project.id == id }?.project?.name
@@ -345,7 +358,7 @@ class AppModel(val app: ApopheniaApp) {
 
     fun go(m: Mode) {
         Breadcrumbs.add("mode $m")
-        mode = m; lastMode[m.tab] = m; detail = null; showTrash = false; showNotices = false; showStack = false; sheet = Sheet.None; endSelect()
+        mode = m; lastMode[m.tab] = m; detail = null; showTrash = false; showNotices = false; showSettings = false; showStack = false; sheet = Sheet.None; endSelect()
         tools.screen = null
         learnRudiment = null
         learnGroove = null

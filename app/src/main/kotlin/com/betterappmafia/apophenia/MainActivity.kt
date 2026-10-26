@@ -52,6 +52,12 @@ class MainActivity : ComponentActivity() {
         // The BAM splash on a cold start only; never over a widget/shortcut take, where the screen must show the mic.
         var splash by mutableStateOf(savedInstanceState == null && intent?.action != RecordWidget.ACTION_RECORD)
         setContent {
+            // System bar icons follow the theme: dark icons over a light theme.
+            val light = com.betterappmafia.apophenia.ui.theme.C.palette.light
+            androidx.compose.runtime.LaunchedEffect(light) {
+                val bars = if (light) SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT) else SystemBarStyle.dark(Color.TRANSPARENT)
+                enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
+            }
             ConsoleTheme {
                 Box {
                     Shell(app.model, ::withMic)

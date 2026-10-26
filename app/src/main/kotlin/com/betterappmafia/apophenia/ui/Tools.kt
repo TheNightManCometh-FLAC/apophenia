@@ -112,7 +112,7 @@ private fun ToolRow(name: String, note: String, value: String, onClick: () -> Un
 
 /** A labelled dropdown row: the label, the current value ▾, its menu. */
 @Composable
-private fun MenuRow(label: String, value: String, title: String, items: List<MenuItem>, enabled: Boolean = true) {
+internal fun MenuRow(label: String, value: String, title: String, items: List<MenuItem>, enabled: Boolean = true) {
     var open by remember { mutableStateOf(false) }
     Box {
         Row(
@@ -126,7 +126,7 @@ private fun MenuRow(label: String, value: String, title: String, items: List<Men
     }
 }
 
-private fun fmtHz(v: Double) = if (v == v.roundToInt().toDouble()) "${v.roundToInt()}" else "%.1f".format(v)
+internal fun fmtHz(v: Double) = if (v == v.roundToInt().toDouble()) "${v.roundToInt()}" else "%.1f".format(v)
 
 // ---- Metronome (C4 'metro') -------------------------------------------------------------------
 
@@ -371,7 +371,7 @@ private fun TunerScreen(model: AppModel, requestMic: (() -> Unit) -> Unit) {
     }
 }
 
-private val A4S = listOf(415.0, 430.0, 432.0, 435.0, 438.0, 439.0, 440.0, 441.0, 442.0, 443.0, 444.0, 445.0, 446.0)
+internal val A4S = listOf(415.0, 430.0, 432.0, 435.0, 438.0, 439.0, 440.0, 441.0, 442.0, 443.0, 444.0, 445.0, 446.0)
 
 /** −50…+50 cents in 21 segments; the middle one is in tune (±2.5 ¢). */
 @Composable

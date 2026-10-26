@@ -106,7 +106,7 @@ private class Inks(sp: Float) {
 data class NoteSel(val bar: Int, val voice: Int, val index: Int, val note: Int)
 
 /** MuseScore gives each voice its own colour for the cursor and selection: voice 1 takes the app's accent. */
-val VOICE_COLORS = listOf(C.acc, C.listening, Color(0xFF6F9BD1), Color(0xFFB08AC9))
+val VOICE_COLORS get() = listOf(C.acc, C.listening, Color(0xFF6F9BD1), Color(0xFFB08AC9))
 
 /** One column of a bar: a start time shared by events in any voice, how long until the next, and those events (voice, index, event). */
 private class Col(val at: com.betterappmafia.apophenia.core.rhythm.Rational, val len: Double, val events: List<Triple<Int, Int, Event>>)

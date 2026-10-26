@@ -68,13 +68,14 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
                     model.showStack -> StackScreen(model)
                     model.showTrash -> TrashScreen(model)
                     model.showNotices -> NoticesScreen(model)
+                    model.showSettings -> SettingsScreen(model, requestMic)
                     else -> Column(Modifier.fillMaxSize()) {
                         SubTabs(model)
                         Box(Modifier.weight(1f).fillMaxWidth()) {
                             when (model.mode) {
                                 Mode.BOARD -> BoardScreen(model, requestMic)
                                 Mode.LIBRARY -> LibraryScreen(model)
-                                Mode.TOOLS -> ToolsMode(model, requestMic) { ToolsExtras(model, requestMic) }
+                                Mode.TOOLS -> ToolsMode(model, requestMic) {}
                                 Mode.EAR, Mode.COURSE, Mode.REFERENCE -> LearnScreen(model, requestMic)
                                 Mode.AI -> AiScreen(model)
                             }
@@ -93,7 +94,7 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
         model.restartMessage?.let { RestartScreen(it) }
     }
 
-    BackHandler(enabled = model.sheet != Sheet.None || model.correcting != null || model.detail != null || model.showTrash || model.showNotices || model.showStack || model.selecting || (model.mode == Mode.TOOLS && model.tools.screen != null) || (model.mode.learn && (model.learnRudiment != null || model.learnGroove != null))) {
+    BackHandler(enabled = model.sheet != Sheet.None || model.correcting != null || model.detail != null || model.showTrash || model.showNotices || model.showSettings || model.showStack || model.selecting || (model.mode == Mode.TOOLS && model.tools.screen != null) || (model.mode.learn && (model.learnRudiment != null || model.learnGroove != null))) {
         when {
             model.sheet != Sheet.None -> model.sheet = Sheet.None
             model.correcting != null -> model.correcting = null
@@ -101,6 +102,7 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
             model.detail != null -> model.detail = null
             model.showStack -> model.showStack = false
             model.showNotices -> model.showNotices = false
+            model.showSettings -> model.showSettings = false
             model.mode == Mode.TOOLS && model.tools.screen != null -> model.tools.screen = null
             model.mode.learn && model.learnGroove != null -> model.learnGroove = null
             model.mode.learn && model.learnRudiment != null -> model.learnRudiment = null
@@ -134,6 +136,11 @@ private fun TopBar(model: AppModel, mic: Mic) {
             )
             Text(label, style = T.label.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color, letterSpacing = 0.08.sp))
         }
+        Box(
+            Modifier.fillMaxHeight().width(44.dp).clickable(role = Role.Button) { model.showSettings = !model.showSettings }
+                .semantics { contentDescription = "Settings" },
+            contentAlignment = Alignment.Center,
+        ) { Text("⚙", style = T.hi.copy(fontSize = 18.sp, color = if (model.showSettings) C.acc else C.dim)) }
     }
 }
 
