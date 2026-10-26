@@ -109,4 +109,35 @@ class PerformanceCheckTest {
         val chords = listOf(RefNote(0.0, 1.0, 60), RefNote(0.0, 1.0, 64), RefNote(0.0, 1.0, 67), RefNote(1.0, 2.0, 62), RefNote(1.0, 2.0, 65))
         assertEquals(listOf(67, 65), PerformanceCheck.melody(chords).map { it.midi })
     }
+
+    // A rock beat, two bars: hats on eighths, snare on 2 and 4, kick on 1 and 3 (and the "and" of 3), a ghost snare on the last sixteenth of 2.
+    private val beat = com.betterappmafia.apophenia.core.tools.DrumChart(com.betterappmafia.apophenia.core.tools.DrumGrid.of(
+        "4/4", 4, 2,
+        com.betterappmafia.apophenia.core.tools.DrumVoice.HAT to "x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-",
+        com.betterappmafia.apophenia.core.tools.DrumVoice.SNARE to "----x--g----x-------x--g----x---",
+        com.betterappmafia.apophenia.core.tools.DrumVoice.KICK to "x-------x-x-----x-------x-x-----",
+    ))
+
+    @Test fun drums_are_judged_on_timing_against_your_own_tempo() {
+        val hits = PerformanceCheck.drumHits(beat, 100.0)
+        assertEquals(16 + 2, hits.size, "16 eighths plus the two ghost snares between them")
+        assertEquals(2, hits.count { it.optional })
+        assertEquals("Hi-hat + Kick", hits.first().label)
+        // You played it 8% slower, starting 0.7 s in, without the ghosts: nothing wrong.
+        val played = hits.filter { !it.optional }.map { 0.7 + it.start * 1.08 }
+        val clean = PerformanceCheck.drums(hits, played)
+        assertEquals(100, clean.score, clean.notes.filter { !it.good }.toString())
+        assertTrue(clean.extra.isEmpty())
+        // One hit dropped, one 60 ms late, one extra onset.
+        val sloppy = played.toMutableList()
+        sloppy.removeAt(5)
+        sloppy[9] += 0.06
+        sloppy += 0.7 + 3.0
+        val r = PerformanceCheck.drums(hits, sloppy.sorted())
+        val main = hits.filter { !it.optional }
+        assertEquals(setOf(Issue.MISSED), r.notes.first { it.ref == main[5] }.issues)
+        val late = r.notes.first { it.ref == main[10] }
+        assertTrue(Issue.LATE in late.issues && late.timingMs!! in 45..75, late.toString())
+        assertEquals(1, r.extra.size)
+    }
 }

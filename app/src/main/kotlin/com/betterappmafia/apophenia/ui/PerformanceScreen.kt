@@ -59,7 +59,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Something to be measured against: a written part, or a recording's transcription. */
-private class RefChoice(val label: String, val note: String, val load: suspend () -> List<RefNote>)
+private class RefChoice(val label: String, val note: String, val drums: Boolean = false, val load: suspend () -> List<RefNote>)
 private class TakeChoice(val label: String, val title: String, val take: TakeEntity)
 
 /** The longest take checked, in seconds. [Claude] Five minutes keeps the alignment inside the phone's memory. */
@@ -94,6 +94,10 @@ fun PerformanceScreen(model: AppModel) {
                         ScoreTime.notes(score, score.parts[p]).map { n -> RefNote(n.start, n.end, n.midi, slots.lastOrNull { it.start <= n.start + 1e-6 }?.bar) }
                     }
                 }
+            } + lib.filter { it.format == ScrapFormat.DRUM_CHART }.mapNotNull { s ->
+                val chart = runCatching { com.betterappmafia.apophenia.core.tools.DrumChart.parse(s.body ?: "") }.getOrNull() ?: return@mapNotNull null
+                val bpm = (s.bpmLow ?: DRUM_CHART_DEFAULT_BPM.toDouble())
+                RefChoice(displayTitle(s), "DRUM CHART · ${bpm.toInt()} BPM · TIMING ONLY", drums = true) { PerformanceCheck.drumHits(chart, bpm) }
             } + lib.filter { it.format == ScrapFormat.RECORDING }.flatMap { s ->
                 model.app.db.takes().takesOf(s.id).mapNotNull { t ->
                     model.app.db.transcriptions().get(t.id)?.let { tr ->
@@ -117,6 +121,7 @@ fun PerformanceScreen(model: AppModel) {
                     val notes = r.load()
                     require(notes.isNotEmpty()) { "That reference has no notes." }
                     val (x, rate) = Wav.readMono(model.app.captures.fileOf(t.take), TakeAnalysis.RATE, MAX_TAKE_SECONDS) ?: error("Couldn't read the take.")
+                    if (r.drums) return@runCatching PerformanceCheck.drums(notes, Onsets.pick(Onsets.envelope(x, rate)))
                     // Listen from an octave and a tone below the reference's lowest note to an octave and a tone above its highest.
                     fun hz(m: Int) = 440.0 * 2.0.pow((m - 69) / 12.0)
                     val lo = hz(notes.minOf { it.midi } - 14).coerceAtLeast(30.0)
@@ -139,7 +144,7 @@ fun PerformanceScreen(model: AppModel) {
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             Text(
-                "Pick what you were playing or singing, and the take of you doing it. The app lines them up (a slower or later take isn't wrong) and shows each note you were off on, by how much, and why. Single lines for now: voice, bass, lead lines. Chords and drums come later.",
+                "Pick what you were playing or singing, and the take of you doing it. The app lines them up (a slower or later take isn't wrong) and shows each note you were off on, by how much, and why. Pitch and timing for single lines (voice, bass, lead lines); timing only against a drum chart. Chords come later.",
                 style = T.small.copy(lineHeight = 16.sp), modifier = Modifier.padding(14.dp),
             )
             Box {
@@ -164,9 +169,11 @@ fun PerformanceScreen(model: AppModel) {
     }
 }
 
-private fun noteName(midi: Int) = KeyMode.displayName(PitchClass(Math.floorMod(midi, 12)).defaultSpelling()) + (Math.floorDiv(midi, 12) - 1)
+private fun noteName(n: RefNote) = n.label ?: noteName(n.midi)
 
-private fun where(n: RefNote) = n.bar?.let { "Bar ${it + 1}" } ?: "%d:%04.1f".format(java.util.Locale.ROOT, (n.start / 60).toInt(), n.start % 60)
+private fun noteName(midi: Int) = if (midi < 0) "A hit" else KeyMode.displayName(PitchClass(Math.floorMod(midi, 12)).defaultSpelling()) + (Math.floorDiv(midi, 12) - 1)
+
+private fun where(n: RefNote) = n.bar?.let { b -> "Bar ${b + 1}" + (n.beat?.let { " beat %s".format(java.util.Locale.ROOT, if (it == it.toInt().toDouble()) "${it.toInt() + 1}" else "%.2f".format(java.util.Locale.ROOT, it + 1)) } ?: "") } ?: "%d:%04.1f".format(java.util.Locale.ROOT, (n.start / 60).toInt(), n.start % 60)
 
 /** What was wrong with a note, in words. */
 private fun what(r: PerformanceCheck.NoteResult): String = buildList {
@@ -195,7 +202,7 @@ private fun Results(model: AppModel, res: PerformanceCheck.Result, t: TakeChoice
             )
         }
     }
-    Graph(res)
+    if (res.notes.any { it.ref.midi >= 0 }) Graph(res)
     // Problems in sections: notes in a row that were off, with what and why, each to hear against the reference.
     val sections = ArrayList<List<PerformanceCheck.NoteResult>>()
     var cur = ArrayList<PerformanceCheck.NoteResult>()
@@ -220,7 +227,7 @@ private fun Results(model: AppModel, res: PerformanceCheck.Result, t: TakeChoice
 @Composable
 private fun ProblemRow(model: AppModel, n: PerformanceCheck.NoteResult, res: PerformanceCheck.Result, t: TakeChoice) {
     Column(Modifier.fillMaxWidth().heightIn(min = 58.dp).underline().padding(horizontal = 14.dp, vertical = 8.dp)) {
-        Text("${where(n.ref)} · ${noteName(n.ref.midi)}: ${what(n)}", style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
+        Text("${where(n.ref)} · ${noteName(n.ref)}: ${what(n)}", style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
         if (n.why.isNotEmpty()) Text(n.why.joinToString(", ") { it.label }.replaceFirstChar(Char::uppercase), style = T.small)
         Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // Yours: the stretch of the take that lined up with this note, looped, half a second either side.
@@ -231,7 +238,7 @@ private fun ProblemRow(model: AppModel, n: PerformanceCheck.NoteResult, res: Per
                 model.app.audio.load(t.take.scrapId, t.take.id, "${t.title} · ${t.take.letter} · ${where(n.ref)}", model.app.captures.fileOf(t.take).absolutePath, true, a, Playback(loopA = a, loopB = b))
             }, enabled = to > from)
             // The reference: the note with the notes around it, on the piano.
-            Sq("▶ REFERENCE", {
+            if (n.ref.midi >= 0) Sq("▶ REFERENCE", {
                 val near = res.notes.map { it.ref }.filter { it.end > n.ref.start - 1.0 && it.start < n.ref.end + 1.0 }
                 val t0 = near.minOf { it.start }
                 hearNotes(model, "perf-${n.ref.start}-${n.ref.midi}", "Reference · ${where(n.ref)}", near.map { PlayNote(it.start - t0, it.end - t0, it.midi, RefSound.VELOCITY) })

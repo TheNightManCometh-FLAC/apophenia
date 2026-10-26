@@ -28,7 +28,102 @@ object PerformanceCheck {
     const val TIMING_OK_MS = 70
     private const val SILENCE_COST = 0.6
 
-    data class RefNote(val start: Double, val end: Double, val midi: Int, val bar: Int? = null, val beat: Double? = null)
+    /** A reference note; a drum hit has no pitch ([midi] −1), a [label] (the drums it is) and may be [optional] (a ghost note). */
+    data class RefNote(val start: Double, val end: Double, val midi: Int, val bar: Int? = null, val beat: Double? = null, val label: String? = null, val optional: Boolean = false)
+
+    /** Drum timing: how far from your own tempo a hit may land, in ms. [Claude] Tighter than for a melody. */
+    const val DRUM_TIMING_OK_MS = 40
+
+    /**
+     * Drums and percussion (plan §10.6: "timing only, from onsets"). Your [onsets] are matched one to one to the
+     * reference [hits] after finding your tempo and start (every tempo from 0.8× to 1.25× and every way of lining an
+     * early onset up with an early hit is tried; the one that puts most hits within 60 ms of an onset wins), then
+     * judged against a Theil–Sen line through the matches. A hit with no onset within 150 ms is missed (a ghost note
+     * isn't counted); an onset with no hit is extra.
+     */
+    fun drums(hits: List<RefNote>, onsets: List<Double>): Result {
+        val h = hits.sortedBy { it.start }
+        val o = onsets.sorted()
+        if (h.isEmpty()) return Result(emptyList(), emptyList(), 0, 0, emptyList())
+        fun nearest(x: Double): Int {
+            var i = java.util.Collections.binarySearch(o, x).let { if (it < 0) -it - 1 else it }
+            if (i >= o.size || (i > 0 && x - o[i - 1] < o[i] - x)) i--
+            return i
+        }
+        var best = Triple(1.0, 0.0, -1)
+        if (o.isNotEmpty()) for (step in 0..90) {
+            val ratio = 0.8 + step * 0.005
+            for (oi in 0 until minOf(8, o.size)) for (hi in 0 until minOf(8, h.size)) {
+                val c = o[oi] - ratio * h[hi].start
+                val count = h.count { x -> val e = ratio * x.start + c; val n = nearest(e); n >= 0 && abs(o[n] - e) < 0.06 }
+                if (count > best.third) best = Triple(ratio, c, count)
+            }
+        }
+        val (ratio, c) = best
+        // One to one, closest pairs first.
+        val cand = ArrayList<Triple<Int, Int, Double>>()
+        for ((k, x) in h.withIndex()) {
+            val e = ratio * x.start + c
+            for (n in o.indices) { val d = abs(o[n] - e); if (d < 0.15) cand += Triple(k, n, d) }
+        }
+        val hitAt = arrayOfNulls<Double>(h.size); val used = BooleanArray(o.size)
+        for ((k, n, _) in cand.sortedBy { it.third }) if (hitAt[k] == null && !used[n]) { hitAt[k] = o[n]; used[n] = true }
+        val matched = h.indices.filter { hitAt[it] != null }
+        val sample = if (matched.size > 300) matched.filterIndexed { q, _ -> q % (matched.size / 300 + 1) == 0 } else matched
+        val (a, b) = if (sample.size >= 2) fit(sample.map { h[it].start }, sample.map { hitAt[it]!! }) else c to ratio
+        val results = h.indices.map { k ->
+            val at = hitAt[k]
+            if (at == null) NoteResult(h[k], null, null, null, null, null, if (h[k].optional) emptySet() else setOf(Issue.MISSED), emptySet())
+            else {
+                val ms = ((at - (a + b * h[k].start)) * 1000).roundToInt()
+                val issues = buildSet { if (ms > DRUM_TIMING_OK_MS) add(Issue.LATE); if (ms < -DRUM_TIMING_OK_MS) add(Issue.EARLY) }
+                NoteResult(h[k], at, at, null, null, ms, issues, emptySet())
+            }
+        }.toMutableList()
+        markDrift(results, DRUM_TIMING_OK_MS)
+        val extra = o.indices.filter { !used[it] }.map { Extra(o[it], o[it], -1) }
+        val counted = results.filter { !it.ref.optional || it.takeStart != null }
+        return Result(results, extra, if (counted.isEmpty()) 0 else (100.0 * counted.count { it.good } / counted.size).roundToInt(), 0, emptyList())
+    }
+
+    /**
+     * A drum chart's hits at [bpm]: one per step that has anything on it (an onset can't tell drums apart), placed
+     * with the chart's swing as it plays, labelled with the drums, optional when everything there is a ghost note.
+     */
+    fun drumHits(chart: com.betterappmafia.apophenia.core.tools.DrumChart, bpm: Double): List<RefNote> {
+        val g = chart.grid; val groove = chart.groove
+        val beat = 60.0 / bpm
+        return (0 until g.steps).mapNotNull { i ->
+            val on = g.rows.mapNotNull { (v, row) -> row[i]?.let { v to it } }
+            if (on.isEmpty()) null
+            else RefNote(
+                groove.stepBeats(i) * beat, groove.stepBeats(i) * beat + beat / g.stepsPerBeat, -1, bar = i / g.stepsPerBar,
+                beat = (i % g.stepsPerBar).toDouble() / g.stepsPerBeat, label = on.joinToString(" + ") { it.first.label },
+                optional = on.all { it.second == com.betterappmafia.apophenia.core.tools.DrumHit.GHOST },
+            )
+        }
+    }
+
+    /** Rushing or dragging: three or more in a row, each further early (or late) than the one before. */
+    private fun markDrift(results: MutableList<NoteResult>, tolerance: Int) {
+        val step = results.indices.map { k ->
+            val ms = results[k].timingMs; val before = results.getOrNull(k - 1)?.timingMs
+            when {
+                ms == null || before == null -> 0
+                ms < before - 15 && ms < -tolerance / 2 -> -1
+                ms > before + 15 && ms > tolerance / 2 -> 1
+                else -> 0
+            }
+        }
+        var k = 0
+        while (k < results.size) {
+            if (step[k] == 0) { k++; continue }
+            var e = k
+            while (e + 1 < results.size && step[e + 1] == step[k]) e++
+            if (e - k + 1 >= 2) for (q in k - 1..e) results[q] = results[q].copy(why = results[q].why + if (step[k] < 0) Why.RUSHING else Why.DRAGGING)
+            k = e + 1
+        }
+    }
 
     enum class Issue(val label: String) { MISSED("missed"), WRONG_NOTE("wrong note"), SHARP("sharp"), FLAT("flat"), EARLY("early"), LATE("late") }
     enum class Why(val label: String) {
@@ -200,25 +295,7 @@ object PerformanceCheck {
             why += reasons(p.voiced, hop)
             NoteResult(note, p.start, p.end, cents, wrong, ms, issues, why)
         }.toMutableList()
-        // Rushing or dragging: three or more notes in a row each further early (or late) than the one before.
-        // Each note's step against the one before: −1 further early (and early), +1 further late (and late), 0 neither.
-        val step = results.indices.map { k ->
-            val ms = results[k].timingMs; val before = results.getOrNull(k - 1)?.timingMs
-            when {
-                ms == null || before == null -> 0
-                ms < before - 15 && ms < -TIMING_OK_MS / 2 -> -1
-                ms > before + 15 && ms > TIMING_OK_MS / 2 -> 1
-                else -> 0
-            }
-        }
-        var k = 0
-        while (k < results.size) {
-            if (step[k] == 0) { k++; continue }
-            var e = k
-            while (e + 1 < results.size && step[e + 1] == step[k]) e++
-            if (e - k + 1 >= 2) for (q in k - 1..e) results[q] = results[q].copy(why = results[q].why + if (step[k] < 0) Why.RUSHING else Why.DRAGGING)
-            k = e + 1
-        }
+        markDrift(results, TIMING_OK_MS)
         // Extra notes: your runs of at least 0.12 s that line up with a rest, or sit beside a note you also got right.
         val extra = extraRuns.sortedBy { it.first }.map { r -> Extra(curve.time(r.first), curve.time(r.last) + hop, median(r.map { t[it] }).roundToInt()) }
         val score = (100.0 * results.count { it.good } / results.size).roundToInt()
