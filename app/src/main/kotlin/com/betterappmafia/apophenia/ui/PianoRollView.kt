@@ -145,6 +145,9 @@ fun PianoRollPane(
                 MenuItem("Glue", "SAME PITCH, TOUCHING") { apply(PianoRoll.glue(notes, targets)) },
                 MenuItem("Legato", "HOLD TO THE NEXT NOTE") { apply(PianoRoll.legato(notes, targets)) },
                 MenuItem("Flip", "MIRROR THE PITCHES") { apply(PianoRoll.flip(notes, targets, sp)) },
+            ) + PianoRoll.ArpPattern.entries.map { pat ->
+                MenuItem("Arpeggiate: ${pat.label.lowercase()}", "CHORDS INTO SNAP STEPS") { apply(PianoRoll.arpeggiate(notes, targets, grid(0), pat)) }
+            } + listOf(
                 MenuItem(if (inst != null) "Limit to the instrument" else "Limit to C2–C7", "BY OCTAVES") { apply(PianoRoll.limit(notes, targets, lo, hi, sp)) },
             ))
         }

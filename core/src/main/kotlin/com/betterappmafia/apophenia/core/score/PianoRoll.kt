@@ -209,6 +209,39 @@ object PianoRoll {
         }
     }
 
+    enum class ArpPattern(val label: String) { UP("Up"), DOWN("Down"), UP_DOWN("Up and down"), DOWN_UP("Down and up") }
+
+    /**
+     * Arpeggiate (FL Studio's Tools › Arpeggiator, the notation-writable part): each chord (selected notes starting
+     * together in one voice, two or more) becomes its notes one after another, [step] long, in [pattern] order,
+     * repeating until the chord's longest note ends. Single notes are left alone. Up and down doesn't repeat the top
+     * or bottom note (C E G E C E…).
+     */
+    fun arpeggiate(notes: List<RollNote>, ids: Set<Int>, step: Long, pattern: ArpPattern): List<RollNote> {
+        val (sel, rest) = notes.partition { it.id in ids }
+        var next = (notes.maxOfOrNull { it.id } ?: -1) + 1
+        val out = ArrayList<RollNote>()
+        for ((_, chord) in sel.groupBy { it.voice to it.start }) {
+            if (chord.size < 2) { out += chord; continue }
+            val up = chord.sortedBy { it.pitch.midi }
+            val cycle = when (pattern) {
+                ArpPattern.UP -> up
+                ArpPattern.DOWN -> up.reversed()
+                ArpPattern.UP_DOWN -> up + up.reversed().drop(1).dropLast(1)
+                ArpPattern.DOWN_UP -> up.reversed() + up.drop(1).dropLast(1)
+            }
+            val start = chord.first().start
+            val end = chord.maxOf { it.end }
+            var t = start; var k = 0
+            while (t < end) {
+                val n = cycle[k % cycle.size]
+                out += n.copy(id = if (k < chord.size) chord[k].id else next++, start = t, length = minOf(step, end - t), event = null)
+                t += step; k++
+            }
+        }
+        return (rest + out).sortedBy { it.id }
+    }
+
     /** Glue: notes of one pitch in one voice that touch or overlap become one. */
     fun glue(notes: List<RollNote>, ids: Set<Int>): List<RollNote> {
         val (sel, rest) = notes.partition { it.id in ids }

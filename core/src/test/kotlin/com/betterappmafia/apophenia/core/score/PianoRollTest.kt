@@ -148,4 +148,23 @@ class PianoRollTest {
         // E#7#9 would need F#x (a triple sharp) for its #9, so the root is respelled F: F A C Eb G#.
         assertEquals(listOf("F3", "A3", "C4", "Eb4", "G#4").map(::p), PianoRoll.stamp(emptyList(), 0, Q, p("E#3"), com.betterappmafia.apophenia.core.catalog.Chords.byId("7#9"), 0).map { it.pitch })
     }
+
+    @Test fun arpeggiate_spreads_a_chord_in_snap_steps_until_it_ends() {
+        val chord = PianoRoll.stamp(emptyList(), 0, 2 * Q, p("C4"), com.betterappmafia.apophenia.core.catalog.Chords.byId("maj"), 0)
+        val lone = PianoRoll.add(chord, 2 * Q, Q, p("A4").midi, 0, cMajor)
+        val all = lone.map { it.id }.toSet()
+        fun names(ns: List<PianoRoll.RollNote>) = ns.sortedBy { it.start }.filter { it.start < 2 * Q }.map { it.pitch.toString() }
+        val up = PianoRoll.arpeggiate(lone, all, Q / 4, PianoRoll.ArpPattern.UP)
+        assertEquals(listOf("C4", "E4", "G4", "C4", "E4", "G4", "C4", "E4"), names(up))
+        assertTrue(up.filter { it.start < 2 * Q }.all { it.length == Q / 4 })
+        assertEquals(listOf("C4", "E4", "G4", "E4", "C4", "E4", "G4", "E4"), names(PianoRoll.arpeggiate(lone, all, Q / 4, PianoRoll.ArpPattern.UP_DOWN)))
+        assertEquals(listOf("G4", "E4", "C4", "G4", "E4", "C4", "G4", "E4"), names(PianoRoll.arpeggiate(lone, all, Q / 4, PianoRoll.ArpPattern.DOWN)))
+        // The lone A4 after the chord is left as it was; ids stay unique.
+        assertEquals(listOf(Pair(2 * Q, Q)), up.filter { it.pitch == p("A4") }.map { it.start to it.length })
+        assertEquals(up.size, up.map { it.id }.toSet().size)
+        // Written back to notation: eight sixteenths in the first half of the bar.
+        val s = sheet(listOf(Event(Duration.WHOLE)))
+        val out = PianoRoll.rebuild(s, 0, PianoRoll.notes(s, s.parts[0]), up)
+        assertEquals(List(8) { Duration.SIXTEENTH }, voice(out, 0).take(8).map { it.duration })
+    }
 }

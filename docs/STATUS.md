@@ -2,6 +2,12 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.8.7 (25 Oct 2026): arpeggiate in the piano roll
+- **TOOLS ▾ › Arpeggiate: up / down / up and down / down and up** (FL Studio's arpeggiator, the part notation can write): each chord in the selection (or everywhere, with nothing selected) becomes its notes one after another, each the snap length, repeating until the chord's longest note ends. Up and down doesn't repeat the turning notes (C E G E C…). Single notes are left alone. With a triplet snap it writes triplets.
+- [Claude] Strum and flam are left out: their offsets are milliseconds, which notation can't write and the roll would quantize away.
+- **Tests: 573** (+1: a C major half note arpeggiated in sixteenths reads C E G C E G C E up, C E G E… up-and-down, G E C… down; a lone note after it is untouched; written back as eight sixteenths).
+- **Unverified on device:** all of it.
+
 ## Build 0.8.6 (25 Oct 2026): triplet snaps and a chord stamp in the piano roll
 - **SNAP ▾ › 1/8 triplet and 1/16 triplet** (FL Studio has both). Notes drawn on them are written as real triplets in the notation and tab (three eighth-note triplets on a beat come out as one bracketed group). Bars with only straight notes are written exactly as before: triplets are switched on only once a note sits off the straight grid. In compound meters the roll writes the nearest straight values.
 - **TOOL ▾ › Chord stamp** (FL Studio's Stamp): pick a chord in **CHORD ▾** (family, then chord: the whole chord catalog), tap a row and the chord appears with its root there, every note the snap length, in the voice being entered. Tones are spelled from the root by their degrees, so E7♯9 gets F𝄪 and C°7 B𝄫. A root that would need a triple accidental is respelled (E♯7♯9 becomes F7♯9). It's a drawing tool, not a suggestion: nothing is proposed, you pick the chord.
@@ -485,7 +491,7 @@ Unit-tested and build-verified; **not device-verified.** Tests 401/401 (core 282
   - No velocity lane yet: notes have no velocity in the model (dynamics are the markings). Adding one is a model change for a later build.
   - Snap stops at 1/32; triplet snaps (1/8 and 1/16 triplet) came in 0.8.6.
   - Notes that overlap in one voice become chords with ties rather than being moved into another voice (MuseScore's MIDI import would split them into voices).
-  - Not built from FL's list (chord stamp came in 0.8.6): paint, slice, mute, strum, arpeggiate, flam, ghost channels of other parts, background waveform; generators (riff machine, chord progression, randomize) stay out (no suggestions).
+  - Not built from FL's list (chord stamp came in 0.8.6, arpeggiate in 0.8.7): paint, slice, mute, strum, arpeggiate, flam, ghost channels of other parts, background waveform; generators (riff machine, chord progression, randomize) stay out (no suggestions).
 - **Unverified on device:** all of it, especially dragging notes inside the scrolling roll and the edge-drag to lengthen.
 
 
