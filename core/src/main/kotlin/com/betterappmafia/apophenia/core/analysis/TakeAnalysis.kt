@@ -215,6 +215,22 @@ object MonoNotes {
     const val HOP_SECONDS = 0.02
     const val MIN_NOTE = 0.06
 
+    /** The continuous pitch of [x] (fractional MIDI, NaN where nothing is pitched), one value every [HOP_SECONDS]: Performance check's input. */
+    fun curve(x: FloatArray, rate: Int, minHz: Double, maxHz: Double): PitchCurve {
+        val win = (2.2 * rate / minHz).toInt()
+        val hop = (HOP_SECONDS * rate).toInt()
+        val centre = win / 2.0 / rate
+        if (x.size < win) return PitchCurve(HOP_SECONDS, centre, DoubleArray(0))
+        val frames = (x.size - win) / hop + 1
+        val buf = FloatArray(win)
+        val out = DoubleArray(frames) { Double.NaN }
+        for (f in 0 until frames) {
+            System.arraycopy(x, f * hop, buf, 0, win)
+            Yin.estimate(buf, rate, minHz, maxHz)?.let { e -> out[f] = 69 + 12 * log2(e.hz / 440.0) }
+        }
+        return PitchCurve(HOP_SECONDS, centre, out)
+    }
+
     fun track(x: FloatArray, rate: Int, minHz: Double, maxHz: Double, onsets: List<Double>): Pair<List<Note>, Double> {
         val win = (2.2 * rate / minHz).toInt()
         val hop = (HOP_SECONDS * rate).toInt()

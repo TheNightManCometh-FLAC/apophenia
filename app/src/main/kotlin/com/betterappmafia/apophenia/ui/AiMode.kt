@@ -32,11 +32,11 @@ private data class AiTool(val name: String, val note: String, val model: String,
 private val AI_TOOLS = listOf(
     AiTool("Separate stems", "vocals, drums, bass, other in stereo · a recording's AI ▾ › Separate stems", "SPLEETER", "READY"),
     AiTool("Notes → MIDI", "polyphonic transcription of a take · a recording's AI ▾ › Notes → MIDI", "BASIC PITCH", "READY"),
-    AiTool("Sheet music and tab", "from the MIDI, spelled in the key, in your tuning", "CORE", null),
+    AiTool("Sheet music and tab", "from the MIDI, spelled in the key, in your tuning · a recording's MIDI tab › MAKE TAB · SHEET ▾", "CORE", "READY"),
     AiTool("Find the chords", "per beat → a chord chart · automatic on every take", "ANALYSIS", "READY"),
     AiTool("Tempo and key", "ranked guesses with the reason shown · automatic on every take", "ANALYSIS", "READY"),
     AiTool("Speech → text", "voice memos and thinking out loud, time-stamped · a recording's AI ▾ › Speech → text", "MOONSHINE", "READY"),
-    AiTool("Performance check", "record yourself against a reference; see where and why you were off", "PITCH + DTW", null),
+    AiTool("Performance check", "a take of you against a written part or a transcription; where and why you were off · tap to start", "PITCH + DTW", "READY"),
 )
 
 /**
@@ -51,6 +51,7 @@ fun AiScreen(model: AppModel) {
     val stemsDone by remember { model.app.db.stems().recent() }.collectAsState(emptyList())
     val speechJobs by model.app.speechReader.jobs.collectAsState()
     val spokenDone by remember { model.app.db.speech().recent() }.collectAsState(emptyList())
+    if (model.performanceOpen) { PerformanceScreen(model); return }
     Column(Modifier.fillMaxSize()) {
         TitleBar { Text("AI", style = T.title, modifier = Modifier.weight(1f)); Text("ALL ON THE PHONE", style = T.label) }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
@@ -58,7 +59,12 @@ fun AiScreen(model: AppModel) {
                 Text("Every model runs on the phone. Nothing leaves it. Results are new items linked to the source; the source is never changed.", style = T.small.copy(lineHeight = 16.sp))
             }
             AI_TOOLS.forEach { t ->
-                Row(Modifier.fillMaxWidth().height(62.dp).underline().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.fillMaxWidth().height(62.dp).underline()
+                        .let { if (t.name == "Performance check") it.clickable(role = Role.Button) { model.performanceOpen = true } else it }
+                        .padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Column(Modifier.weight(1f)) {
                         Text(t.name, style = T.body.copy(color = if (t.ready != null) C.hi else C.dim, fontWeight = FontWeight.Bold))
                         Line1(t.note, T.small)

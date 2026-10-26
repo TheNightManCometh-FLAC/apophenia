@@ -94,7 +94,7 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
         model.restartMessage?.let { RestartScreen(it) }
     }
 
-    BackHandler(enabled = model.sheet != Sheet.None || model.correcting != null || model.detail != null || model.showTrash || model.showNotices || model.showSettings || model.showStack || model.selecting || (model.mode == Mode.TOOLS && model.tools.screen != null) || (model.mode.learn && (model.learnRudiment != null || model.learnGroove != null))) {
+    BackHandler(enabled = model.sheet != Sheet.None || model.correcting != null || model.detail != null || model.showTrash || model.showNotices || model.showSettings || model.showStack || model.selecting || model.performanceOpen || (model.mode == Mode.TOOLS && model.tools.screen != null) || (model.mode.learn && (model.learnRudiment != null || model.learnGroove != null))) {
         when {
             model.sheet != Sheet.None -> model.sheet = Sheet.None
             model.correcting != null -> model.correcting = null
@@ -103,6 +103,7 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
             model.showStack -> model.showStack = false
             model.showNotices -> model.showNotices = false
             model.showSettings -> model.showSettings = false
+            model.performanceOpen -> model.performanceOpen = false
             model.mode == Mode.TOOLS && model.tools.screen != null -> model.tools.screen = null
             model.mode.learn && model.learnGroove != null -> model.learnGroove = null
             model.mode.learn && model.learnRudiment != null -> model.learnRudiment = null

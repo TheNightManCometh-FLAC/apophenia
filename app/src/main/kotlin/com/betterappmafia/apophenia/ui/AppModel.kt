@@ -102,6 +102,9 @@ class AppModel(val app: ApopheniaApp) {
     var detail by mutableStateOf<Long?>(null)
     var showTrash by mutableStateOf(false)
     var showNotices by mutableStateOf(false)
+    /** AI › Performance check open over the AI screen. */
+    var performanceOpen by mutableStateOf(false)
+
     /** Settings (the ⚙ in the top bar) over the current screen. */
     var showSettings by mutableStateOf(false)
     var sheet by mutableStateOf<Sheet>(Sheet.None)
@@ -360,7 +363,7 @@ class AppModel(val app: ApopheniaApp) {
 
     fun go(m: Mode) {
         Breadcrumbs.add("mode $m")
-        mode = m; lastMode[m.tab] = m; detail = null; showTrash = false; showNotices = false; showSettings = false; showStack = false; sheet = Sheet.None; endSelect()
+        mode = m; lastMode[m.tab] = m; detail = null; showTrash = false; showNotices = false; showSettings = false; showStack = false; sheet = Sheet.None; endSelect(); performanceOpen = false
         tools.screen = null
         learnRudiment = null
         learnGroove = null
