@@ -820,7 +820,8 @@ private val KEYS: List<KeyMode> =
     listOf("Cb", "Gb", "Db", "Ab", "Eb", "Bb", "F", "C", "G", "D", "A", "E", "B", "F#", "C#").map { KeyMode.parseOrNull("$it major")!! } +
         listOf("Ab", "Eb", "Bb", "F", "C", "G", "D", "A", "E", "B", "F#", "C#", "G#", "D#", "A#").map { KeyMode.parseOrNull("$it aeolian")!! }
 
-private val METERS = listOf("2/4", "3/4", "4/4", "5/4", "6/4", "2/2", "3/2", "3/8", "5/8", "6/8", "2+2+3/8", "3+2+2/8", "9/8", "12/8")
+// 5/8 and 7/8 are listed by grouping: a bare 5/8 has two (TimeSignature.of refuses it, which crashed this screen from 0.5.3 to 0.9.5).
+internal val METERS = listOf("2/4", "3/4", "4/4", "5/4", "6/4", "2/2", "3/2", "3/8", "2+3/8", "3+2/8", "6/8", "2+2+3/8", "3+2+2/8", "9/8", "12/8")
     .map { com.betterappmafia.apophenia.core.rhythm.TimeSignature.parse(it) }
 
 private val VOLTAS = listOf(listOf(1) to "1st ending", listOf(2) to "2nd ending", listOf(1, 2) to "1st and 2nd ending", listOf(3) to "3rd ending", emptyList<Int>() to "No ending")

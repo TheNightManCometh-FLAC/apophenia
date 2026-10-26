@@ -2,6 +2,11 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.9.6 (26 Oct 2026): tab and sheet music open again
+- **Found in the emulator pass** (`docs/reviews/emulator-pass-2026-10-26.md`, finding 6): every tab and sheet-music editor crashed on opening, since 0.5.3. The score screen's meter menu held a bare "5/8", which `TimeSignature.of` refuses (two groupings), and that list is built when the screen's file loads. Now 5/8 is listed as 2+3/8 and 3+2/8, like 7/8's two groupings.
+- **`ScreenTablesTest`** (app) loads every UI file's top-level values and fails on any that throw; with the old list it fails naming this exact error, so it guards the whole class of bug, not just this list.
+- **Tests: 602** (+2). The emulator pass continues (findings 1–7 so far: the cut-off bottom-bar hints, two launcher icons in debug builds, the keyboard hiding the New project sheet, the Board's repeated lyric line, two ways to add things that change, the tab editor's rows running off the edge).
+
 ## Build 0.9.5 (26 Oct 2026): playing along with headphones, Bluetooth included
 - **Christopher, 26 Oct 2026:** "If you're playing along to a stack they should have headphones in. It should say that." / "Bluetooth is unfortunately the standard now." / "Then don't play the guitar's live feed through the headphones. You can hear it in person. If it's recorded right then you can shift the recording over and it'll sync up." (The app never played the mic back into the headphones; it still doesn't.)
 - **The phone's own mic records** whenever headphones are the output (`AudioController.preferredInput`, Oboe `setDeviceId` on the input; `nativeSetInputDevice`). A Bluetooth headset's mic would put Android into call audio; a wired headset's in-line mic is a poor instrument mic. A USB audio interface plugged in is left to Android [Claude]. Applies to recording and the tuner.
