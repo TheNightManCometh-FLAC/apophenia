@@ -85,23 +85,15 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun LearnHome(model: AppModel) {
-    var menu by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     val list = model.learnList
     Column(Modifier.fillMaxSize()) {
         TitleBar {
             if (list != null) Sq("‹", { model.learnList = if (":" in list) list.substringBefore(":") else null })
-            Box {
-                Sq("LEARN · ${model.learnPart} ▾", { menu = true })
-                ConsoleMenu(menu, { menu = false }, "LEARN", listOf(
-                    MenuItem("Course", if (model.learnPart == "COURSE") "✓" else "") { model.learnPart = "COURSE" },
-                    MenuItem("Ear", if (model.learnPart == "EAR") "✓" else "") { model.learnPart = "EAR" },
-                    MenuItem("Reference", if (model.learnPart == "REFERENCE") "✓" else "") { model.learnPart = "REFERENCE" },
-                ))
-            }
+            Text(model.learnPart, style = T.title)
             Text(
-                when (model.learnPart) { "COURSE" -> "PICK A CATEGORY"; "EAR" -> "LISTEN · PRACTICE · TEST"; else -> "EVERYTHING, ON YOUR TUNING" },
-                style = T.label, modifier = Modifier.weight(1f), maxLines = 1,
+                when (model.learnPart) { "COURSE" -> "PICK A CATEGORY"; "EAR" -> "PRACTICE · HIGH SCORES"; else -> "EVERYTHING, ON YOUR TUNING" },
+                style = T.label, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f), maxLines = 1,
             )
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {

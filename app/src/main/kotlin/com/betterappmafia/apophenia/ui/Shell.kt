@@ -45,8 +45,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * The frame every screen sits in (C4): project/mic bar, the click + ● REC bar, the screen, the
- * persistent player, the five modes. [requestMic] runs its block once the mic permission is granted.
+ * The frame every screen sits in (C4): project/mic bar, the click · tools · ● REC · + NEW strip, the sub-tabs, the
+ * screen, the persistent player, the three tabs (navigation B, 25 Oct 2026). [requestMic] runs its block once the mic permission is granted.
  */
 @Composable
 fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
@@ -68,12 +68,17 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
                     model.showStack -> StackScreen(model)
                     model.showTrash -> TrashScreen(model)
                     model.showNotices -> NoticesScreen(model)
-                    else -> when (model.mode) {
-                        Mode.BOARD -> BoardScreen(model, requestMic)
-                        Mode.LIBRARY -> LibraryScreen(model)
-                        Mode.TOOLS -> ToolsMode(model, requestMic) { ToolsExtras(model, requestMic) }
-                        Mode.LEARN -> LearnScreen(model, requestMic)
-                        Mode.AI -> AiScreen(model)
+                    else -> Column(Modifier.fillMaxSize()) {
+                        SubTabs(model)
+                        Box(Modifier.weight(1f).fillMaxWidth()) {
+                            when (model.mode) {
+                                Mode.BOARD -> BoardScreen(model, requestMic)
+                                Mode.LIBRARY -> LibraryScreen(model)
+                                Mode.TOOLS -> ToolsMode(model, requestMic) { ToolsExtras(model, requestMic) }
+                                Mode.EAR, Mode.COURSE, Mode.REFERENCE -> LearnScreen(model, requestMic)
+                                Mode.AI -> AiScreen(model)
+                            }
+                        }
                     }
                 }
             }
@@ -88,7 +93,7 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
         model.restartMessage?.let { RestartScreen(it) }
     }
 
-    BackHandler(enabled = model.sheet != Sheet.None || model.correcting != null || model.detail != null || model.showTrash || model.showNotices || model.showStack || model.selecting || (model.mode == Mode.TOOLS && model.tools.screen != null) || (model.mode == Mode.LEARN && (model.learnRudiment != null || model.learnGroove != null))) {
+    BackHandler(enabled = model.sheet != Sheet.None || model.correcting != null || model.detail != null || model.showTrash || model.showNotices || model.showStack || model.selecting || (model.mode == Mode.TOOLS && model.tools.screen != null) || (model.mode.learn && (model.learnRudiment != null || model.learnGroove != null))) {
         when {
             model.sheet != Sheet.None -> model.sheet = Sheet.None
             model.correcting != null -> model.correcting = null
@@ -97,8 +102,8 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
             model.showStack -> model.showStack = false
             model.showNotices -> model.showNotices = false
             model.mode == Mode.TOOLS && model.tools.screen != null -> model.tools.screen = null
-            model.mode == Mode.LEARN && model.learnGroove != null -> model.learnGroove = null
-            model.mode == Mode.LEARN && model.learnRudiment != null -> model.learnRudiment = null
+            model.mode.learn && model.learnGroove != null -> model.learnGroove = null
+            model.mode.learn && model.learnRudiment != null -> model.learnRudiment = null
             else -> model.showTrash = false
         }
     }
@@ -173,7 +178,7 @@ private fun ClickRecBar(model: AppModel, mic: Mic, requestMic: (() -> Unit) -> U
         if (click.on && click.beats > 0) { flash = true; delay(90); flash = false }
     }
     Row(Modifier.fillMaxWidth().height(50.dp).background(C.panel).underline()) {
-        Box(Modifier.weight(1.5f).fillMaxHeight()) {
+        Box(Modifier.weight(1.3f).fillMaxHeight()) {
             Row(
                 Modifier.fillMaxSize().clickable(role = Role.Button) { menu = true }
                     .semantics { contentDescription = "Metronome menu. Click ${if (click.on) "on" else "off"}, ${click.bpm.toInt()} BPM" },
@@ -182,9 +187,9 @@ private fun ClickRecBar(model: AppModel, mic: Mic, requestMic: (() -> Unit) -> U
             ) {
                 val accent = click.beats > 0 && (click.beats - 1) % 4 == 0L
                 Box(Modifier.size(10.dp).background(if (flash) (if (accent) C.hi else C.acc) else C.line2, CircleShape))
-                Text("  CLICK  ", style = T.button.copy(color = if (click.on) C.hi else C.text))
-                Text(click.bpm.toInt().toString(), style = T.hi.copy(fontSize = 18.sp))
-                Text("  ▾", style = T.label)
+                Text(" CLICK ", style = T.button.copy(color = if (click.on) C.hi else C.text))
+                Text(click.bpm.toInt().toString(), style = T.hi.copy(fontSize = 17.sp))
+                Text(" ▾", style = T.label)
             }
             ConsoleMenu(
                 expanded = menu, onDismiss = { menu = false },
@@ -206,15 +211,17 @@ private fun ClickRecBar(model: AppModel, mic: Mic, requestMic: (() -> Unit) -> U
             )
         }
         Box(Modifier.width(1.dp).fillMaxHeight().background(C.line))
-        ToolsSlots(model, Modifier.weight(1.1f))
+        ToolsSlots(model, Modifier.weight(1f))
         Box(Modifier.width(1.dp).fillMaxHeight().background(C.line))
         val recording = mic == Mic.RECORDING
         Box(
-            Modifier.weight(0.9f).fillMaxHeight()
+            Modifier.weight(0.85f).fillMaxHeight()
                 .clickable(role = Role.Button) { if (recording) model.stopRecording() else requestMic { model.startRecording() } }
                 .semantics { contentDescription = if (recording) "Stop recording" else "Record to the Library" },
             contentAlignment = Alignment.Center,
         ) { Text(if (recording) "■ STOP" else "● REC", style = T.button.copy(color = C.rec, fontSize = 12.sp)) }
+        Box(Modifier.width(1.dp).fillMaxHeight().background(C.line))
+        NewButton(model, requestMic, Modifier.weight(0.85f))
     }
 }
 
@@ -310,20 +317,83 @@ private fun TakeRow(model: AppModel, p: com.betterappmafia.apophenia.audio.Loade
 
 @Composable
 private fun NavBar(model: AppModel) {
-    Row(Modifier.fillMaxWidth().height(56.dp).drawBehindTop(C.line)) {
-        Mode.entries.forEachIndexed { i, m ->
-            val on = model.mode == m && model.detail == null && !model.showTrash
+    Row(Modifier.fillMaxWidth().height(58.dp).drawBehindTop(C.line)) {
+        Tab.entries.forEach { t ->
+            val on = model.mode.tab == t && model.detail == null && !model.showTrash
             Column(
                 Modifier.weight(1f).fillMaxHeight()
                     .drawBehind { if (on) drawLine(C.acc, Offset(0f, 1f), Offset(size.width, 1f), 4f) }
-                    .clickable(role = Role.Tab) { model.go(m) },
+                    .clickable(role = Role.Tab) { model.go(t) }
+                    .semantics { contentDescription = "${t.label}: ${t.modes.joinToString { it.label.lowercase() }}" },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Text("${i + 1}", style = T.button.copy(fontSize = 13.sp, color = if (on) C.hi else C.dim))
-                Text(m.label, style = T.label.copy(fontWeight = FontWeight.Bold, color = if (on) C.hi else C.dim, letterSpacing = 0.08.sp))
+                Text(t.label, style = T.button.copy(fontSize = 12.sp, color = if (on) C.hi else C.dim, letterSpacing = 0.1.sp))
+                Text(t.modes.joinToString(" · ") { it.label }, style = T.label.copy(fontSize = 8.sp, color = if (on) C.dim else C.faint), maxLines = 1)
             }
         }
+    }
+}
+
+/** The open tab's sub-tabs, over its screen. */
+@Composable
+private fun SubTabs(model: AppModel) {
+    Row(Modifier.fillMaxWidth().height(42.dp).underline()) {
+        model.mode.tab.modes.forEach { m ->
+            val on = model.mode == m
+            Box(
+                Modifier.weight(1f).fillMaxHeight()
+                    .drawBehind { if (on) drawLine(C.acc, Offset(size.width * 0.18f, size.height - 1f), Offset(size.width * 0.82f, size.height - 1f), 4f) }
+                    .clickable(role = Role.Tab) { model.go(m) },
+                contentAlignment = Alignment.Center,
+            ) { Text(m.label, style = T.button.copy(color = if (on) C.hi else C.dim)) }
+        }
+    }
+}
+
+/**
+ * + NEW in the strip (Christopher, 25 Oct 2026): pick the kind of fragment and its editor (or the recorder) opens.
+ * It goes into the Library, or into the open project and the Library. [Claude] Starts on the project when you are on
+ * its Board, on the Library everywhere else.
+ */
+@Composable
+private fun NewButton(model: AppModel, requestMic: (() -> Unit) -> Unit, modifier: Modifier) {
+    var menu by remember { mutableStateOf(false) }
+    var toProject by remember { mutableStateOf(false) }
+    val pid = model.projectId
+    val name = model.projectName(pid)
+    Box(modifier.fillMaxHeight()) {
+        Box(
+            Modifier.fillMaxSize().clickable(role = Role.Button) { toProject = name != null && model.mode == Mode.BOARD; menu = true }
+                .semantics { contentDescription = "New fragment" },
+            contentAlignment = Alignment.Center,
+        ) { Text("+ NEW", style = T.button.copy(color = C.acc, fontSize = 12.sp)) }
+        val into = if (toProject && name != null) pid else null
+        ConsoleMenu(menu, { menu = false }, items = buildList {
+            add(MenuItem("Record", "● NOW") {
+                requestMic { if (into != null) model.startRecording(RecordTarget.Project(into, name!!)) else model.startRecording() }
+            })
+            WRITABLE.forEach { (f, label, note) -> add(MenuItem(label, note) { model.write(f, into) }) }
+            add(MenuItem("Guitar tab", "STANDARD TUNING") { model.writeTab(bass = false, into) })
+            add(MenuItem("Bass tab", "E STANDARD") { model.writeTab(bass = true, into) })
+            add(MenuItem("Sheet music", "PIANO KEYS OR TAP THE STAFF") { model.writeSheet(into) })
+            add(MenuItem("Import from the phone", "AUDIO · TEXT · MUSICXML · MIDI ›", enabled = model.importing == 0) { model.startImport(into) })
+        }, header = {
+            Column(Modifier.width(280.dp).underline()) {
+                Text("NEW · INTO", style = T.label.copy(color = C.acc), modifier = Modifier.padding(start = 14.dp, top = 10.dp, bottom = 6.dp))
+                Row(Modifier.fillMaxWidth().height(44.dp)) {
+                    val options = listOfNotNull(false to "LIBRARY", name?.let { true to "${it.uppercase()} + LIBRARY" })
+                    options.forEach { (p, label) ->
+                        val on = (into != null) == p
+                        Box(
+                            Modifier.weight(1f).fillMaxHeight().background(if (on) C.selected else C.panel2).clickable { toProject = p }
+                                .semantics { contentDescription = "Into ${label.lowercase()}" },
+                            contentAlignment = Alignment.Center,
+                        ) { Line1(label, T.button.copy(fontSize = 10.sp, color = if (on) C.hi else C.dim)) }
+                    }
+                }
+            }
+        })
     }
 }
 

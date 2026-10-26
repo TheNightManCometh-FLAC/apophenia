@@ -2,6 +2,15 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.8.0 (25 Oct 2026): navigation B and + NEW
+- **Three bottom tabs** (Christopher picked option B from the mockup `docs/mockups/nav-b.html`): **MAKE** (Board, Library) · **PRACTICE** (Tools, Ear) · **STUDY** (Course, Reference, AI). Each tab's sub-tabs sit along the top of its screen; a tab reopens on the sub-tab you left it on. "Learn" is gone as a name; Course, Ear and Reference are sub-tabs, and a Course link to an Ear drill switches to PRACTICE › Ear with the lesson kept behind it.
+- **Unchanged on every screen:** project ▾ and mic state, the player and stack at the bottom, and the strip at the top (Christopher: "At the top"), which now reads CLICK ▾ · TOOLS ▾ · ● REC · **+ NEW**.
+- **+ NEW** (Christopher: "You select the type of fragment at new + and that determines if it opens a notepad or midi or tab or the recorder"): Record, Lyrics, Text note, Chord chart, Drum chart, Guitar tab, Bass tab, Sheet music, Import from the phone. Each opens its editor (or the recorder). At the top of the menu: **INTO LIBRARY** or **INTO <PROJECT> + LIBRARY** (his rule: "either just the library or project and library"). [Claude] It starts on the project when you're on its Board, on the Library everywhere else.
+- [Claude] The Board keeps its own WRITE ▾ and ⋯ › Record; mic permission and overdub latency stay under PRACTICE › Tools.
+- **Not built:** a blank MIDI / piano-roll fragment (there is no empty piano-roll scrap yet; Sheet music with piano keys is the nearest). Asked Christopher.
+- **Tests: 561** (no new tests; navigation is UI only). build-verified.
+- **Unverified on device:** all of it.
+
 ## Build 0.7.9 (25 Oct 2026): Ear as practice and high scores
 - **Ear (Learn › Ear)** reworked to Christopher's direction: no chapters to work through, no Listen / Practice / Test modes. Two sections: **PRACTICE** (Mixed: everything, then the drill types as rows that open on their drills, and Your music) and **HIGH SCORES** (every drill you've played, by its best streak, highest first; tap one to practise it). Every drill opens straight into practice.
 - **Streak counter** (Christopher: "A streak counter for how many in a row would make it feel like you're actually getting somewhere"): the drill screen shows STREAK large (right answers in a row; a wrong one resets it) and the drill's BEST beside it, which turns to NEW BEST when you pass it. The best run of each session is saved; a drill's high score is its longest run ever (`EarResultDao.streaks()`, no schema change).

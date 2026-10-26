@@ -1,0 +1,329 @@
+<title>Apophenia Navigation B</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap">
+<style>
+/* Layout: the phone (the app's own console look, colours from ui/theme) beside a notes column; stacks at phone width. */
+:root {
+  --bg: #121314; --panel: #18191B; --panel2: #1F2023; --sel: #24221F;
+  --line: #2C2E31; --line2: #3A3C40; --faint: #5A5C60;
+  --text: #CFCCC4; --hi: #E4E1DA; --dim: #8D8A84; --acc: #D08A55; --rec: #C9564B; --ok: #7FA889;
+  --page: #0B0C0D;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color-scheme: dark;
+}
+html, body { background: var(--page); color: var(--text); }
+body { font-family: var(--mono); font-size: 13px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px; }
+.wrap { display: flex; gap: 32px; justify-content: center; align-items: flex-start; flex-wrap: wrap; max-width: 1100px; margin: 0 auto; }
+.phone { width: 380px; max-width: 100%; height: 800px; background: var(--bg); border: 1px solid var(--line2); border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; position: relative; box-shadow: 0 30px 80px #000a; }
+.status { height: 26px; display: flex; justify-content: space-between; align-items: center; padding: 0 18px; font-size: 10px; color: var(--dim); }
+.bar { display: flex; align-items: center; border-bottom: 1px solid var(--line); }
+.top { height: 40px; padding: 0 12px; justify-content: space-between; }
+.lbl { font-size: 9px; letter-spacing: .14em; color: var(--dim); text-transform: uppercase; }
+.btn { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--hi); }
+.tap { cursor: pointer; user-select: none; }
+.tap:focus-visible { outline: 2px solid var(--acc); outline-offset: -2px; }
+.mic { display: flex; gap: 6px; align-items: center; font-size: 11px; font-weight: 700; color: var(--dim); letter-spacing: .08em; }
+.mic i { width: 8px; height: 8px; border: 1.5px solid var(--dim); border-radius: 50%; display: block; }
+.strip { height: 50px; background: var(--panel); }
+.strip > div { height: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; border-right: 1px solid var(--line); position: relative; }
+.strip > div:last-child { border-right: 0; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line2); }
+.dot.flash { background: var(--acc); }
+.big { font-weight: 800; color: var(--hi); font-size: 18px; }
+.new { color: var(--acc) !important; }
+.screen { flex: 1; overflow-y: auto; position: relative; }
+.subtabs { display: flex; height: 42px; border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 0; z-index: 2; }
+.subtabs div { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; letter-spacing: .1em; color: var(--dim); position: relative; }
+.subtabs div.on { color: var(--hi); }
+.subtabs div.on::after { content: ""; position: absolute; left: 18%; right: 18%; bottom: -1px; height: 2px; background: var(--acc); }
+.title { height: 44px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+.title b { font-size: 14px; font-weight: 800; color: var(--hi); letter-spacing: .04em; }
+.row { min-height: 58px; padding: 8px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
+.row .m { flex: 1; min-width: 0; }
+.row .n { color: var(--hi); font-weight: 700; }
+.row .s { font-size: 10.5px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .c { font-size: 9px; color: var(--dim); width: 26px; letter-spacing: .1em; }
+.go { color: var(--acc); font-weight: 800; }
+.v { color: var(--hi); font-weight: 800; }
+.head { padding: 14px 14px 4px; font-size: 9px; letter-spacing: .14em; color: var(--acc); }
+.scrap { margin: 10px 12px; border: 1px solid var(--line); background: var(--panel); }
+.scrap .h { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.scrap pre { margin: 0; padding: 10px; font-family: var(--mono); font-size: 11.5px; line-height: 1.5; color: var(--text); white-space: pre; overflow-x: auto; }
+.chord { color: var(--acc); font-weight: 700; }
+.takes { display: flex; gap: 8px; padding: 10px; }
+.takes span { border: 1px solid var(--line2); padding: 6px 10px; font-weight: 800; color: var(--hi); font-size: 11px; }
+.takes span.star { border-color: var(--acc); color: var(--acc); }
+.wave { height: 34px; margin: 0 10px 10px; background: repeating-linear-gradient(90deg, var(--line2) 0 2px, transparent 2px 5px); mask: linear-gradient(180deg, transparent 0, #000 30%, #000 70%, transparent 100%); }
+.toggle { display: flex; margin: 12px 14px; border: 1px solid var(--line2); }
+.toggle div { flex: 1; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--dim); }
+.toggle div.on { background: var(--sel); color: var(--hi); }
+.streak { text-align: center; padding: 22px 0 8px; }
+.streak .num { font-size: 72px; font-weight: 800; color: var(--acc); line-height: 1; }
+.answers { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border-block: 1px solid var(--line); margin-top: 16px; }
+.answers div { background: var(--panel); height: 54px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--hi); }
+.player { height: 56px; background: var(--panel); border-top: 1px solid var(--line); display: flex; }
+.player .m { flex: 1; padding: 0 12px; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.player .p { width: 60px; border-left: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; color: var(--acc); }
+.nav { height: 58px; border-top: 1px solid var(--line); display: flex; }
+.nav div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; position: relative; }
+.nav div .t { font-size: 12px; font-weight: 800; letter-spacing: .1em; color: var(--dim); }
+.nav div .u { font-size: 8.5px; letter-spacing: .1em; color: var(--faint); }
+.nav div.on .t { color: var(--hi); }
+.nav div.on .u { color: var(--dim); }
+.nav div.on::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--acc); }
+.menu { position: absolute; z-index: 20; min-width: 270px; background: var(--panel2); border: 1px solid var(--line2); box-shadow: 0 18px 40px #000c; }
+.menu .mh { padding: 10px 14px; font-size: 9px; letter-spacing: .14em; color: var(--acc); border-bottom: 1px solid var(--line); }
+.menu .mi { display: flex; justify-content: space-between; gap: 12px; align-items: center; min-height: 48px; padding: 0 14px; border-bottom: 1px solid var(--line); }
+.menu .mi:last-child { border-bottom: 0; }
+.menu .mi b { color: var(--hi); font-weight: 700; font-size: 12.5px; }
+.menu .mi span { font-size: 9px; letter-spacing: .1em; color: var(--dim); text-align: right; }
+.menu .mi:hover { background: var(--sel); }
+.scrim { position: absolute; inset: 0; z-index: 19; }
+.toast { position: absolute; left: 12px; right: 12px; bottom: 130px; z-index: 30; background: var(--panel2); border-top: 2px solid var(--acc); padding: 12px; color: var(--hi); font-size: 12px; }
+.notes { flex: 1 1 380px; min-width: 0; max-width: 560px; color: var(--text); line-height: 1.6; }
+.notes h1 { font-size: 20px; font-weight: 800; color: var(--hi); letter-spacing: .02em; margin: 0 0 4px; text-wrap: balance; }
+.notes h2 { font-size: 10px; letter-spacing: .16em; color: var(--acc); margin: 26px 0 8px; font-weight: 800; text-transform: uppercase; }
+.notes p, .notes li { font-size: 12.5px; color: var(--text); }
+.notes ul, .notes ol { padding-left: 20px; margin: 6px 0; }
+.notes li { margin: 4px 0; }
+.notes b { color: var(--hi); }
+.map { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 12px; border: 1px solid var(--line); padding: 12px 14px; background: var(--panel); }
+.map .k { color: var(--hi); font-weight: 800; letter-spacing: .08em; }
+.opt { display: flex; gap: 0; border: 1px solid var(--line2); width: max-content; max-width: 100%; margin-top: 8px; }
+.opt button { font: inherit; font-size: 11px; font-weight: 800; letter-spacing: .06em; background: transparent; color: var(--dim); border: 0; padding: 9px 12px; cursor: pointer; }
+.opt button.on { background: var(--sel); color: var(--hi); }
+.opt button:focus-visible { outline: 2px solid var(--acc); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <div class="phone" id="phone">
+    <div class="status"><span>9:41</span><span>MOCKUP · TAP ANYTHING</span></div>
+    <div class="bar top">
+      <div class="tap btn" data-menu="project" tabindex="0">NIGHT DRIVE <span class="lbl">&nbsp;▾</span></div>
+      <div class="mic"><i></i>MIC OFF</div>
+    </div>
+    <div id="stripTop"></div>
+    <div class="screen" id="screen"></div>
+    <div id="stripBottom"></div>
+    <div class="player">
+      <div class="m tap" data-act="stack"><div class="lbl">NIGHT DRIVE · 3 LAYERS</div><div class="v">■ 0:00 / 0:16</div></div>
+      <div class="p tap" data-act="play">▶</div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+  </div>
+
+  <div class="notes">
+    <h1>Navigation B</h1>
+    <p class="lbl" style="font-size:10px">THREE TABS BY WHAT YOU'RE DOING · FOR CHRISTOPHER'S OK BEFORE 0.8.0</p>
+
+    <h2>What moves where</h2>
+    <div class="map">
+      <span class="k">MAKE</span><span>Board · Library</span>
+      <span class="k">PRACTICE</span><span>Tools · Ear (practice + high scores)</span>
+      <span class="k">STUDY</span><span>Course · Reference · AI</span>
+    </div>
+    <p>The sub-tabs sit at the top of each tab. Each tab remembers the sub-tab you left it on, so tapping PRACTICE takes you back to Ear if that's where you were.</p>
+    <p>Unchanged on every screen: the project ▾ and mic state, the click / tools / ● REC strip, and the player and stack at the bottom. Stand mode, the stack workspace, recording details, Trash and the save sheet work as they do now.</p>
+
+    <h2>New + (added to the strip)</h2>
+    <p>One button for making any fragment from any screen: record, lyrics, text note, chord chart, drum chart, guitar tab, bass tab, sheet music, or import from the phone. Tap <b>+ NEW</b> in the mockup to see the list.</p>
+    <p>To make room, the strip's four cells are narrower: CLICK 92 ▾ · TOOLS ▾ · ● REC · + NEW.</p>
+
+    <h2>Two things I need you to pick</h2>
+    <ol>
+      <li><b>Where New + puts things.</b> My suggestion follows the recording rule you already set: on the Board of an open project, into that project; everywhere else, into the Library. The menu says where at the top. The other choice is always into the open project (Library only when none is open).
+        <div class="opt" role="group" aria-label="New plus destination">
+          <button id="destBoard" class="on">BOARD → PROJECT, ELSE LIBRARY</button>
+          <button id="destProject">ALWAYS THE OPEN PROJECT</button>
+        </div>
+      </li>
+      <li><b>Where the strip sits.</b> It's at the top now. It could move down to sit right above the player, so the things you use while playing are all at the bottom by your thumb.
+        <div class="opt" role="group" aria-label="Strip position">
+          <button id="posTop" class="on">TOP (AS NOW)</button>
+          <button id="posBottom">BOTTOM, ABOVE THE PLAYER</button>
+        </div>
+      </li>
+    </ol>
+
+    <h2>Smaller choices I've made</h2>
+    <ul>
+      <li>The Board keeps its own WRITE ▾ and ● REC for now; New + does the same jobs from anywhere. I can take them off the Board once you've used New + for a while.</li>
+      <li>"Learn" goes away as a name; Course, Ear and Reference live in the tabs above. The course's links to Ear drills jump to PRACTICE › Ear.</li>
+      <li>Mic permission and overdub latency stay under PRACTICE › Tools, below the tool list.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(() => {
+  const S = { tab: "make", sub: { make: "board", practice: "tools", study: "course" }, menu: null, strip: "top", dest: "board", earView: "practice", drill: null, toast: null };
+  const TABS = {
+    make: { label: "MAKE", subs: [["board", "BOARD"], ["library", "LIBRARY"]] },
+    practice: { label: "PRACTICE", subs: [["tools", "TOOLS"], ["ear", "EAR"]] },
+    study: { label: "STUDY", subs: [["course", "COURSE"], ["reference", "REFERENCE"], ["ai", "AI"]] },
+  };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const row = (n, s, right, act, count) =>
+    `<div class="row tap" ${act ? `data-act="${act}"` : ""} tabindex="0">${count != null ? `<span class="c">${count}</span>` : ""}<div class="m"><div class="n">${esc(n)}</div><div class="s">${esc(s)}</div></div><span class="${right === "›" ? "go" : "v"}">${esc(right)}</span></div>`;
+
+  const strip = () => `<div class="bar strip">
+      <div class="tap" data-menu="click" style="flex:1.25" tabindex="0"><span class="dot" id="beat"></span><span class="btn">CLICK</span><span class="big">92</span><span class="lbl">▾</span></div>
+      <div class="tap" data-menu="tools" style="flex:1" tabindex="0"><span class="btn">TOOLS</span><span class="lbl">▾</span></div>
+      <div class="tap" data-act="rec" style="flex:.85" tabindex="0"><span class="btn" style="color:var(--rec)">● REC</span></div>
+      <div class="tap" data-menu="new" style="flex:.85" tabindex="0"><span class="btn new">+ NEW</span></div>
+    </div>`;
+
+  const screens = {
+    board: () => `<div class="title"><b>NIGHT DRIVE · BOARD</b><span class="lbl">WRITE ▾ · ● REC · ⋯</span></div>
+      <div class="scrap"><div class="h"><span class="btn">VERSE 1</span><span class="lbl">LYRICS</span></div><pre><span class="chord">Am</span>               <span class="chord">F</span>
+Headlights on the overpass
+<span class="chord">C</span>                    <span class="chord">G</span>
+counting every sign I pass</pre></div>
+      <div class="scrap"><div class="h"><span class="btn">RIFF IDEA</span><span class="lbl">RECORDING · 0:42 · 92 BPM</span></div><div class="takes"><span>A</span><span>B</span><span class="star">★ C</span></div><div class="wave"></div></div>
+      <div class="scrap"><div class="h"><span class="btn">CHORUS</span><span class="lbl">CHORD CHART · 4/4</span></div><pre>| <span class="chord">Am</span>  /  /  / | <span class="chord">F</span>   /  /  / |
+| <span class="chord">C</span>   /  /  / | <span class="chord">G</span>   /  /  / ‖</pre></div>
+      <div class="scrap"><div class="h"><span class="btn">BASS LINE</span><span class="lbl">BASS TAB · E STANDARD</span></div><pre>G|---------------------|
+D|---------------------|
+A|-0-0-------3-3-------|
+E|-----1-1-------3-3---|</pre></div>`,
+    library: () => `<div class="title"><b>LIBRARY</b><span class="lbl">FILTER ▾ · SELECT</span></div>
+      <div class="row"><div class="m"><div class="s">⌕  search titles, tags, lyrics</div></div></div>
+      ${row("Riff idea", "3 takes · 0:42 · 92 BPM · A minor · Night Drive", "▶")}
+      ${row("Hummed melody", "24 Oct · 0:18 · free time", "▶")}
+      ${row("Chorus words", "lyrics · 8 lines · Night Drive", "›")}
+      ${row("Groove in 7/8", "drum chart · 2+2+3 · 4 bars", "›")}
+      ${row("Slide part", "guitar tab · open D", "›")}
+      ${row("Voice memo 21 Oct", "1:07 · imported", "▶")}`,
+    tools: () => `<div class="title"><b>TOOLS</b><span class="lbl">PIN TWO IN THE STRIP</span></div>
+      ${row("Metronome", "4/4 · accents, subdivision, swing, polyrhythm, trainer", "92")}
+      ${row("Tuner", "any · A4 440 · equal", "›")}
+      ${row("Drone", "any root, fifth, third", "A")}
+      ${row("Playback speed", "the take in the player · 0.25–2× · pitch ±24 st · A/B loop", "1.00×")}
+      ${row("Isolator", "pan, tone ⇄ hit, band · note finder", "›")}
+      ${row("Practice timer", "attach to a recording, project or exercise · note · history", "›")}
+      ${row("Recorder", "same as ● REC in the strip · markers, clipping warning", "●")}
+      <div class="head">STRIP</div>
+      ${row("Slot 1", "shown first in TOOLS ▾", "Drone ▾")}
+      ${row("Slot 2", "", "Tuner ▾")}
+      <div class="head">MIC · OVERDUB LATENCY</div>
+      ${row("Microphone", "off · permission allowed", "›")}
+      ${row("Overdub latency", "per route · not measured", "›")}`,
+    ear: () => {
+      if (S.drill) return `<div class="title"><b><span class="tap" data-act="back">‹</span>&nbsp; ${esc(S.drill)}</b><span class="lbl">PRACTICE</span></div>
+        <div class="streak"><div class="lbl">STREAK</div><div class="num">6</div><div class="lbl" style="margin-top:8px">BEST 14 · 9 RIGHT OF 11</div></div>
+        <div style="text-align:center;margin-top:14px"><span class="btn" style="border:1px solid var(--line2);padding:10px 18px">▶ PLAY AGAIN</span></div>
+        <div class="answers"><div>m3</div><div>M3</div><div>m2</div><div>M2</div></div>`;
+      const tog = `<div class="toggle"><div class="tap ${S.earView === "practice" ? "on" : ""}" data-act="earP">PRACTICE</div><div class="tap ${S.earView === "scores" ? "on" : ""}" data-act="earS">HIGH SCORES</div></div>`;
+      if (S.earView === "scores") return tog +
+        row("Seconds and thirds", "Intervals · 23 sessions", "14", "drill:Seconds and thirds") +
+        row("Major · minor · dim · aug", "Chords · 11 sessions", "11", "drill:Major · minor · dim · aug") +
+        row("Higher or lower · 10 cents", "Pitch · 6 sessions", "9", "drill:Higher or lower · 10 cents") +
+        row("Degrees in a major key", "Scale degrees · 4 sessions", "7", "drill:Degrees in a major key") +
+        row("Modes of major", "Scales · 2 sessions", "4", "drill:Modes of major");
+      return tog +
+        row("Mixed: everything", "a drill from every chapter, at random", "›", "drill:Mixed: everything") +
+        row("Intervals", "6 drills · seconds to compound, sing it", "›", "drill:Seconds and thirds", 6) +
+        row("Chords", "9 drills · triads to ninths, inversions, spread", "›", "drill:Major · minor · dim · aug", 9) +
+        row("Pitch", "7 drills · name the note, ±5 cents", "›", "drill:Higher or lower · 10 cents", 7) +
+        row("Scale degrees", "3 drills · major, minor, chromatic", "›", "drill:Degrees in a major key", 3) +
+        row("Scales", "5 drills · modes, symmetric, characteristic notes", "›", "drill:Modes of major", 5) +
+        row("Your music", "drills built from your own takes", "›", null, "·");
+    },
+    course: () => `<div class="title"><b>COURSE</b><span class="lbl">PICK A CATEGORY</span></div>` +
+      [["Sound & pitch", 6], ["Rhythm & time", 8], ["Intervals", 5], ["Scales & keys", 9], ["Chords", 10], ["Harmony", 9], ["Melody & songs", 7], ["Reading · notation, tab, charts", 8], ["Instruments · fretboard, piano, voice", 9]]
+        .map(([n, c]) => row(n, `${c} topics`, "›", null, c)).join(""),
+    reference: () => `<div class="title"><b>REFERENCE</b><span class="lbl">ON YOUR TUNING</span></div>
+      <div class="row"><div class="m"><div class="s">⌕  search: Dorian, m7♭5, DADGAD…</div></div></div>
+      ${row("Intervals", "UNISON TO DOUBLE OCTAVE", "›")}
+      ${row("Scales", "MODES OF MAJOR, MELODIC, HARMONIC MINOR AND MAJOR · SYMMETRIC · BEBOP", "›")}
+      ${row("Chords", "TRIADS TO THIRTEENTHS, ALTERED, SUS, ADD", "›")}
+      ${row("Progressions", "POP, MODAL, JAZZ, BLUES, CADENCES · ON ANY KEY", "›")}
+      ${row("Tunings", "STANDARD, DROP, OPEN, MODAL, REGULAR, 7 AND 8 STRINGS", "›")}
+      ${row("Drum grooves", "COMMON BEATS AS DRUM TAB", "›")}
+      ${row("Drum rudiments", "THE PAS RUDIMENTS", "›", null, 40)}
+      ${row("Name a chord", "TAP NOTES ON THE PIANO OR YOUR GUITAR", "›")}`,
+    ai: () => `<div class="title"><b>AI</b><span class="lbl">ALL ON THE PHONE</span></div>
+      <div class="row"><div class="m"><div class="s" style="white-space:normal">Every model runs on the phone. Nothing leaves it. Results are new items linked to the source; the source is never changed.</div></div></div>
+      ${row("Notes from audio", "Basic Pitch · turns a take into notation", "›")}
+      ${row("Stems", "Spleeter · vocals, drums, bass, other", "›")}
+      ${row("Speech to text", "Moonshine · sung or spoken words", "›")}
+      <div class="head">JOBS</div>
+      ${row("Riff idea · take C", "notes · done 24 Oct", "›")}
+      ${row("Voice memo 21 Oct", "stems · done", "›")}`,
+  };
+
+  const where = () => (S.tab === "make" && S.sub.make === "board") || S.dest === "project" ? "NIGHT DRIVE" : "THE LIBRARY";
+  const menus = {
+    project: () => ["PROJECTS", [["Night Drive", "✓ OPEN"], ["Basement tapes", "12 ON BOARD"], ["New project", "+"], ["Rename Night Drive", ""], ["Delete Night Drive", "TO TRASH"]]],
+    click: () => ["CLICK", [["Click is off", "TURN ON"], ["Tap tempo", "TAP HERE"], ["Full metronome", "4/4 ›"]]],
+    tools: () => ["TOOLS · TWO PINNED", [["Drone", "▶ A"], ["Tuner", "ANY ›"], ["All tools", "PRACTICE ›"]]],
+    new: () => [`NEW · INTO ${where()}`, [["Record", "● NOW"], ["Lyrics", "WORDS · CHORDS OVER THEM"], ["Text note", "ANYTHING"], ["Chord chart", "BARS · ONE SLOT PER BEAT"], ["Drum chart", "A ROW PER DRUM"], ["Guitar tab", "STANDARD TUNING"], ["Bass tab", "E STANDARD"], ["Sheet music", "PIANO KEYS OR TAP THE STAFF"], ["Import from the phone", "AUDIO · TEXT · MUSICXML · MIDI ›"]]],
+  };
+
+  const $ = id => document.getElementById(id);
+  function render() {
+    const t = TABS[S.tab], sub = S.sub[S.tab];
+    $("stripTop").innerHTML = S.strip === "top" ? strip() : "";
+    $("stripBottom").innerHTML = S.strip === "bottom" ? strip().replace('class="bar strip"', 'class="bar strip" style="border-top:1px solid var(--line)"') : "";
+    $("screen").innerHTML = `<div class="subtabs">${t.subs.map(([id, l]) => `<div class="tap ${id === sub ? "on" : ""}" data-sub="${id}" tabindex="0">${l}</div>`).join("")}</div>` + screens[sub]();
+    $("nav").innerHTML = Object.entries(TABS).map(([id, x]) =>
+      `<div class="tap ${id === S.tab ? "on" : ""}" data-tab="${id}" tabindex="0"><span class="t">${x.label}</span><span class="u">${x.subs.map(s => s[1]).join(" · ")}</span></div>`).join("");
+    document.querySelectorAll(".scrim,.menu,.toast").forEach(e => e.remove());
+    const phone = $("phone");
+    if (S.menu) {
+      const anchor = phone.querySelector(`[data-menu="${S.menu}"]`);
+      const [h, items] = menus[S.menu]();
+      const scrim = document.createElement("div"); scrim.className = "scrim"; scrim.dataset.act = "close"; phone.appendChild(scrim);
+      const m = document.createElement("div"); m.className = "menu";
+      m.innerHTML = `<div class="mh">${esc(h)}</div>` + items.map(([a, b]) => `<div class="mi tap" data-pick="${esc(a)}"><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join("");
+      phone.appendChild(m);
+      const pr = phone.getBoundingClientRect(), ar = anchor.getBoundingClientRect();
+      const w = Math.min(290, pr.width - 16);
+      m.style.width = w + "px";
+      m.style.left = Math.max(8, Math.min(ar.left - pr.left, pr.width - w - 8)) + "px";
+      const below = ar.bottom - pr.top;
+      if (below + m.offsetHeight < pr.height - 8) m.style.top = below + "px";
+      else m.style.top = Math.max(8, ar.top - pr.top - m.offsetHeight) + "px";
+    }
+    if (S.toast) { const d = document.createElement("div"); d.className = "toast"; d.textContent = S.toast; phone.appendChild(d); }
+  }
+  let toastTimer;
+  const toast = msg => { S.toast = msg; render(); clearTimeout(toastTimer); toastTimer = setTimeout(() => { S.toast = null; render(); }, 1800); };
+
+  $("phone").addEventListener("click", e => {
+    const el = e.target.closest("[data-tab],[data-sub],[data-menu],[data-act],[data-pick]");
+    if (!el) return;
+    const d = el.dataset;
+    if (d.tab) { S.tab = d.tab; S.menu = null; S.drill = null; }
+    else if (d.sub) { S.sub[S.tab] = d.sub; S.drill = null; }
+    else if (d.menu) { S.menu = S.menu === d.menu ? null : d.menu; }
+    else if (d.pick) {
+      const m = S.menu; S.menu = null;
+      if (m === "new") return toast(d.pick === "Record" ? `Recording into ${where() === "THE LIBRARY" ? "the Library" : "Night Drive"}…` : `New ${d.pick.toLowerCase()} in ${where() === "THE LIBRARY" ? "the Library" : "Night Drive"}.`);
+      if (d.pick === "All tools") { S.tab = "practice"; S.sub.practice = "tools"; }
+      if (d.pick === "Full metronome") { S.tab = "practice"; S.sub.practice = "tools"; }
+    }
+    else if (d.act === "close") S.menu = null;
+    else if (d.act === "rec") return toast("● Recording into the Library…");
+    else if (d.act === "play") return toast("▶ The stack plays (unchanged).");
+    else if (d.act === "stack") return toast("Opens the stack workspace (unchanged).");
+    else if (d.act === "earP") S.earView = "practice";
+    else if (d.act === "earS") S.earView = "scores";
+    else if (d.act === "back") S.drill = null;
+    else if (d.act && d.act.startsWith("drill:")) S.drill = d.act.slice(6);
+    render();
+  });
+  $("phone").addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.classList.contains("tap")) { e.preventDefault(); e.target.click(); } });
+
+  const pair = (a, b, key, va, vb) => {
+    $(a).onclick = () => { S[key] = va; $(a).classList.add("on"); $(b).classList.remove("on"); S.menu = null; render(); };
+    $(b).onclick = () => { S[key] = vb; $(b).classList.add("on"); $(a).classList.remove("on"); S.menu = null; render(); };
+  };
+  pair("posTop", "posBottom", "strip", "top", "bottom");
+  pair("destBoard", "destProject", "dest", "board", "project");
+
+  render();
+})();
+</script>

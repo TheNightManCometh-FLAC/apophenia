@@ -24,8 +24,20 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** The five modes in the bottom navigation (plan §2.1). */
-enum class Mode(val label: String) { BOARD("BOARD"), LIBRARY("LIBRARY"), TOOLS("TOOLS"), LEARN("LEARN"), AI("AI") }
+/** The three bottom tabs, by what you are doing (Christopher, 25 Oct 2026: navigation option B). */
+enum class Tab(val label: String) { MAKE("MAKE"), PRACTICE("PRACTICE"), STUDY("STUDY") }
+
+/** The screens, each a sub-tab of one [Tab]. */
+enum class Mode(val label: String, val tab: Tab) {
+    BOARD("BOARD", Tab.MAKE), LIBRARY("LIBRARY", Tab.MAKE),
+    TOOLS("TOOLS", Tab.PRACTICE), EAR("EAR", Tab.PRACTICE),
+    COURSE("COURSE", Tab.STUDY), REFERENCE("REFERENCE", Tab.STUDY), AI("AI", Tab.STUDY);
+
+    /** The screens that were Learn: Course, Ear and Reference share its screen code. */
+    val learn get() = this == EAR || this == COURSE || this == REFERENCE
+}
+
+val Tab.modes get() = Mode.entries.filter { it.tab == this }
 
 /** What slides up over the screen. */
 sealed interface Sheet {
@@ -76,6 +88,9 @@ private const val LEARN_BASS = "learn.bass"
 /** UI state that outlives the Activity (rotation, returning from the background). */
 class AppModel(val app: ApopheniaApp) {
     var mode by mutableStateOf(Mode.BOARD)
+        private set
+    /** The sub-tab each tab was last left on, so the tab opens there again. */
+    private val lastMode = androidx.compose.runtime.mutableStateMapOf<Tab, Mode>()
     /** The drum rudiment open in Learn › Reference (its PAS number), or null for the list. */
     var learnRudiment by mutableStateOf<Int?>(null)
     /** The groove open in Learn › Reference (its id), or null. */
@@ -144,8 +159,8 @@ class AppModel(val app: ApopheniaApp) {
     /** What the Ear's "Your music" drills draw from, loaded when that chip is opened. */
     var earPool by mutableStateOf<com.betterappmafia.apophenia.core.learn.YourPool?>(null)
 
-    /** Learn's part (plan §2.1): COURSE, EAR or REFERENCE. [Claude] Opens on the Course. */
-    var learnPart by mutableStateOf("COURSE")
+    /** The Learn part on screen (COURSE, EAR or REFERENCE), now its own sub-tab. */
+    val learnPart: String get() = mode.name
     /** The Course category open (its topics), the LEVEL ▾ filter (0 all, 1–3 only, 4 four and up), the page open, and the key its TRY and HEAR start on. */
     var courseCat by mutableStateOf<String?>(null)
     var courseLevel by mutableStateOf(0)
@@ -322,9 +337,15 @@ class AppModel(val app: ApopheniaApp) {
         }
     }
 
+    /** A bottom tab: the sub-tab it was last on (the first the first time). */
+    fun go(t: Tab) = go(lastMode[t] ?: t.modes.first())
+
+    /** Shows [m] without closing what is open in it (a Course link to an Ear drill keeps the lesson behind it). */
+    fun show(m: Mode) { mode = m; lastMode[m.tab] = m }
+
     fun go(m: Mode) {
         Breadcrumbs.add("mode $m")
-        mode = m; detail = null; showTrash = false; showNotices = false; showStack = false; sheet = Sheet.None; endSelect()
+        mode = m; lastMode[m.tab] = m; detail = null; showTrash = false; showNotices = false; showStack = false; sheet = Sheet.None; endSelect()
         tools.screen = null
         learnRudiment = null
         learnGroove = null

@@ -14,7 +14,7 @@ You are building **Apophenia**, an offline Android app for capturing rough music
 
 - The app **does not make connections or suggestions**. The musician does, in their head. The app puts material in front of them and gives them tools.
 - **Full depth, not for beginners**: theory, pitch training, chord symbols, notation and rhythm are complete and correct at the advanced end. Levels are labels, never locks.
-- Five modes: **Board, Library, Tools, Learn, AI** (Christopher merged Pitch Trainer and Theory into Learn, then made AI its own mode, both 21 Oct 2026); persistent bottom player; quick capture everywhere plus widget and app shortcuts.
+- Three bottom tabs by intent, each with sub-tabs: **MAKE (Board, Library) · PRACTICE (Tools, Ear) · STUDY (Course, Reference, AI)** (Christopher, 25 Oct 2026, navigation option B; replaced the five modes). Persistent bottom player; the strip at the top on every screen: click, tools, ● REC and **+ NEW** (pick a fragment type, its editor or the recorder opens; into the Library or the open project + Library); quick capture everywhere plus widget and app shortcuts.
 - The **Board** is one scrolling working sheet per project (lyrics, chords, tab, sheet music, recordings, text). It is **not** the song structure; the song isn't finished in the app.
 - **Recordings are never edited.** Projects hold a reference plus per-project settings. Takes are lettered A, B, C…; star or delete.
 - Recordings go to the Library by default; recorded in a project's Board/stack → that project (also shown in Library search unless toggled off on the save sheet). No destination prompt; no "new/unreviewed" marker.

@@ -138,7 +138,7 @@ internal fun LessonView(model: AppModel, page: CoursePage) {
     fun open(p: CoursePage) { model.courseRoot = null; model.coursePage = p.id }
     fun go(t: CourseTarget) = when (t) {
         is CourseTarget.Ref -> Reference.item(t.kind, t.id)?.let { model.refPage = RefHit(it, PitchName.parse(t.root)) }
-        is CourseTarget.Ear -> { model.earDrill = t.drill; model.learnPart = "EAR" }
+        is CourseTarget.Ear -> { model.show(Mode.EAR); model.earDrill = t.drill }
         is CourseTarget.Page -> Course.page(t.id)?.let { open(it) }
     }
     Column(Modifier.fillMaxSize()) {
