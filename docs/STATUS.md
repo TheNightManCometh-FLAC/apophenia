@@ -2,8 +2,29 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.9.3 (26 Oct 2026): MusicXML export writes the markings
+- **The gap since 0.7.0 is closed:** MusicXML export (`core/score/MusicXml.kt`) now writes everything the stored score keeps beyond notes and words. Before, it dropped articulations, ornaments, slurs, hairpins, graces, tremolo, fingering, chord diagrams and the guitar techniques.
+- **Written, each checked against the MusicXML 4.0 reference pages:**
+  - Every [Mark]: staccatissimo, tenuto, detached-legato (portato), stress, unstress, soft-accent, breath-mark, caesura; up-bow, down-bow, open, stopped, snap-pizzicato; upright fermatas (normal, angled, square); trill-mark, mordent, inverted-mordent (the upper mordent), turn, inverted-turn, turn slash="yes"; arpeggiate (up or down) on every note of the chord.
+  - Single-note tremolo; noteheads; fingering and pluck; a circled string number as `<string>`.
+  - Grace notes (slashed or not, before or after, with string and fret on the TAB staff).
+  - Lines: slurs, glissandos and trill lines as numbered start/stop pairs (1–4 per voice), across bars. Hairpins as `<wedge>`, 8va/8vb/15ma/15mb as `<octave-shift>` (8va is "down" from the written pitch), pedal with a line.
+  - Chord diagrams as `<frame>` inside the chord symbol's `<harmony>` (strings numbered from the highest; unplayed strings `unplayed="x"`; `<first-fret>` above the 4th fret) [Claude]. A diagram without a readable chord symbol isn't written, since `<harmony>` needs a root.
+  - **Guitar techniques:**
+    - Hammer-ons and pull-offs (by whether the next note is higher) and slides, as start/stop pairs on both the notation and TAB staves.
+    - Accent, marcato (strong-accent), staccato.
+    - Slides in and out as scoop, plop, falloff, doit.
+    - Natural and artificial harmonics; tapping with the hand.
+    - Tremolo picking (unmeasured tremolo); ghost notes in parentheses; dead notes as x.
+    - Let ring, palm mute, fades, swell, whammy, vibrato, slap and pop as `<other-technical>` with the technique's name, MusicXML having no element for them.
+    - **A bend is written as a full bend (2 semitones) [Claude]**: the stored score doesn't keep the amount.
+- **The schema in the tests:** the official MusicXML 4.0 XSD (w3c/musicxml tag v4.0, W3C Community Final Specification Agreement, test resources only) now validates every Course example, the tab and road-map scores, and a score with every marking. A deliberately broken file is rejected, so the check is real. The exports from before this build were already valid.
+- **Import:** reads back scoop/plop/falloff/doit, left-hand tapping, `<other-technical>` by name, slides, unmeasured tremolo and ghost-note parentheses, so an Apophenia file's guitar techniques survive a round trip. A dead note comes back as an x notehead. **Not yet read on import:** lines (slurs, hairpins, 8va, pedal still go to the "left out" list), single-note tremolo and frames.
+- **Tests: 594** counted (+4 in MusicXmlTest: schema validity of every export, the full-markings score element by element, the techniques' round trip, the validator rejecting a bad file).
+- **Unverified:** opening the files in MuseScore 4, Guitar Pro 8, Dorico or Sibelius. Schema-valid isn't the same as read the way we mean.
+
 ## Build 0.9.2 (26 Oct 2026): the Exercises framework
-- **PRACTICE › EXERCISES**, a third sub-tab (plan §7 *Exercises*, M7 "Exercises framework filled with Christopher's chosen content"). Built in the shape proposed on 25 Oct; Christopher hasn't confirmed it, so the whole shape is **[Claude]** until he does.
+- **PRACTICE › EXERCISES**, a third sub-tab (plan §7 *Exercises*, M7 "Exercises framework filled with Christopher's chosen content"). Built in the shape proposed on 25 Oct; Christopher said Continue after seeing it (26 Oct) without asking for changes, so it stays as built until he does; the shape and defaults are still [Claude].
 - **An exercise** = a piece of written music on a **tempo ladder** (`core/tools/TempoLadder.kt`): START, GOAL, STEP. **CLEAN ↑** after a run with no mistakes makes that tempo your best and goes up a step (the last step lands on the goal); **↓ STEP** goes back; a run that wasn't clean leaves the ladder where it is. Changing START begins again from it; the goal can't go below the start; 20–400 BPM, steps 1–40.
 - **On the exercise:** THE MUSIC › opens it in its own editor; **▶ CLICK AT n** starts the top-bar click at the ladder's tempo, and it follows the ladder while on; **◷ TIME IT** runs the practice timer against the exercise (tap again to log it; if the timer already has time on something else, it says so instead of overwriting it); TIME LOGGED totals the practice log for that music; ⋯ restarts the ladder, forgets the best, or removes the exercise (the music stays).
 - **Where exercises come from:** CURATED is empty ("come with a later update") until Christopher picks the content; the table already has a `curated` id column for them. Meanwhile **YOURS › + ADD ▾** makes any tab, sheet music, drum chart or chord chart from the Library an exercise (format first, then the piece) [Claude]. A new exercise starts at 60% of the piece's BPM (120 when it has none) with 4 BPM steps [Claude].

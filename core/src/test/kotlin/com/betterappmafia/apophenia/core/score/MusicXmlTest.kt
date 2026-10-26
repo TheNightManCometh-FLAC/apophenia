@@ -38,7 +38,7 @@ class MusicXmlTest {
                 val bar = score.meterAt(bi).barLength * 4 * div
                 var t = 0
                 for (c in (0 until m.childNodes.length).map { m.childNodes.item(it) }.filterIsInstance<Element>()) when (c.tagName) {
-                    "note" -> if (c.kids("chord").isEmpty()) t += c.text("duration")!!.toInt()
+                    "note" -> if (c.kids("chord").isEmpty() && c.kids("grace").isEmpty()) t += c.text("duration")!!.toInt()
                     "forward" -> t += c.text("duration")!!.toInt()
                     "backup" -> { assertEquals(bar.num.toInt(), t, "measure ${bi + 1} voice length"); t -= c.text("duration")!!.toInt(); assertEquals(0, t) }
                 }
@@ -118,5 +118,124 @@ class MusicXmlTest {
         val scores = com.betterappmafia.apophenia.core.learn.Course.pages.mapNotNull { (it.see as? com.betterappmafia.apophenia.core.learn.CourseSee.Score)?.score }
         assertTrue(scores.size >= 10)
         for (s in scores) assertBarsAddUp(parse(MusicXml.write(s)), s)
+    }
+
+    @Test
+    fun `every export is valid against the MusicXML 4 schema`() {
+        val scores = com.betterappmafia.apophenia.core.learn.Course.pages.mapNotNull { (it.see as? com.betterappmafia.apophenia.core.learn.CourseSee.Score)?.score } +
+            listOf(CourseReading.tabScore, CourseReading.roadmap)
+        for (s in scores) assertValid(MusicXml.write(s), s.title)
+    }
+
+    private fun g(s: Int, f: Int, p: String, vararg fx: Effect) = Note(SpelledPitch.parse(p), string = s, fret = f, effects = fx.toSet())
+
+    // A piano line and a guitar part, between them every kind of marking the stored score has.
+    private val marked = Score(parts = listOf(
+        Part("Piano", Clef.TREBLE, bars = listOf(
+            Bar(listOf(listOf(
+                Event(q, listOf(n("C5")), marks = setOf(Mark.STACCATISSIMO, Mark.FERMATA, Mark.TRILL), spans = mapOf(Span.SLUR to 3, Span.CRESC to 2)),
+                Event(q, listOf(Note(SpelledPitch.parse("D5"), head = Head.DIAMOND, finger = "3"))),
+                Event(q, listOf(n("E5")), marks = setOf(Mark.MORDENT), graces = listOf(Grace(com.betterappmafia.apophenia.core.rhythm.NoteValue.EIGHTH, listOf(n("D5"))))),
+                Event(q, listOf(n("C4"), n("E4"), n("G4")), marks = setOf(Mark.ARPEGGIO_UP), tremolo = 3),
+            ))),
+            Bar(listOf(listOf(
+                Event(Duration.HALF, listOf(n("G5")), spans = mapOf(Span.OTTAVA_UP to 2, Span.PEDAL to 2)),
+                Event(Duration.HALF, listOf(n("A5")), marks = setOf(Mark.FERMATA_SHORT, Mark.TURN_SLASH)),
+            ))),
+        )),
+        Part("Guitar", Clef.TREBLE_8VB, com.betterappmafia.apophenia.core.instrument.Instrument(Tunings.GUITAR_STANDARD), listOf(
+            Bar(listOf(listOf(
+                Event(e, listOf(g(3, 0, "G3", Effect.HAMMER))), Event(e, listOf(g(3, 2, "A3"))),
+                Event(e, listOf(g(2, 3, "D4", Effect.HAMMER))), Event(e, listOf(g(2, 1, "C4"))),
+                Event(e, listOf(g(1, 0, "E4", Effect.LEGATO_SLIDE))), Event(e, listOf(g(1, 2, "F#4", Effect.GHOST))),
+                Event(q, listOf(g(5, 3, "C3", Effect.PALM_MUTE), g(4, 2, "E3"), g(3, 0, "G3"), g(2, 1, "C4"), g(1, 0, "E4")), chord = "C", diagram = listOf(null, 3, 2, 0, 1, 0)),
+            ))),
+            Bar(listOf(listOf(Event(Duration.WHOLE, listOf(g(2, 7, "F#4", Effect.BEND, Effect.DEAD)))))),
+        )),
+    ))
+
+    @Test
+    fun `markings are written as MusicXML 4 notations, directions and frames, and the file is valid`() {
+        val xml = MusicXml.write(marked)
+        assertValid(xml, "marked")
+        val root = parse(xml)
+        assertBarsAddUp(root, marked)
+        val (piano, guitar) = root.kids("part")
+        val pn = piano.all("note")
+        fun Element.has(tag: String) = all(tag).isNotEmpty()
+        // C5: staccatissimo, an upright fermata, a trill, and the slur and hairpin starting.
+        assertTrue(pn[0].has("staccatissimo") && pn[0].has("trill-mark"))
+        assertEquals("upright", pn[0].one("fermata").getAttribute("type"))
+        val slurNo = pn[0].one("slur").let { assertEquals("start", it.getAttribute("type")); it.getAttribute("number") }
+        assertEquals("diamond", pn[1].text("notehead")); assertEquals("3", pn[1].text("fingering"))
+        // The grace note before E5: slashed, no duration.
+        assertEquals("yes", pn[2].one("grace").getAttribute("slash")); assertTrue(!pn[2].has("duration"))
+        assertTrue(pn[3].has("mordent"))
+        assertEquals(listOf("stop"), pn[3].all("slur").map { it.getAttribute("type") }, "the slur covers three events")
+        assertEquals(slurNo, pn[3].one("slur").getAttribute("number"))
+        assertEquals(listOf("up", "up", "up"), pn.subList(4, 7).map { it.one("arpeggiate").getAttribute("direction") }, "every note of the chord")
+        assertEquals("single", pn[4].one("tremolo").getAttribute("type")); assertEquals("3", pn[4].one("tremolo").textContent)
+        assertEquals(listOf("crescendo", "stop"), piano.all("wedge").map { it.getAttribute("type") })
+        assertEquals(listOf("down" to "8", "stop" to "8"), piano.all("octave-shift").map { it.getAttribute("type") to it.getAttribute("size") }, "8va is a shift down from the written pitch")
+        assertEquals(listOf("start", "stop"), piano.all("pedal").map { it.getAttribute("type") })
+        assertEquals("angled", pn[8].one("fermata").textContent); assertEquals("yes", pn[8].one("turn").getAttribute("slash"))
+        // Guitar, both staves: a hammer-on up, a pull-off down, a slide, each start/stop with matching numbers.
+        val g1 = guitar.all("note").filter { it.text("staff") == "1" }
+        val g2 = guitar.all("note").filter { it.text("staff") == "2" }
+        for ((notes, off) in listOf(g1 to 0, g2 to 8)) {
+            assertEquals("start" to "${1 + off}", notes[0].one("hammer-on").let { it.getAttribute("type") to it.getAttribute("number") })
+            assertEquals("stop", notes[1].one("hammer-on").getAttribute("type"))
+            assertEquals("P", notes[2].one("pull-off").textContent); assertEquals("stop", notes[3].one("pull-off").getAttribute("type"))
+            assertEquals("start", notes[4].one("slide").getAttribute("type")); assertEquals("stop", notes[5].one("slide").getAttribute("type"))
+            assertEquals("Palm mute", notes[6].text("other-technical"))
+            assertEquals("2", notes.last().text("bend-alter"))
+        }
+        assertEquals("yes", g1[5].one("notehead").getAttribute("parentheses"), "a ghost note")
+        assertEquals("x", g1.last().text("notehead"), "a dead note")
+        val frame = guitar.one("harmony").one("frame")
+        assertEquals("6", frame.text("frame-strings"))
+        assertEquals(listOf("5:3", "4:2", "3:0", "2:1", "1:0"), frame.all("frame-note").map { it.text("string") + ":" + it.text("fret") }, "x32010, the low E not played")
+    }
+
+    @Test
+    fun `the guitar techniques come back when the file is imported`() {
+        val back = MusicXmlRead.read(MusicXml.write(marked).toByteArray()).score.parts[1]
+        val notes = back.bars.flatMap { b -> b.voices[0].flatMap { it.notes } }
+        assertEquals(setOf(Effect.HAMMER), notes[0].effects)
+        assertEquals(setOf(Effect.HAMMER), notes[2].effects)
+        assertEquals(setOf(Effect.LEGATO_SLIDE), notes[4].effects)
+        assertEquals(setOf(Effect.GHOST), notes[5].effects)
+        assertEquals(setOf(Effect.PALM_MUTE), notes[6].effects)
+        assertEquals(setOf(Effect.BEND), notes.last().effects)
+        assertEquals(Head.X, notes.last().head, "a dead note comes back as an x notehead")
+    }
+
+    @Test
+    fun `the schema check rejects a file that isn't valid`() {
+        val bad = MusicXml.write(CourseReading.tabScore).replaceFirst("<divisions>", "<division>").replaceFirst("</divisions>", "</division>")
+        kotlin.test.assertFailsWith<AssertionError> { assertValid(bad, "bad") }
+    }
+
+    /** Checks [xml] against the official MusicXML 4.0 XSD (test resources), resolving its imports locally. */
+    private fun assertValid(xml: String, name: String) {
+        val sf = javax.xml.validation.SchemaFactory.newInstance(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI)
+        val base = "/musicxml-4.0/"
+        sf.resourceResolver = org.w3c.dom.ls.LSResourceResolver { _, namespace, _, systemId, _ ->
+            val file = when (namespace) {
+                "http://www.w3.org/XML/1998/namespace" -> "xml.xsd"
+                "http://www.w3.org/1999/xlink" -> "xlink.xsd"
+                else -> systemId?.substringAfterLast('/') ?: return@LSResourceResolver null
+            }
+            val impl = (org.w3c.dom.bootstrap.DOMImplementationRegistry.newInstance().getDOMImplementation("LS") as org.w3c.dom.ls.DOMImplementationLS)
+            impl.createLSInput().apply { byteStream = MusicXmlTest::class.java.getResourceAsStream(base + file)!!; this.systemId = systemId }
+        }
+        val schema = sf.newSchema(javax.xml.transform.stream.StreamSource(javaClass.getResourceAsStream(base + "musicxml.xsd"), "musicxml.xsd"))
+        val f = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true; setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false) }
+        val doc = f.newDocumentBuilder().parse(xml.byteInputStream())
+        try { schema.newValidator().validate(javax.xml.transform.dom.DOMSource(doc)) }
+        catch (x: org.xml.sax.SAXParseException) {
+            val line = xml.lines().getOrNull(x.lineNumber - 1)?.take(300)
+            throw AssertionError("$name: ${x.message} at line ${x.lineNumber}: $line", x)
+        }
     }
 }

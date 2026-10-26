@@ -641,13 +641,23 @@ object MusicXmlRead {
                 "staccato" -> effects += Effect.STACCATO
                 "accent" -> effects += Effect.ACCENT
                 "strong-accent" -> effects += Effect.HEAVY_ACCENT
+                "scoop" -> effects += Effect.SLIDE_IN_BELOW
+                "plop" -> effects += Effect.SLIDE_IN_ABOVE
+                "falloff" -> effects += Effect.SLIDE_OUT_DOWN
+                "doit" -> effects += Effect.SLIDE_OUT_UP
             }
             for (t in tech.flatMap { it.kids() }) when (t.tagName) {
                 "hammer-on", "pull-off" -> if (t.attr("type") != "stop") effects += Effect.HAMMER
                 "harmonic" -> effects += if (t.has("artificial")) Effect.ARTIFICIAL_HARMONIC else Effect.NATURAL_HARMONIC
                 "bend" -> effects += Effect.BEND
-                "tap" -> effects += Effect.TAP
+                "tap" -> effects += if (t.attr("hand") == "left") Effect.LEFT_TAP else Effect.TAP
+                // What Apophenia (and others) write for techniques MusicXML has no element for: the technique's name.
+                "other-technical" -> t.textContent.trim().let { w -> Effect.entries.firstOrNull { it.label.equals(w, ignoreCase = true) } }?.let { effects += it }
             }
+            if (notations.flatMap { it.kids("slide") }.any { it.attr("type") == "start" }) effects += Effect.LEGATO_SLIDE
+            if (notations.flatMap { it.kids("ornaments") }.flatMap { it.kids("tremolo") }.any { it.attr("type") == "unmeasured" }) effects += Effect.TREMOLO_PICKING
+            val headEl = el.kid("notehead")
+            if (headEl?.attr("parentheses") == "yes") effects += Effect.GHOST
             val head = el.text("notehead")?.let { h -> Head.entries.firstOrNull { it.token == h } } ?: Head.NORMAL
             val finger = tech.firstNotNullOfOrNull { it.text("fingering") }?.takeIf { it in Note.FINGERS }.orEmpty()
             val pluck = tech.firstNotNullOfOrNull { it.text("pluck") }?.takeIf { it in Note.PLUCKS }.orEmpty()
