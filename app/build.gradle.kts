@@ -21,8 +21,8 @@ android {
         applicationId = "com.betterappmafia.apophenia"
         minSdk = 29
         targetSdk = 36
-        versionCode = 85
-        versionName = "0.9.4"
+        versionCode = 86
+        versionName = "0.9.5"
         ndk {
             abiFilters += "arm64-v8a"
             // `-Pemulator` adds x86_64 for the Android emulator on the PC; builds for the phone stay arm64-only.

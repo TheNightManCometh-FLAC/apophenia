@@ -79,13 +79,21 @@ class StackModel(private val model: AppModel) {
         app.io.launch { db.stacks().update(s.copy(bpm = bpm, key = key?.token, editedAt = System.currentTimeMillis())) }
     }
 
-    // ---- Overdub latency per output route (plan §5.4), kept in app_setting as frames. ----
-    private fun latencyKey(route: AudioController.Route) = "latency." + route.name.lowercase()
+    // ---- Overdub latency per output route (plan §5.4), and per pair of headphones by name (two Bluetooth pairs can
+    // differ by 100 ms), kept in app_setting as frames. A pair not measured yet falls back to its route's value. ----
+    private fun latencyKey(route: AudioController.Route, device: String? = null) =
+        "latency." + route.name.lowercase() + (device?.let { "." + it.lowercase().replace(Regex("[^a-z0-9]+"), "-") } ?: "")
 
-    suspend fun latencyFrames(route: AudioController.Route): Long? = db.settings().get(latencyKey(route))?.toLongOrNull()?.takeIf { it > 0 }
+    suspend fun latencyFrames(route: AudioController.Route, device: String? = null): Long? =
+        device?.let { db.settings().get(latencyKey(route, it))?.toLongOrNull()?.takeIf { f -> f > 0 } }
+            ?: db.settings().get(latencyKey(route))?.toLongOrNull()?.takeIf { it > 0 }
 
-    suspend fun saveLatency(route: AudioController.Route, frames: Long) =
-        db.settings().put(com.betterappmafia.apophenia.data.AppSettingEntity(latencyKey(route), frames.toString()))
+    /** The value measured for exactly this pair (no fallback), for the settings screen. */
+    suspend fun latencyFramesOwn(route: AudioController.Route, device: String?): Long? =
+        db.settings().get(latencyKey(route, device))?.toLongOrNull()?.takeIf { it > 0 }
+
+    suspend fun saveLatency(route: AudioController.Route, frames: Long, device: String? = null) =
+        db.settings().put(com.betterappmafia.apophenia.data.AppSettingEntity(latencyKey(route, device), frames.toString()))
 
     /** "Stack 1 · Low Tide", or "Temporary stack". */
     fun title(s: StackEntity? = loaded): String = s?.let { st -> st.projectId?.let { "${st.name} · ${model.projectName(it) ?: ""}" } ?: st.name } ?: ""
@@ -255,15 +263,17 @@ class StackModel(private val model: AppModel) {
     /**
      * A take recorded while the stack played (plan §5.4): a new recording in the stack's project (the
      * Library for the temporary stack) and, right away, a one-shot layer starting where ● REC fell
-     * (pre-roll included, so the layer starts that much earlier). [Claude] Not yet latency-compensated:
-     * the calibration step comes later in M2.
+     * (pre-roll included, so the layer starts that much earlier), moved earlier by the measured overdub latency of
+     * the headphones (or route) in use, so what you played lines up with what you heard (plan §5.4).
      */
     suspend fun saveLayerTake(stackId: Long, r: Recorded): Long {
         val s = db.stacks().get(stackId) ?: return app.captures.saveNew(r)
-        // What you played lines up with what you heard: the route's measured round trip moves the layer earlier (plan §5.4).
-        val latency = latencyFrames(app.audio.route()) ?: 0L
+        val latency = latencyFrames(app.audio.route(), app.audio.headphonesName()) ?: 0L
         val id = app.captures.saveNew(r, projectId = s.projectId, latencyFrames = latency)
-        if (latency == 0L) model.notice("This route isn't calibrated, so the new layer may sit a little late. Tools → Overdub latency measures it.")
+        if (latency == 0L) model.notice(
+            (if (app.audio.route() == AudioController.Route.SPEAKER) "The speaker isn't timed yet" else "These headphones aren't timed yet") +
+                ", so the new layer may sit late. ⚙ › Mic and overdub times them.",
+        )
         val start = (r.stackPosAtStart ?: 0L) - r.prerollFrames - latency
         val now = System.currentTimeMillis()
         db.stacks().addLayer(StackLayerEntity(stackId = s.id, scrapId = id, mode = LayerMode.ONE_SHOT, startFrames = start, addedAt = now), now)

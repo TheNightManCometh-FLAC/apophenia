@@ -568,9 +568,11 @@ public:
     int inputOpens = 0, outputOpens = 0;     // control thread: a reopen mid-take breaks grid alignment
     int64_t inRingAtOpen = 0;                // input-ring frame of the current input stream's first frame
     std::vector<int64_t> lastGrid;           // control thread: [aligned, n, frame, flags, frame, flags…]
+    std::vector<int64_t> lastGridCounted;    // control thread: the same clicks placed by frame counts only, as overdubs are
 
     Engine() { for (auto &h : droneHz) h.store(0.0f); }
     int inputPreset = static_cast<int>(oboe::InputPreset::VoiceRecognition);
+    int inputDevice = oboe::kUnspecified;    // control thread: the mic to open (the phone's own while headphones are the output)
     std::unique_ptr<Recording> rec;
 
     void retire(Player *p) {
@@ -851,6 +853,7 @@ bool ensureInput() {
      ->setSampleRate(kRate)
      ->setSampleRateConversionQuality(oboe::SampleRateConversionQuality::Medium)
      ->setInputPreset(static_cast<oboe::InputPreset>(e.inputPreset))
+     ->setDeviceId(e.inputDevice)
      ->setDataCallback(gInCb)
      ->setErrorCallback(gInCb);
     if (b.openStream(e.in) != oboe::Result::OK) { e.in.reset(); return false; }
@@ -919,6 +922,7 @@ void writerLoop(Recording *r) {
 // (it then sits late by the round trip). Control thread, after the writer has finished.
 void captureGrid(Engine &e, const Recording &r) {
     e.lastGrid.assign(2, 0);
+    e.lastGridCounted.clear();
     const int64_t stopAt = r.stopAt.load();
     const int64_t count = e.gridCount.load(std::memory_order_acquire);
     const int64_t first = std::max<int64_t>(0, count - kGridLog + 256);   // leave room for the audio thread to keep writing
@@ -947,6 +951,10 @@ void captureGrid(Engine &e, const Recording &r) {
         } else {
             ring = static_cast<double>(inNow - (outNow - c));
         }
+        // By counts alone (frames handed to the output against frames taken from the input), the way a layer recorded
+        // over a stack is placed: the play-along calibration measures the round trip against this.
+        const int64_t counted = inNow - (outNow - c) - r.fileStart;
+        if (counted >= 0 && counted < stopAt - r.fileStart) e.lastGridCounted.push_back(counted);
         const auto f = static_cast<int64_t>(std::llround(ring)) - r.fileStart;
         if (f < 0 || f >= stopAt - r.fileStart) continue;
         e.lastGrid.push_back(f);
@@ -1033,6 +1041,17 @@ JNI() jlongArray JNICALL FN(nativeLastGrid)(JNIEnv *env, jobject) {
     if (a && !g.empty()) env->SetLongArrayRegion(a, 0, static_cast<jsize>(g.size()), g.data());
     return a;
 }
+
+// The clicks of the take just stopped, placed by frame counts only (see captureGrid).
+JNI() jlongArray JNICALL FN(nativeLastGridCounted)(JNIEnv *env, jobject) {
+    const auto &g = engine().lastGridCounted;
+    jlongArray a = env->NewLongArray(static_cast<jsize>(g.size()));
+    if (a && !g.empty()) env->SetLongArrayRegion(a, 0, static_cast<jsize>(g.size()), g.data());
+    return a;
+}
+
+// The mic to open next (an AudioDeviceInfo id; 0 lets Android choose). Takes effect when the input next opens.
+JNI() void JNICALL FN(nativeSetInputDevice)(JNIEnv *, jobject, jint id) { engine().inputDevice = id; }
 
 // The drone: up to four frequencies; off fades out.
 JNI() void JNICALL FN(nativeSetDrone)(JNIEnv *env, jobject, jboolean on, jfloatArray hzA) {

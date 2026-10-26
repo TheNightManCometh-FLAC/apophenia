@@ -19,3 +19,5 @@ adb -s emulator-5554 exec-out screencap -p > shot.png
 - Debug builds have two launcher icons, Apophenia and Device Lab (`app/src/debug/AndroidManifest.xml`); a plain
   `monkey` launch opens Device Lab, so start `.MainActivity` by name.
 - "System UI isn't responding" after a cold boot is the emulator's own launcher, not the app; tap Wait.
+
+- The emulator image's Bluetooth service crashes in a loop and keeps raising "System UI isn't responding"; `adb -s emulator-5554 shell cmd bluetooth_manager disable` stops it.

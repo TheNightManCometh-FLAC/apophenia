@@ -462,7 +462,8 @@ private fun RecordingOverlay(model: AppModel) {
                 val ctx = androidx.compose.ui.platform.LocalContext.current
                 val phones = remember { headphonesConnected(ctx) }
                 Text(
-                    if (phones) "YOU HEAR THE STACK · THE MIC RECORDS YOU" else "THE STACK IS PLAYING ON THE SPEAKER: IT WILL BE IN THE TAKE. HEADPHONES KEEP IT OUT.",
+                    if (phones) "THE STACK IN YOUR HEADPHONES · THE PHONE'S MIC RECORDS YOU · THE TAKE IS LINED UP AFTER"
+                    else "THE STACK IS PLAYING ON THE SPEAKER AND WILL BE IN THE TAKE. USE HEADPHONES (WIRED OR BLUETOOTH) TO PLAY ALONG.",
                     style = T.label.copy(lineHeight = 16.sp, color = if (phones) C.text else C.acc), textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                 )
@@ -580,8 +581,10 @@ fun headphonesConnected(ctx: android.content.Context): Boolean {
 }
 
 /**
- * Overdub latency (plan §5.4): measured once per output route and taken off the start of every layer
- * recorded over a stack on that route, so what you played lines up with what you heard.
+ * Playing along and overdub timing (plan §5.4; Christopher, 26 Oct 2026: headphones to play along, Bluetooth is the
+ * standard, you hear your instrument in the room and the take is shifted to line up). Headphones are timed by playing
+ * along (clap with clicks; the phone's mic times the claps), per pair; the speaker by its noise bursts. The delay is
+ * taken off the start of every layer recorded over a stack.
  */
 @Composable
 private fun OverdubLatency(model: AppModel, requestMic: (() -> Unit) -> Unit) {
@@ -589,45 +592,68 @@ private fun OverdubLatency(model: AppModel, requestMic: (() -> Unit) -> Unit) {
     val sm = model.stacks
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var route by remember { mutableStateOf(audio.route()) }
-    var stored by remember { mutableStateOf<Map<com.betterappmafia.apophenia.audio.AudioController.Route, Long>>(emptyMap()) }
+    var phones by remember { mutableStateOf(audio.headphonesName()) }
+    var own by remember { mutableStateOf<Long?>(null) }
+    var byRoute by remember { mutableStateOf<Map<com.betterappmafia.apophenia.audio.AudioController.Route, Long>>(emptyMap()) }
     var busy by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(busy) {
-        route = audio.route()
-        stored = com.betterappmafia.apophenia.audio.AudioController.Route.entries.mapNotNull { r -> sm.latencyFrames(r)?.let { r to it } }.toMap()
+        route = audio.route(); phones = audio.headphonesName()
+        own = sm.latencyFramesOwn(route, phones)
+        byRoute = com.betterappmafia.apophenia.audio.AudioController.Route.entries.mapNotNull { r -> sm.latencyFramesOwn(r, null)?.let { r to it } }.toMap()
     }
     val rate = audio.sampleRate.toDouble()
-    Kv("OVERDUB\nLATENCY") {
-        com.betterappmafia.apophenia.audio.AudioController.Route.entries.forEach { r ->
-            Text(
-                "${r.label}${if (r == route) " (now)" else ""}: " + (stored[r]?.let { "%.1f ms".format(it * 1000 / rate) } ?: "not measured"),
-                style = T.body.copy(color = if (r == route) C.hi else C.text, fontWeight = if (r == route) FontWeight.Bold else FontWeight.Normal),
-            )
-        }
+    fun ms(f: Long) = "%.0f ms".format(f * 1000 / rate)
+    val headphones = route != com.betterappmafia.apophenia.audio.AudioController.Route.SPEAKER
+    Kv("PLAYING\nALONG") {
+        Text("Use headphones to play or sing along to a stack, wired or Bluetooth.", style = T.body.copy(color = C.hi))
         Text(
-            when (route) {
-                com.betterappmafia.apophenia.audio.AudioController.Route.SPEAKER -> "Turn the volume up and keep the room quiet. Five noise bursts play; the mic times them."
-                else -> "Hold an earbud right against the phone's mic (the bottom edge), volume up. Five noise bursts play; the mic times them."
-            },
+            "You hear your instrument in the room and the stack in your ears; the phone's own mic records you, and each take is moved earlier by these headphones' delay so it lines up with what you heard. On the speaker, the stack plays into the take.",
+            style = T.small.copy(lineHeight = 17.sp), modifier = Modifier.padding(top = 4.dp),
+        )
+    }
+    Kv("TIMING") {
+        val now = if (headphones) (phones ?: route.label) else "Phone speaker"
+        Text("$now: " + (own?.let { ms(it) } ?: "not timed yet"), style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
+        if (headphones && own == null) byRoute[route]?.let { Text("Until then: ${ms(it)}, measured on other ${route.label.lowercase()}.", style = T.small) }
+        val others = byRoute.filterKeys { it != route }
+        if (others.isNotEmpty()) Text("Also measured: " + others.entries.joinToString(" · ") { "${it.key.label} ${ms(it.value)}" }, style = T.small, modifier = Modifier.padding(top = 2.dp))
+        Text(
+            if (headphones) "Earbuds in, volume up. ${com.betterappmafia.apophenia.core.analysis.PlayAlong.CLICKS} clicks play: clap with each one, from the ${com.betterappmafia.apophenia.core.analysis.PlayAlong.LEAD_IN + 1}th on. The phone's mic times your claps. About 13 seconds; once per pair of headphones."
+            else "Volume up, room quiet. Five noise bursts play; the mic times them.",
             style = T.small.copy(lineHeight = 17.sp), modifier = Modifier.padding(top = 6.dp),
         )
         result?.let { Text(it, style = T.small.copy(color = C.acc, lineHeight = 17.sp), modifier = Modifier.padding(top = 4.dp)) }
     }
     Row {
-        BigButton(if (busy) "MEASURING…" else "MEASURE ON ${route.label.uppercase()}", {
-            requestMic {
-                busy = true
-                result = null
-                scope.launch {
-                    val c = audio.calibrate()
-                    val s = c.summary
-                    result = c.problem ?: s?.medianMs?.let { ms ->
-                        sm.saveLatency(c.route, Math.round(ms * rate / 1000))
-                        "Saved: %.1f ms round trip on %s (spread ±%.1f ms, %d of 5 bursts).".format(ms, c.route.label.lowercase(), s.halfSpreadMs ?: 0.0, s.acceptedLagsMs.size)
+        BigButton(
+            when { busy && headphones -> "CLAP WITH EACH CLICK…"; busy -> "MEASURING…"; headphones -> "TIME THESE HEADPHONES"; else -> "TIME THE SPEAKER" },
+            {
+                requestMic {
+                    busy = true
+                    result = null
+                    scope.launch {
+                        if (headphones) {
+                            val (name, r) = audio.playAlong()
+                            result = r.problem ?: r.ms?.let { m ->
+                                val frames = Math.round(m * rate / 1000)
+                                sm.saveLatency(route, frames, name)
+                                sm.saveLatency(route, frames)   // [Claude] also the fallback for a pair not timed yet
+                                "Saved: %.0f ms for %s (%d claps, steady to ±%.0f ms).".format(m, name ?: route.label.lowercase(), r.used, r.spreadMs ?: 0.0)
+                            }
+                        } else {
+                            val c = audio.calibrate()
+                            val s = c.summary
+                            result = c.problem ?: s?.medianMs?.let { m ->
+                                sm.saveLatency(c.route, Math.round(m * rate / 1000))
+                                "Saved: %.0f ms on the speaker (spread ±%.1f ms, %d of 5 bursts).".format(m, s.halfSpreadMs ?: 0.0, s.acceptedLagsMs.size)
+                            }
+                        }
+                        busy = false
                     }
-                    busy = false
                 }
-            }
-        }, primary = true, enabled = !busy)
+            },
+            primary = true, enabled = !busy,
+        )
     }
 }

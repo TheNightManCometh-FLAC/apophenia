@@ -127,6 +127,7 @@ class AudioController(private val context: Context, private val audioDir: File) 
         val final = File(audioDir, name)
         val part = File(audioDir, "$name.part")
         activePart = part
+        NativeEngine.setInputDevice(preferredInput())
         val preroll = NativeEngine.startRecording(part.absolutePath, final.absolutePath)
         if (preroll < 0) {
             activePart = null
@@ -232,6 +233,7 @@ class AudioController(private val context: Context, private val audioDir: File) 
     val tuner: StateFlow<Boolean> = _tuner.asStateFlow()
 
     fun setTuner(on: Boolean) = scope.launch {
+        if (on) NativeEngine.setInputDevice(preferredInput())
         val ok = NativeEngine.setTuner(on)
         _tuner.value = on && ok
         ensurePolling()
@@ -373,6 +375,64 @@ class AudioController(private val context: Context, private val audioDir: File) 
     }
 
     enum class Route(val label: String) { SPEAKER("Phone speaker"), WIRED("Wired / USB headphones"), BLUETOOTH("Bluetooth") }
+
+    /** The headphones sound goes to now, by the name Android gives them (null on the speaker). */
+    fun headphonesName(): String? {
+        val outs = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+        val bt = setOf(android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP, android.media.AudioDeviceInfo.TYPE_BLE_HEADSET, android.media.AudioDeviceInfo.TYPE_BLE_SPEAKER)
+        val wired = setOf(android.media.AudioDeviceInfo.TYPE_WIRED_HEADPHONES, android.media.AudioDeviceInfo.TYPE_WIRED_HEADSET, android.media.AudioDeviceInfo.TYPE_USB_HEADSET)
+        val d = outs.firstOrNull { it.type in bt } ?: outs.firstOrNull { it.type in wired } ?: return null
+        return d.productName?.toString()?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    /**
+     * The mic a take is recorded from (Christopher, 26 Oct 2026: you hear the instrument in the room; the phone records
+     * it). With headphones as the output it's the phone's own mic: a Bluetooth headset's mic would put Android into
+     * phone-call audio (low quality, more delay) and a wired headset's in-line mic is a poor instrument mic. A USB audio
+     * interface plugged in is left to Android, as you'd plug one in to record through it. On the speaker, Android chooses.
+     */
+    private fun preferredInput(): Int {
+        if (route() == Route.SPEAKER) return 0
+        val ins = audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
+        if (ins.any { it.type == android.media.AudioDeviceInfo.TYPE_USB_DEVICE }) return 0
+        return ins.firstOrNull { it.type == android.media.AudioDeviceInfo.TYPE_BUILTIN_MIC }?.id ?: 0
+    }
+
+    /**
+     * Overdub latency by playing along ([com.betterappmafia.apophenia.core.analysis.PlayAlong]): plain clicks at 80 BPM
+     * in the headphones while the phone's mic records you clapping with them; each clap's distance from its click, in
+     * the frame counts a layer over a stack is placed by. The metronome is put back as it was, and the recording deleted.
+     */
+    suspend fun playAlong(): Pair<String?, com.betterappmafia.apophenia.core.analysis.PlayAlong.Result> = withContext(dispatcher) {
+        val pa = com.betterappmafia.apophenia.core.analysis.PlayAlong
+        val name = headphonesName()
+        if (_mic.value != Mic.OFF) return@withContext name to com.betterappmafia.apophenia.core.analysis.PlayAlong.Result(null, null, 0, "Turn the mic off first.")
+        _player.value?.let { _player.value = it.copy(playing = false) }
+        _stack.value?.let { _stack.value = it.copy(playing = false) }
+        val savedMetronome = metronome
+        val savedClick = _click.value.on
+        setMetronome(com.betterappmafia.apophenia.core.tools.MetronomeSettings(bpm = pa.BPM)).join()
+        if (!startRecording()) {
+            setMetronome(savedMetronome).join(); setClick(savedClick, savedMetronome.clampedBpm).join()
+            return@withContext name to com.betterappmafia.apophenia.core.analysis.PlayAlong.Result(null, null, 0, "The mic couldn't open.")
+        }
+        setClick(true, pa.BPM).join()
+        delay(((pa.CLICKS + 1) * 60.0 / pa.BPM * 1000).toLong())
+        val rec = stopRecording()
+        val counted = NativeEngine.lastGridCounted()
+        setClick(false).join()
+        setMetronome(savedMetronome).join()
+        if (savedClick) setClick(true, savedMetronome.clampedBpm).join()
+        val file = rec?.file ?: return@withContext name to com.betterappmafia.apophenia.core.analysis.PlayAlong.Result(null, null, 0, "Nothing was recorded.")
+        val result = runCatching {
+            val (x, rate) = Wav.readMono(file, com.betterappmafia.apophenia.core.analysis.TakeAnalysis.RATE, 60) ?: error("unreadable")
+            val claps = com.betterappmafia.apophenia.core.analysis.Onsets.pick(com.betterappmafia.apophenia.core.analysis.Onsets.envelope(x, rate))
+            pa.measure(counted.map { it.toDouble() / sampleRate }, claps)
+        }.getOrElse { com.betterappmafia.apophenia.core.analysis.PlayAlong.Result(null, null, 0, "The recording couldn't be read.") }
+        file.delete()
+        Breadcrumbs.add("play-along ${route()} '$name' ms=${result.ms} spread=${result.spreadMs} used=${result.used} clicks=${counted.size}")
+        name to result
+    }
 
     data class Calibration(val route: Route, val summary: com.betterappmafia.apophenia.audio.lab.LatencyAnalysis.Summary?, val problem: String?)
 

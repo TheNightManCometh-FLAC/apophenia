@@ -49,6 +49,14 @@ object NativeEngine {
         return Grid(a[0] == 1L, LongArray(n) { a[2 + 2 * it] }, IntArray(n) { a[3 + 2 * it].toInt() })
     }
 
+    /** The clicks of the take just stopped placed by frame counts only, as a layer recorded over a stack is placed. */
+    fun lastGridCounted(): LongArray = nativeLastGridCounted()
+
+    /** The mic to open next, an AudioDeviceInfo id (0: Android chooses); takes effect when the input next opens. */
+    fun setInputDevice(id: Int) = nativeSetInputDevice(id)
+    private external fun nativeLastGridCounted(): LongArray
+    private external fun nativeSetInputDevice(id: Int)
+
     fun setDrone(on: Boolean, hz: FloatArray) = nativeSetDrone(on, hz)
 
     /** Isolator settings (live): panMode 0 off / 1 keep / 2 remove; toneHit -1..1; cuts in Hz, 0 = off. */
