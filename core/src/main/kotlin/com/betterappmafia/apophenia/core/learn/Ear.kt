@@ -177,9 +177,34 @@ object Ear {
         return EarDrill("mixed-${chapter?.lowercase()?.replace(' ', '-') ?: "all"}", chapter ?: "Mixed", "Mixed: ${chapter?.lowercase() ?: "everything"}", pool.first().kind, pool.flatMap { d -> d.answers.map { "${d.id}|$it" } }, "EVERY DRILL IN THE CHAPTER")
     }
 
-    fun drill(id: String): EarDrill? = drills.firstOrNull { it.id == id } ?: when (id) {
-        "mixed-all" -> mixed(null)
+    fun drill(id: String): EarDrill? = drills.firstOrNull { it.id == id } ?: when {
+        id == "mixed-all" -> mixed(null)
+        id.startsWith(PICK) -> runCatching { pick(id.removePrefix(PICK).split(',')) }.getOrNull()
         else -> chapters.firstOrNull { "mixed-${it.lowercase().replace(' ', '-')}" == id }?.let(::mixed)
+    }
+
+    private const val PICK = "pick:"
+
+    /**
+     * What can be picked one by one in [chapter] (Christopher, 25 Oct 2026: "There's no way to practice specific
+     * intervals and so on"): every answer of its drills as "drillId|answer", grouped under the drill it first appears in.
+     * An answer that sounds the same in two drills (m3 in "Seconds and thirds" and "Every simple interval") is listed
+     * once. Mic drills and tap-back are left out, as in mixed practice.
+     */
+    fun pickable(chapter: String): List<Pair<EarDrill, List<String>>> {
+        val seen = HashSet<String>()
+        return drills.filter { it.chapter == chapter && !it.sung && it.kind != EarKind.TAPBACK }.map { d ->
+            d to d.answers.filter { a -> seen.add("${d.kind}|${d.minor}|${d.reference}|${d.cents}|$a") }.map { "${d.id}|$it" }
+        }.filter { it.second.isNotEmpty() }
+    }
+
+    /** A drill of just the [answers] picked ("drillId|answer"); its id keeps the picks, so its high score is theirs. */
+    fun pick(answers: List<String>): EarDrill {
+        require(answers.isNotEmpty())
+        val sources = answers.map { a -> source(EarDrill("", "", "", EarKind.INTERVAL, emptyList()), a) }
+        val first = sources.first().first
+        val name = sources.joinToString(" · ") { (d, a) -> label(d, a) }
+        return EarDrill(PICK + answers.joinToString(","), first.chapter, "Your pick: $name", first.kind, answers, "PICKED ONE BY ONE")
     }
 
     /** A mixed drill's answer "drillId|answer" resolved to the drill it comes from. */

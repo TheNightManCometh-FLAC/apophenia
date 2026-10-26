@@ -56,4 +56,4 @@ bridge, Room and the ONNX/LiteRT runtimes would each need keep rules checked on 
 
 ## Store listing
 `fastlane/metadata/android/en-US/`: title, short description (74 of 80), full description (draft from the README), changelogs.
-Icon: `images/icon.png` 512×512 from Christopher's artwork (`tools/store/icon.ps1` makes it and the launcher layers). Feature graphic: `images/featureGraphic.png` 1024×500 (`tools/store/feature.ps1`: the artwork right, name, tagline and "offline · no account · no ads" in JetBrains Mono and the app's colours). **Missing:** phone screenshots.
+Icon: `images/icon.png` 512×512 from Christopher's painting (new 25 Oct 2026, full bleed) (`tools/store/icon.ps1` makes it and the launcher layers). Feature graphic: `images/featureGraphic.png` 1024×500 (`tools/store/feature.ps1`: the artwork right, name, tagline and "offline · no account · no ads" in JetBrains Mono and the app's colours). **Missing:** phone screenshots.

@@ -72,7 +72,8 @@ internal fun EarHome(model: AppModel) {
         Sq("HIGH SCORES", { section = "HIGH SCORES" }, on = section == "HIGH SCORES")
     }
     if (section == "HIGH SCORES") {
-        val all = (listOf(Ear.mixed(null)) + Ear.chapters.map(Ear::mixed) + Ear.drills).associateBy { it.id }
+        // Fixed drills, mixed ones and your picks (their ids carry what was picked).
+        val all = streaks.mapNotNull { s -> Ear.drill(s.drill)?.let { s.drill to it } }.toMap()
         val played = streaks.filter { it.best > 0 && it.drill in all }.sortedWith(compareByDescending<com.betterappmafia.apophenia.data.EarStreak> { it.best }.thenByDescending { it.last })
         if (played.isEmpty()) Text("No streaks yet. Practise any drill: every answer right in a row counts, and your longest run on each drill is its high score.", style = T.body.copy(lineHeight = 18.sp), modifier = Modifier.padding(14.dp))
         played.forEach { s ->
@@ -145,6 +146,46 @@ internal fun EarHome(model: AppModel) {
                 Text("BEST", style = T.label)
             }
         }
+    }
+    if (!own) PickYourOwn(model, f)
+}
+
+/**
+ * PICK YOUR OWN under a chapter's drills (Christopher, 25 Oct 2026: "There's no way to practice specific intervals and
+ * so on"): every interval, chord, degree, mode… of the chapter as a chip, grouped by the drill it comes from; tap the
+ * ones you want and practise just those. The picks are kept per chapter while the app runs.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PickYourOwn(model: AppModel, chapter: String) {
+    val groups = remember(chapter) { Ear.pickable(chapter) }
+    val picked = model.earPicks[chapter].orEmpty()
+    fun set(p: Set<String>) { model.earPicks = model.earPicks + (chapter to p) }
+    Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 18.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("PICK YOUR OWN", style = T.label.copy(color = C.acc), modifier = Modifier.weight(1f))
+        if (picked.isNotEmpty()) Sq("CLEAR", { set(emptySet()) })
+    }
+    groups.forEach { (d, answers) ->
+        Text(d.name.uppercase(), style = T.label, modifier = Modifier.padding(start = 14.dp, top = 10.dp, bottom = 6.dp))
+        FlowRow(Modifier.padding(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            answers.forEach { a ->
+                val on = a in picked
+                Text(
+                    Ear.label(d, a.substringAfter('|')),
+                    style = T.button.copy(color = if (on) C.bg else C.hi),
+                    modifier = Modifier.background(if (on) C.acc else C.panel).border(1.dp, if (on) C.acc else C.line2)
+                        .clickable(role = Role.Checkbox) { set(if (on) picked - a else picked + a) }
+                        .padding(horizontal = 10.dp, vertical = 9.dp),
+                )
+            }
+        }
+    }
+    Row(Modifier.padding(top = 14.dp)) {
+        BigButton(
+            if (picked.size < 2) "PICK TWO OR MORE" else "PRACTISE THESE ${picked.size}",
+            { model.earDrill = Ear.pick(groups.flatMap { it.second }.filter { it in picked }).id },
+            primary = true, enabled = picked.size >= 2,
+        )
     }
 }
 

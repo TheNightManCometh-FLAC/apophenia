@@ -233,4 +233,32 @@ class EarTest {
         val first = EarRhythmQuestions.expected(q).first()
         assertTrue(first >= 2 * EarRhythm.barSeconds(q.meter!!, q.bpm))
     }
+
+    @Test
+    fun `a picked drill asks only the intervals picked, plays them right, and its id brings it back`() {
+        val d = Ear.pick(listOf("iv-2-3|m3", "iv-4-5|P5"))
+        assertEquals("Your pick: m3 · P5", d.name)
+        assertEquals(d, Ear.drill(d.id))
+        val r = Random(3)
+        val asked = (1..200).map { Ear.question(d, EarSettings(), r) }
+        assertEquals(setOf("iv-2-3|m3", "iv-4-5|P5"), asked.map { it.answer }.toSet())
+        for (q in asked) assertEquals(if (q.answer.endsWith("m3")) 3 else 7, q.midis[1] - q.midis[0])
+    }
+
+    @Test
+    fun `every chapter can be picked from one answer at a time, each sound listed once`() {
+        for (c in Ear.chapters) {
+            val groups = Ear.pickable(c)
+            val all = groups.flatMap { it.second }
+            assertTrue(all.isNotEmpty(), "$c has something to pick")
+            assertEquals(all.size, all.toSet().size)
+            for (a in all) { val q = Ear.question(Ear.pick(listOf(a)), EarSettings(), Random(1)); assertEquals(a, q.answer) }
+        }
+        val intervals = Ear.pickable("Intervals").flatMap { it.second }.map { it.substringAfter('|') }
+        assertEquals(1, intervals.count { it == "m3" }, "m3 is in two interval drills but listed once")
+        assertTrue("M13" in intervals)
+        val degrees = Ear.pickable("Scale degrees").flatMap { it.second }
+        assertTrue("deg-major|1" in degrees && "deg-minor|1" in degrees, "1 in a minor key is its own answer: the key is minor")
+        assertFalse(Ear.pickable("Intervals").any { (d, _) -> d.sung }, "no mic drills")
+    }
 }

@@ -16,9 +16,9 @@ function Render([int]$size, [double]$artFraction, [string]$out) {
     $bmp.Save($out, [System.Drawing.Imaging.ImageFormat]::Png)
     $bmp.Dispose()
 }
-# Adaptive foreground: 108 dp layer, the art 66 dp across: the 66 dp safe circle every launcher mask keeps.
+# Adaptive foreground: the painting (25 Oct 2026) fills the whole 108 dp layer; masks trim its edges and the 66 dp safe circle keeps the waveform at its centre.
 $densities = @{ 'mdpi' = 108; 'hdpi' = 162; 'xhdpi' = 216; 'xxhdpi' = 324; 'xxxhdpi' = 432 }
-foreach ($d in $densities.Keys) { Render $densities[$d] (66.0 / 108.0) "$res/mipmap-$d/ic_launcher_foreground.png" }
+foreach ($d in $densities.Keys) { Render $densities[$d] 1.0 "$res/mipmap-$d/ic_launcher_foreground.png" }
 # Play listing icon: 512 x 512, Play rounds the corners itself.
-Render 512 0.92 $store
+Render 512 1.0 $store
 $img.Dispose()

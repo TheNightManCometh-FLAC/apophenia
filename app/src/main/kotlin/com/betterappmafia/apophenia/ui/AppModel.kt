@@ -161,6 +161,8 @@ class AppModel(val app: ApopheniaApp) {
     var earAnswerOn by mutableStateOf("NAME")
     /** What the Ear's "Your music" drills draw from, loaded when that chip is opened. */
     var earPool by mutableStateOf<com.betterappmafia.apophenia.core.learn.YourPool?>(null)
+    /** Ear › PICK YOUR OWN: what is picked in each chapter ("drillId|answer"). */
+    var earPicks by mutableStateOf<Map<String, Set<String>>>(emptyMap())
 
     /** The Learn part on screen (COURSE, EAR or REFERENCE), now its own sub-tab. */
     val learnPart: String get() = mode.name
