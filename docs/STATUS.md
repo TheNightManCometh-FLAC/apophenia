@@ -2,6 +2,13 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.8.8 (25 Oct 2026): paint, slice and ghost notes in the piano roll
+- **TOOL ▾ › Paint** (FL Studio's brush): drag across the grid and every snap cell the finger crosses gets a note, at the pitch under the finger there (SCALE snaps it to the key). The stroke shows as you drag and sounds each new note; cells that already hold that note are skipped. While painting, the grid doesn't scroll (switch to Draw to scroll).
+- **TOOL ▾ › Slice** (FL's knife): tap inside a note to cut it in two at the nearest snap line.
+- **Ghost notes** (FL's ghost channels): in a score with more than one part, the other parts' notes show as faint outlines behind the one you're editing, so a bass line can be written against the chords. **GHOSTS** turns them off.
+- **Tests: 574** (+1: slicing a half note at beat 2 gives two quarters and does nothing at its ends; a painted stroke across four sixteenth cells adds notes only where the cells were empty, at the pitch the finger was over).
+- **Unverified on device:** all of it, especially how painting feels under a finger.
+
 ## Build 0.8.7 (25 Oct 2026): arpeggiate in the piano roll
 - **TOOLS ▾ › Arpeggiate: up / down / up and down / down and up** (FL Studio's arpeggiator, the part notation can write): each chord in the selection (or everywhere, with nothing selected) becomes its notes one after another, each the snap length, repeating until the chord's longest note ends. Up and down doesn't repeat the turning notes (C E G E C…). Single notes are left alone. With a triplet snap it writes triplets.
 - [Claude] Strum and flam are left out: their offsets are milliseconds, which notation can't write and the roll would quantize away.
@@ -491,7 +498,7 @@ Unit-tested and build-verified; **not device-verified.** Tests 401/401 (core 282
   - No velocity lane yet: notes have no velocity in the model (dynamics are the markings). Adding one is a model change for a later build.
   - Snap stops at 1/32; triplet snaps (1/8 and 1/16 triplet) came in 0.8.6.
   - Notes that overlap in one voice become chords with ties rather than being moved into another voice (MuseScore's MIDI import would split them into voices).
-  - Not built from FL's list (chord stamp came in 0.8.6, arpeggiate in 0.8.7): paint, slice, mute, strum, arpeggiate, flam, ghost channels of other parts, background waveform; generators (riff machine, chord progression, randomize) stay out (no suggestions).
+  - Not built from FL's list (chord stamp 0.8.6, arpeggiate 0.8.7, paint, slice and ghost notes 0.8.8): mute, strum, arpeggiate, flam, background waveform; generators (riff machine, chord progression, randomize) stay out (no suggestions).
 - **Unverified on device:** all of it, especially dragging notes inside the scrolling roll and the edge-drag to lengthen.
 
 

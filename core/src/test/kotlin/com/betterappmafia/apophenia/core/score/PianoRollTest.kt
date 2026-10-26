@@ -167,4 +167,17 @@ class PianoRollTest {
         val out = PianoRoll.rebuild(s, 0, PianoRoll.notes(s, s.parts[0]), up)
         assertEquals(List(8) { Duration.SIXTEENTH }, voice(out, 0).take(8).map { it.duration })
     }
+
+    @Test fun slice_cuts_a_note_in_two_and_paint_fills_the_cells_crossed() {
+        val one = PianoRoll.add(emptyList(), 0, 2 * Q, p("D4").midi, 0, cMajor)
+        val cut = PianoRoll.slice(one, one.single().id, Q)
+        assertEquals(listOf(0L to Q, Q to Q), cut.map { it.start to it.length })
+        assertTrue(cut.all { it.pitch == p("D4") } && cut.map { it.id }.toSet().size == 2)
+        assertSame(one, PianoRoll.slice(one, one.single().id, 0))
+        assertSame(one, PianoRoll.slice(one, one.single().id, 2 * Q))
+        // A stroke over four sixteenth cells, the finger rising a tone halfway: the half-note D4 already covers the two D4 cells.
+        val painted = PianoRoll.paint(one, mapOf(0L to p("D4").midi, 240L to p("D4").midi, 480L to p("E4").midi, 720L to p("E4").midi), 240, 0, cMajor)
+        assertEquals(listOf(480L to "E4", 720L to "E4"), painted.drop(1).map { it.start to it.pitch.toString() })
+        assertTrue(painted.drop(1).all { it.length == 240L })
+    }
 }

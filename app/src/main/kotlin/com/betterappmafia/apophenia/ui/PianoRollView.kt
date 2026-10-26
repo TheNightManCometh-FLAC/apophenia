@@ -72,6 +72,11 @@ fun PianoRollPane(
     var tool by remember { mutableStateOf("draw") }
     // Chord stamp: the chord a tap draws, and its family menu then chord menu (long lists open on family rows).
     var stampChord by remember { mutableStateOf("maj") }
+    // Paint: the cells the finger has crossed so far (start tick to MIDI), drawn until it lifts.
+    var paintCells by remember { mutableStateOf<Map<Long, Int>>(emptyMap()) }
+    // FL's ghost notes: the score's other parts, faint behind this one.
+    var ghosts by remember { mutableStateOf(true) }
+    val ghostNotes = remember(score, part) { score.parts.filter { it !== part }.flatMap { PianoRoll.notes(score, it) } }
     var stampFamilies by remember { mutableStateOf(false) }
     var stampFamily by remember { mutableStateOf<String?>(null) }
     var snap by remember { mutableStateOf(240L) }
@@ -100,6 +105,8 @@ fun PianoRollPane(
                 MenuItem("Draw", if (tool == "draw") "✓ TAP TO ADD · DRAG TO MOVE" else "TAP TO ADD · DRAG TO MOVE") { tool = "draw" },
                 MenuItem("Select", if (tool == "select") "✓ TAP TO PICK SEVERAL" else "TAP TO PICK SEVERAL") { tool = "select" },
                 MenuItem("Delete", if (tool == "delete") "✓ TAP A NOTE" else "TAP A NOTE") { tool = "delete" },
+                MenuItem("Paint", if (tool == "paint") "✓ DRAG TO PAINT NOTES" else "DRAG TO PAINT NOTES") { tool = "paint" },
+                MenuItem("Slice", if (tool == "slice") "✓ TAP A NOTE TO CUT IT" else "TAP A NOTE TO CUT IT") { tool = "slice" },
                 MenuItem("Chord stamp", if (tool == "stamp") "✓ TAP FOR A WHOLE CHORD" else "TAP FOR A WHOLE CHORD") { tool = "stamp" },
             ))
         }
@@ -117,6 +124,7 @@ fun PianoRollPane(
             ConsoleMenu(snapMenu, { snapMenu = false }, "SNAP TO GRID", SNAPS.map { (label, t) -> MenuItem(label, if (snap == t) "✓" else "") { snap = t } })
         }
         Sq(if (scaleSnap) "SCALE ✓" else "SCALE", { if (score.key == null) notice("Snap to scale needs a key: ADD ▾ › Clefs · keys · meters.") else scaleSnap = !scaleSnap }, on = scaleSnap)
+        if (score.parts.size > 1) Sq(if (ghosts) "GHOSTS ✓" else "GHOSTS", { ghosts = !ghosts }, on = ghosts)
         Box {
             Sq("EDIT ▾", { editMenu = true })
             ConsoleMenu(editMenu, { editMenu = false }, "EDIT · $targetWord", listOf(
@@ -203,6 +211,39 @@ fun PianoRollPane(
                             val p0 = down.position
                             val t0 = (p0.x / perTick).toLong()
                             val hit = notesNow.lastOrNull { n -> t0 >= n.start && t0 < n.end && midiAt(p0.y) == n.pitch.midi }
+                            if (toolNow == "paint") {
+                                // Paint: every grid cell the finger crosses gets a note at the pitch it's over there.
+                                down.consume()
+                                val cells = LinkedHashMap<Long, Int>()
+                                fun mark(pos: Offset) {
+                                    val t = (pos.x / perTick).toLong().coerceAtLeast(0)
+                                    val bar = barAt(t); val g = grid(t)
+                                    val st = starts[bar] + ((t - starts[bar]) / g) * g
+                                    val m = if (scaleSnap) PianoRoll.snapToScale(midiAt(pos.y), score.key) else midiAt(pos.y)
+                                    if (cells[st] != m) { if (st !in cells) play(m); cells[st] = m; paintCells = cells.toMap() }
+                                }
+                                mark(p0)
+                                while (true) {
+                                    val ev = awaitPointerEvent()
+                                    val c = ev.changes.firstOrNull { it.id == down.id } ?: break
+                                    if (!c.pressed) break
+                                    c.consume(); mark(c.position)
+                                }
+                                paintCells = emptyMap()
+                                val before = notesNow
+                                val after = PianoRoll.paint(before, cells, grid(cells.keys.first()), voice, sp)
+                                if (after.size > before.size) applyNow(after, after.drop(before.size).map { it.id }.toSet())
+                                return@awaitEachGesture
+                            }
+                            if (toolNow == "slice" && hit != null) {
+                                down.consume()
+                                val up = waitForUpOrCancellation() ?: return@awaitEachGesture
+                                if ((up.position - p0).getDistance() > slop) return@awaitEachGesture
+                                val g = grid(t0)
+                                val at = (Math.round(t0.toDouble() / g) * g).coerceIn(hit.start + 1, hit.end - 1)
+                                applyNow(PianoRoll.slice(notesNow, hit.id, at), selNow)
+                                return@awaitEachGesture
+                            }
                             if (hit == null) {
                                 // Empty grid: a tap draws (or clears the selection); a drag scrolls.
                                 val up = waitForUpOrCancellation() ?: return@awaitEachGesture
@@ -279,6 +320,7 @@ fun PianoRollPane(
                         android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { textSize = rowH * 0.8f; color = C.faint.toArgb() })
                 }
                 cursorTick?.let { drawLine(C.acc, Offset(it * perTick, 0f), Offset(it * perTick, size.height), 3f) }
+                if (ghosts) for (n in ghostNotes) drawRoundRect(C.dim.copy(alpha = 0.5f), Offset(n.start * perTick + 1f, yOf(n.pitch.midi) + 1f), Size(maxOf(4f, n.length * perTick) - 2f, rowH - 2f), CornerRadius(3f), style = Stroke(1.5f))
                 // Notes, other voices dimmer than the one being entered; the dragged ones where the finger is.
                 val d = drag
                 for (n in notes.sortedBy { if (it.voice == voice) 1 else 0 }) {
@@ -294,6 +336,8 @@ fun PianoRollPane(
                     if (w > rowH * 3) drawContext.canvas.nativeCanvas.drawText(KeyMode.displayName(n.pitch.name) + n.pitch.octave, x + 4f, y + rowH * 0.78f,
                         android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { textSize = rowH * 0.7f; color = C.bg.toArgb() })
                 }
+                // The stroke being painted.
+                if (paintCells.isNotEmpty()) { val g = grid(paintCells.keys.first()); for ((st, m) in paintCells) drawRoundRect(VOICE_COLORS[voice.coerceIn(0, 3)].copy(alpha = 0.6f), Offset(st * perTick + 1f, yOf(m) + 1f), Size(maxOf(4f, g * perTick) - 2f, rowH - 2f), CornerRadius(3f)) }
             }
         }
     }
@@ -353,6 +397,8 @@ fun PianoRollPane(
         when (tool) {
             "draw" -> "Draw: tap empty space for a note of the snap length in voice ${voice + 1}; drag a note to move it, its right end to lengthen it. Drag empty space to scroll. Slide a stem in VEL to set how hard it plays."
             "stamp" -> "Chord stamp: tap empty space for the chord picked in CHORD ▾, its root on the row you tap, every note the snap length, spelled from the root. Drag a note to move it."
+            "paint" -> "Paint: drag across the grid and every snap cell you cross gets a note at the pitch under your finger. Switch to Draw to scroll."
+            "slice" -> "Slice: tap inside a note to cut it in two there (at the nearest snap line)."
             "select" -> "Select: tap notes to pick several (EDIT ▾ and TOOLS ▾ then work on them); drag one to move them all."
             else -> "Delete: tap a note to take it out."
         } + " Notation and tab show every change. Bars an edit doesn't reach are left exactly as they were.",

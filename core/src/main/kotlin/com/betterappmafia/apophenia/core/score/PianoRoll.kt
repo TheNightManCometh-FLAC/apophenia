@@ -209,6 +209,27 @@ object PianoRoll {
         }
     }
 
+    /** Slice (FL Studio's knife): note [id] cut in two at [at], when [at] falls strictly inside it. */
+    fun slice(notes: List<RollNote>, id: Int, at: Long): List<RollNote> {
+        val n = notes.firstOrNull { it.id == id } ?: return notes
+        if (at <= n.start || at >= n.end) return notes
+        val next = (notes.maxOfOrNull { it.id } ?: -1) + 1
+        return notes.flatMap { if (it.id != id) listOf(it) else listOf(it.copy(length = at - it.start), it.copy(id = next, start = at, length = it.end - at, event = null)) }
+    }
+
+    /**
+     * Paint (FL Studio's brush): a note of [length] in every cell of the grid the finger crossed, at the pitch it was
+     * over there ([cells]: start tick to MIDI). A cell already holding a note of that pitch in [voice] is skipped.
+     */
+    fun paint(notes: List<RollNote>, cells: Map<Long, Int>, length: Long, voice: Int, sp: KeySpeller): List<RollNote> {
+        var out = notes
+        for ((start, midi) in cells.toSortedMap()) {
+            if (out.any { it.voice == voice && it.pitch.midi == midi && it.start < start + length && it.end > start }) continue
+            out = add(out, start, length, midi, voice, sp)
+        }
+        return out
+    }
+
     enum class ArpPattern(val label: String) { UP("Up"), DOWN("Down"), UP_DOWN("Up and down"), DOWN_UP("Down and up") }
 
     /**
