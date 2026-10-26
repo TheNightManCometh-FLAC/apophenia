@@ -211,6 +211,41 @@ class MusicXmlTest {
     }
 
     @Test
+    fun `lines, tremolo, marks and chord diagrams come back when the file is imported`() {
+        val r = MusicXmlRead.read(MusicXml.write(marked).toByteArray())
+        val (piano, guitar) = r.score.parts
+        val p1 = piano.bars[0].voices[0]; val p2 = piano.bars[1].voices[0]
+        assertEquals(mapOf(Span.SLUR to 3, Span.CRESC to 2), p1[0].spans)
+        assertEquals(setOf(Mark.STACCATISSIMO, Mark.FERMATA, Mark.TRILL), p1[0].marks)
+        assertEquals(Head.DIAMOND, p1[1].notes[0].head); assertEquals("3", p1[1].notes[0].finger)
+        assertEquals(listOf("D5"), p1[2].graces.single().notes.map { it.pitch.toString() }); assertEquals(setOf(Mark.MORDENT), p1[2].marks)
+        assertEquals(3, p1[3].tremolo); assertEquals(setOf(Mark.ARPEGGIO_UP), p1[3].marks)
+        assertEquals(mapOf(Span.OTTAVA_UP to 2, Span.PEDAL to 2), p2[0].spans)
+        assertEquals(setOf(Mark.FERMATA_SHORT, Mark.TURN_SLASH), p2[1].marks)
+        assertEquals(listOf(null, 3, 2, 0, 1, 0), guitar.bars[0].voices[0].last().diagram)
+        assertTrue(r.dropped.none { "line" in it }, r.dropped.toString())
+    }
+
+    @Test
+    fun `lines across a barline, glissando, trill line and 8vb come back`() {
+        val s = Score(parts = listOf(Part("Line", Clef.TREBLE, bars = listOf(
+            Bar(listOf(listOf(ev(q, "C5"), Event(q, listOf(n("D5")), spans = mapOf(Span.DIM to 4, Span.SLUR to 2)), ev(q, "E5"), Event(q, listOf(n("F5")), spans = mapOf(Span.GLISS to 2))))),
+            Bar(listOf(listOf(ev(q, "C6"), Event(q, listOf(n("B5")), spans = mapOf(Span.TRILL_LINE to 3)), ev(q, "A5"), Event(q, listOf(n("G5")))))),
+            Bar(listOf(listOf(Event(Duration.WHOLE, listOf(n("C3")), spans = mapOf(Span.OTTAVA_DOWN to 2)), ))),
+            Bar(listOf(listOf(ev(Duration.WHOLE, "D3")))),
+        ))))
+        val xml = MusicXml.write(s)
+        assertValid(xml, "lines")
+        val back = MusicXmlRead.read(xml.toByteArray()).score.parts.single().bars.map { it.voices[0] }
+        assertEquals(mapOf(Span.DIM to 4, Span.SLUR to 2), back[0][1].spans, "the diminuendo runs into the next bar")
+        assertEquals(mapOf(Span.GLISS to 2), back[0][3].spans)
+        assertEquals(mapOf(Span.TRILL_LINE to 3), back[1][1].spans)
+        assertTrue(Mark.TRILL !in back[1][1].marks, "the trill sign of a trill line isn't a second trill")
+        assertEquals(mapOf(Span.OTTAVA_DOWN to 2), back[2][0].spans)
+        assertEquals("C3", back[2][0].notes.single().pitch.toString(), "pitches stay as they sound under an octave line")
+    }
+
+    @Test
     fun `the schema check rejects a file that isn't valid`() {
         val bad = MusicXml.write(CourseReading.tabScore).replaceFirst("<divisions>", "<division>").replaceFirst("</divisions>", "</division>")
         kotlin.test.assertFailsWith<AssertionError> { assertValid(bad, "bad") }

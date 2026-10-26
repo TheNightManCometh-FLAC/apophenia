@@ -2,6 +2,17 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.9.4 (26 Oct 2026): MusicXML import reads lines, tremolo and chord diagrams
+- **Lines** (`core/score/MusicXmlRead.kt`): slurs, glissandos and trill lines (on the notes) and hairpins, 8va/8vb/15ma/15mb and pedal (as directions) are read. Each start is paired with the next stop of its kind and number in the same voice, across barlines, and stored the way the app keeps lines: on the start event, as how many events of its voice it covers. Before, all of these went on the "left out" list.
+  - 8va is read from `octave-shift type="down"` (the shift is from the pitches in the notes, which stay as they sound).
+  - [Claude] A line given as a direction ends on the last event that starts before its stop (where the app's own export puts the stop, at the end of the last note). A program that writes the stop at the start of the line's last note gets a line one event shorter.
+  - A line that never ends, or covers a single event, is left out and listed. Dashed and bracket lines, two-note tremolos and 22ma are still listed as left out.
+- **Single-note tremolo** (1–4 strokes; more are kept as four and listed). **Chord diagrams** from `<frame>` go onto the chord symbol's event: frets absolute, strings from the highest, as in the W3C frame example (an A at the 12th fret written 12 and 14).
+- A trill mark that starts a wavy line is read as the trill line's sign, not as a second trill.
+- **Round trips:** the 0.9.3 score with every marking, and a second with a diminuendo and slur across a barline, a glissando, a trill line and an 8vb, are exported, schema-checked and read back with their lines, marks, tremolo, graces and diagram as they were.
+- **Tests: 596** counted (+2 round-trip tests in MusicXmlTest).
+- **Unverified:** files from MuseScore 4, Guitar Pro 8, Dorico or Sibelius (no sample files from them in the repo); not run on the phone.
+
 ## Build 0.9.3 (26 Oct 2026): MusicXML export writes the markings
 - **The gap since 0.7.0 is closed:** MusicXML export (`core/score/MusicXml.kt`) now writes everything the stored score keeps beyond notes and words. Before, it dropped articulations, ornaments, slurs, hairpins, graces, tremolo, fingering, chord diagrams and the guitar techniques.
 - **Written, each checked against the MusicXML 4.0 reference pages:**
@@ -19,7 +30,7 @@
     - Let ring, palm mute, fades, swell, whammy, vibrato, slap and pop as `<other-technical>` with the technique's name, MusicXML having no element for them.
     - **A bend is written as a full bend (2 semitones) [Claude]**: the stored score doesn't keep the amount.
 - **The schema in the tests:** the official MusicXML 4.0 XSD (w3c/musicxml tag v4.0, W3C Community Final Specification Agreement, test resources only) now validates every Course example, the tab and road-map scores, and a score with every marking. A deliberately broken file is rejected, so the check is real. The exports from before this build were already valid.
-- **Import:** reads back scoop/plop/falloff/doit, left-hand tapping, `<other-technical>` by name, slides, unmeasured tremolo and ghost-note parentheses, so an Apophenia file's guitar techniques survive a round trip. A dead note comes back as an x notehead. **Not yet read on import:** lines (slurs, hairpins, 8va, pedal still go to the "left out" list), single-note tremolo and frames.
+- **Import:** reads back scoop/plop/falloff/doit, left-hand tapping, `<other-technical>` by name, slides, unmeasured tremolo and ghost-note parentheses, so an Apophenia file's guitar techniques survive a round trip. A dead note comes back as an x notehead. Lines, single-note tremolo and frames are read on import from 0.9.4.
 - **Tests: 594** counted (+4 in MusicXmlTest: schema validity of every export, the full-markings score element by element, the techniques' round trip, the validator rejecting a bad file).
 - **Unverified:** opening the files in MuseScore 4, Guitar Pro 8, Dorico or Sibelius. Schema-valid isn't the same as read the way we mean.
 

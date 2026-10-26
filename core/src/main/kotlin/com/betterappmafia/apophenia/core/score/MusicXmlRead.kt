@@ -31,11 +31,14 @@ import javax.xml.parsers.DocumentBuilderFactory
  * sounding), tab (a TAB staff's `<staff-tuning>` lines from the lowest string, `<technical><string>/<fret>` from the
  * highest), chord symbols from `<harmony>`, lyrics, dynamics, words, rehearsal marks, tempo, repeats, endings,
  * barline styles, segno/coda and D.C./D.S./Fine/To Coda words, common articulations, ornaments, fermatas,
- * noteheads, fingering and a few guitar techniques.
+ * noteheads, fingering, single-note tremolo, chord diagrams (`<frame>`), the guitar techniques the app writes, and lines:
+ * slurs, glissandos, trill lines, hairpins, 8va/8vb/15ma/15mb and pedal (each start paired with its stop, stored as
+ * how many events of its voice the line covers).
  *
  * [Claude] Choices: a part with a notation staff and a TAB staff becomes one fretted part (the TAB staff gives the
  * frets); other multi-staff parts (piano) become one part per staff; voices beyond four, overlapping notes and
- * `score-timewise` files are not read (timewise is refused); slurs, hairpins and other lines aren't read yet.
+ * `score-timewise` files are not read (timewise is refused); a line written as a direction ends on the last event
+ * that starts before its stop; dashed and bracket lines, two-note tremolos and 22ma aren't read.
  * Odd meters given as one number (5/8, 7/8) are grouped as twos then a three.
  */
 object MusicXmlRead {
@@ -226,10 +229,19 @@ object MusicXmlRead {
         val lyrics = ArrayList<Lyric>()
         var graces: List<Grace> = emptyList()
         var tuplets: List<Tuplet> = emptyList()
+        var tremolo = 0
     }
 
     /** Something written at a point in the bar that belongs to the event there. */
-    private class At(val staff: Int, val pos: Rational, val chord: String? = null, val dynamic: Dynamic? = null, val text: StaffText? = null)
+    private class At(val staff: Int, val pos: Rational, val chord: String? = null, val dynamic: Dynamic? = null, val text: StaffText? = null, val diagram: List<Int?>? = null)
+
+    /**
+     * One end of a line as read, in document order: [group] pairs a start with its stop (a wedge's stop doesn't say
+     * crescendo or diminuendo), [span] is what a start begins. A stop on a note ([inclusive]) ends on that note; a stop
+     * written as a direction ends on the last event that starts before it (where the app writes it, at the end of the
+     * line's last note). [voice] null means the staff's first voice.
+     */
+    private class LineMark(val group: String, val span: Span?, val start: Boolean, val number: Int, val staff: Int, val voice: String?, val measure: Int, val pos: Rational, val inclusive: Boolean)
 
     private class Instr(var lines: MutableMap<Int, SpelledPitch> = HashMap(), var capo: Int = 0, var count: Int = 0)
 
@@ -276,6 +288,21 @@ object MusicXmlRead {
             var openVolta = emptyList<Int>()
             val voiceIds = HashMap<Int, MutableList<String>>()   // staff → voice ids in the order first met
             val measures = ArrayList<MeasureOut>()
+            val lineMarks = ArrayList<LineMark>()
+            /** Slurs, glissandos and trill lines on a note at [at] in measure [mi]. */
+            fun noteLines(el: Element, staff: Int, voice: String, mi: Int, at: Rational) {
+                val notations = el.kids("notations")
+                fun add(group: String, span: Span, x: Element) {
+                    val type = x.attr("type") ?: return
+                    if (type != "start" && type != "stop") return
+                    lineMarks += LineMark(group, span, type == "start", x.attr("number")?.toIntOrNull() ?: 1, staff, voice, mi, at, inclusive = true)
+                }
+                for (n in notations) {
+                    n.kids("slur").forEach { add("slur", Span.SLUR, it) }
+                    n.kids("glissando").forEach { add("gliss", Span.GLISS, it) }
+                    n.kids("ornaments").flatMap { it.kids("wavy-line") }.forEach { add("trill", Span.TRILL_LINE, it) }
+                }
+            }
 
             for ((mi, m) in p.kids("measure").withIndex()) {
                 var pos = Rational.ZERO
@@ -355,7 +382,7 @@ object MusicXmlRead {
                     "harmony" -> {
                         val staff = el.text("staff")?.toIntOrNull() ?: 1
                         val off = el.text("offset")?.toDoubleOrNull()?.let { Rational.of(Math.round(it), 4L * div) } ?: Rational.ZERO
-                        harmony(el)?.let { ats += At(staff, maxOf(Rational.ZERO, pos + off), chord = it) }
+                        harmony(el)?.let { ats += At(staff, maxOf(Rational.ZERO, pos + off), chord = it, diagram = el.kid("frame")?.let(::frameOf)) }
                     }
                     "direction" -> {
                         val staff = el.text("staff")?.toIntOrNull() ?: 1
@@ -375,7 +402,25 @@ object MusicXmlRead {
                                 val bpm = x.text("per-minute")?.let { Regex("[0-9]+(\\.[0-9]+)?").find(it)?.value?.toDoubleOrNull() }
                                 if (unit != null && bpm != null && bpm > 0) metronome = Tempo(bpm, Duration(unit, x.kids("beat-unit-dot").size.coerceAtMost(3)))
                             }
-                            "wedge", "dashes", "bracket", "pedal", "octave-shift" -> dropped.add("lines (hairpins, 8va, pedal)")
+                            "wedge", "octave-shift", "pedal" -> {
+                                val type = x.attr("type")
+                                val (group, span) = when (x.tagName) {
+                                    "wedge" -> "wedge" to when (type) { "crescendo" -> Span.CRESC; "diminuendo" -> Span.DIM; else -> null }
+                                    // 8va above the staff is a shift down from the pitches in the notes.
+                                    "octave-shift" -> "octave" to when (type to (x.attr("size") ?: "8")) {
+                                        "down" to "8" -> Span.OTTAVA_UP; "up" to "8" -> Span.OTTAVA_DOWN
+                                        "down" to "15" -> Span.QUINDICESIMA_UP; "up" to "15" -> Span.QUINDICESIMA_DOWN
+                                        else -> null
+                                    }
+                                    else -> "pedal" to if (type == "start") Span.PEDAL else null
+                                }
+                                when {
+                                    span != null -> lineMarks += LineMark(group, span, true, x.attr("number")?.toIntOrNull() ?: 1, staff, el.text("voice"), mi, at, inclusive = false)
+                                    type == "stop" -> lineMarks += LineMark(group, null, false, x.attr("number")?.toIntOrNull() ?: 1, staff, el.text("voice"), mi, at, inclusive = false)
+                                    x.tagName == "octave-shift" && type != "continue" -> dropped.add("22ma lines")
+                                }
+                            }
+                            "dashes", "bracket" -> dropped.add("dashed and bracket lines")
                         }
                         if (metronome == null) el.kid("sound")?.attr("tempo")?.toDoubleOrNull()?.takeIf { it > 0 }?.let { metronome = Tempo(it) }
                         val w = words
@@ -428,6 +473,7 @@ object MusicXmlRead {
                         if (el.has("chord")) {
                             val prev = lastByVoice[vk]
                             if (prev != null && note != null && !prev.rest) prev.notes += note
+                            if (prev != null) noteLines(el, staff, voice, mi, prev.start)
                             continue
                         }
                         val len = units(el)
@@ -467,6 +513,11 @@ object MusicXmlRead {
                         pendingGraces.remove(vk)?.let { raw.graces = it }
                         marksOf(el, raw.marks)
                         lyricsOf(el, raw.lyrics)
+                        noteLines(el, staff, voice, mi, pos)
+                        for (t in el.kids("notations").flatMap { it.kids("ornaments") }.flatMap { it.kids("tremolo") }) when (t.attr("type") ?: "single") {
+                            "single" -> t.textContent.trim().toIntOrNull()?.let { n -> if (n in 1..4) raw.tremolo = n else if (n > 4) { raw.tremolo = 4; dropped.add("tremolos of more than four strokes (kept as four)") } }
+                            "start", "stop" -> dropped.add("two-note tremolos")
+                        }
                         raws += raw
                         lastByVoice[vk] = raw
                         if (len > Rational.ZERO) { voiceIds.getOrPut(staff) { ArrayList() }.let { if (voice !in it) it += voice } }
@@ -505,7 +556,7 @@ object MusicXmlRead {
                             if (i > 0 && starts[i] > at.pos) i--
                             val e = v1[i]
                             v1[i] = when {
-                                at.chord != null -> if (e.chord == null) e.copy(chord = at.chord) else e
+                                at.chord != null -> if (e.chord == null) e.copy(chord = at.chord, diagram = at.diagram ?: e.diagram) else e
                                 at.dynamic != null -> if (e.dynamic == null) e.copy(dynamic = at.dynamic) else e
                                 at.text != null -> e.copy(texts = e.texts + at.text)
                                 else -> e
@@ -540,11 +591,11 @@ object MusicXmlRead {
                 val main = notationStaves.firstOrNull()
                 val fallback = if (instrument.tuning.strings.first().midi < 36) Clef.BASS else Clef.TREBLE
                 // A fretted part's clef is plain treble or bass: the writer adds the octave-down sign itself.
-                parts += staffPart(name, main, measures, instrument, fallback) { mo ->
+                parts += staffPart(name, main, measures, instrument, fallback, lineMarks, main?.let { voiceIds[it] }.orEmpty()) { mo ->
                     if (main != null) withFrets(mo.voicesByStaff[main].orEmpty(), mo.voicesByStaff[tab].orEmpty(), instrument)
                     else mo.voicesByStaff[tab].orEmpty()
                 }
-                notationStaves.drop(1).forEach { s -> parts += staffPart("$name (staff $s)", s, measures) }
+                notationStaves.drop(1).forEach { s -> parts += staffPart("$name (staff $s)", s, measures, lines = lineMarks, ids = voiceIds[s].orEmpty()) }
             } else {
                 val staffList = if (staves == 1) listOf(1) else notationStaves
                 staffList.forEachIndexed { i, s ->
@@ -553,7 +604,7 @@ object MusicXmlRead {
                         staffList.size == 2 -> "$name (${if (i == 0) "upper" else "lower"})"
                         else -> "$name (staff $s)"
                     }
-                    parts += staffPart(label, s, measures)
+                    parts += staffPart(label, s, measures, lines = lineMarks, ids = voiceIds[s].orEmpty())
                 }
                 if (tabStaff != null && instrument == null && staves == 1) dropped.add("a tab staff with no tuning")
             }
@@ -563,6 +614,7 @@ object MusicXmlRead {
         /** One part from one staff's voices (or [voices]), with its clef changes where they differ from the clef in force. */
         private fun staffPart(
             label: String, staff: Int?, measures: List<MeasureOut>, instrument: Instrument? = null, fallback: Clef = Clef.TREBLE,
+            lines: List<LineMark> = emptyList(), ids: List<String> = emptyList(),
             voices: (MeasureOut) -> List<List<Event>> = { mo -> staff?.let { mo.voicesByStaff[it] }.orEmpty() },
         ): Part {
             fun norm(c: Clef) = if (instrument != null && c == Clef.TREBLE_8VB) Clef.TREBLE else c
@@ -574,7 +626,49 @@ object MusicXmlRead {
                 mo.bar.copy(voices = voices(mo).ifEmpty { listOf(emptyList()) }, clef = change)
             }
             val first = staff?.let { measures.firstOrNull()?.clefByStaff?.get(it) }?.let(::norm) ?: fallback
-            return Part(label, first, instrument, bars)
+            return Part(label, first, instrument, if (staff == null) bars else withLines(bars, lines.filter { it.staff == staff }, ids))
+        }
+
+        /**
+         * The lines read from the file, as each start event's [Event.spans] (how many events of its voice the line
+         * covers, across bars). A start is paired with the next stop of its kind and number in the same voice; a line
+         * that never ends, or covers a single event, is left out.
+         */
+        private fun withLines(bars: List<Bar>, marks: List<LineMark>, ids: List<String>): List<Bar> {
+            if (marks.isEmpty()) return bars
+            class Slot(val bar: Int, val i: Int, val start: Rational, val end: Rational)
+            val out = bars.map { b -> b.voices.map { it.toMutableList() } }
+            for (vi in 0 until (bars.maxOfOrNull { it.voices.size } ?: 0)) {
+                val seq = ArrayList<Slot>()
+                bars.forEachIndexed { bi, b -> var t = Rational.ZERO; b.voices.getOrNull(vi).orEmpty().forEachIndexed { i, e -> seq += Slot(bi, i, t, t + e.length); t += e.length } }
+                fun on(m: Int, p: Rational) = seq.indexOfFirst { it.bar == m && p >= it.start && p < it.end }.takeIf { it >= 0 } ?: seq.indexOfLast { it.bar == m && it.start <= p }
+                fun before(m: Int, p: Rational) = seq.indexOfLast { it.bar < m || (it.bar == m && it.start < p) }
+                val here = marks.filter { (it.voice ?: ids.firstOrNull()) == ids.getOrNull(vi) }
+                for ((q, s) in here.withIndex()) {
+                    if (!s.start) continue
+                    val stop = here.drop(q + 1).firstOrNull { !it.start && it.group == s.group && it.number == s.number }
+                    if (stop == null) { dropped.add("lines that never end"); continue }
+                    val a = on(s.measure, s.pos)
+                    val z = if (stop.inclusive) on(stop.measure, stop.pos) else before(stop.measure, stop.pos)
+                    if (a < 0 || z - a + 1 < 2) continue
+                    val slot = seq[a]
+                    val e = out[slot.bar][vi][slot.i]
+                    out[slot.bar][vi][slot.i] = e.copy(spans = e.spans + (s.span!! to z - a + 1))
+                }
+            }
+            return bars.mapIndexed { bi, b -> b.copy(voices = out[bi]) }
+        }
+
+        /** A `<frame>` as a diagram, lowest string first (null = not played); frame strings count from the highest. */
+        fun frameOf(f: Element): List<Int?>? {
+            val n = f.text("frame-strings")?.toIntOrNull()?.takeIf { it in 1..12 } ?: return null
+            val frets = MutableList<Int?>(n) { null }
+            for (fn in f.kids("frame-note")) {
+                val s = fn.text("string")?.toIntOrNull() ?: continue
+                val fret = fn.text("fret")?.toIntOrNull() ?: continue
+                if (s in 1..n && fret >= 0) frets[n - s] = fret
+            }
+            return frets
         }
 
         /** A voice from its raw events in order: gaps become rests (hidden in voices 2–4), overlaps are dropped. */
@@ -588,7 +682,7 @@ object MusicXmlRead {
                 durations.forEachIndexed { i, d ->
                     val last = i == durations.size - 1
                     val notes = if (last) r.notes.toList() else r.notes.map { it.copy(tie = true) }
-                    out += if (i == 0) Event(d, notes, marks = r.marks.toSet(), lyrics = r.lyrics.toList(), graces = r.graces, hidden = r.rest && r.hidden && inner)
+                    out += if (i == 0) Event(d, notes, marks = r.marks.toSet(), lyrics = r.lyrics.toList(), tremolo = if (r.rest) 0 else r.tremolo, graces = r.graces, hidden = r.rest && r.hidden && inner)
                     else Event(d, notes, hidden = r.rest && r.hidden && inner)
                 }
                 at = r.start + r.length
@@ -677,7 +771,8 @@ object MusicXmlRead {
                 "caesura" -> out += Mark.CAESURA
             }
             for (o in notations.flatMap { it.kids("ornaments") }.flatMap { it.kids() }) when (o.tagName) {
-                "trill-mark" -> out += Mark.TRILL
+                // A trill mark starting a wavy line is the line's sign (Span.TRILL_LINE), not a trill of its own.
+                "trill-mark" -> if (notations.flatMap { it.kids("ornaments") }.flatMap { it.kids("wavy-line") }.none { it.attr("type") == "start" }) out += Mark.TRILL
                 "mordent" -> out += Mark.MORDENT
                 "inverted-mordent" -> out += Mark.UPPER_MORDENT
                 "turn" -> out += if (o.attr("slash") == "yes") Mark.TURN_SLASH else Mark.TURN
@@ -696,7 +791,6 @@ object MusicXmlRead {
                 else -> Mark.FERMATA
             }
             for (a in notations.flatMap { it.kids("arpeggiate") }) out += when (a.attr("direction")) { "up" -> Mark.ARPEGGIO_UP; "down" -> Mark.ARPEGGIO_DOWN; else -> Mark.ARPEGGIO }
-            if (notations.any { it.has("slur") || it.has("glissando") || it.has("slide") }) dropped.add("slurs and slides")
         }
 
         private val verses = ArrayList<String>()
