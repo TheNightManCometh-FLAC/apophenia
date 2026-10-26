@@ -110,6 +110,54 @@ class PerformanceCheckTest {
         assertEquals(listOf(67, 65), PerformanceCheck.melody(chords).map { it.midi })
     }
 
+    // Guitar chords, low string to high, one a second, twice round: C x32010, Am x02210, F 133211, G 320003.
+    private val shapes = listOf(listOf(48, 52, 55, 60, 64), listOf(45, 52, 57, 60, 64), listOf(41, 48, 53, 57, 60, 65), listOf(43, 47, 50, 55, 62, 67))
+    private val progression = (0 until 8).flatMap { i -> shapes[i % 4].map { RefNote(i * 1.0, i * 1.0 + 1.0, it, bar = i / 4) } }
+
+    /** A downstrum of each chord (12 ms a string), [stretch] slower, starting [offset] s in; [change] edits chord i's pitches. */
+    private fun strum(stretch: Double = 1.1, offset: Double = 0.5, late: Map<Int, Double> = emptyMap(), change: (Int, List<Int>) -> List<Int> = { _, p -> p }) =
+        (0 until 8).flatMap { i ->
+            val at = offset + i * stretch + (late[i] ?: 0.0)
+            change(i, shapes[i % 4]).mapIndexed { s, m -> RefNote(at + s * 0.012, at + 0.9 * stretch, m) }
+        }
+
+    @Test fun a_written_strum_is_one_chord_and_notes_further_apart_are_not() {
+        val notes = listOf(RefNote(0.0, 1.0, 48), RefNote(0.02, 1.0, 52), RefNote(0.04, 1.0, 55), RefNote(0.15, 1.0, 60))
+        assertEquals(listOf(listOf(48, 52, 55), listOf(60)), PerformanceCheck.chordsOf(notes).map { it.chord })
+    }
+
+    @Test fun chords_played_slower_and_later_are_all_right() {
+        val r = PerformanceCheck.chords(progression, strum())
+        assertEquals(8, r.notes.size)
+        assertEquals(100, r.score, r.notes.filter { !it.good }.toString())
+        assertTrue(r.extra.isEmpty())
+        assertEquals(shapes[3], r.notes[3].played)
+    }
+
+    @Test fun missing_and_wrong_chord_notes_are_named_and_another_octave_is_not_wrong() {
+        val played = strum(late = mapOf(5 to 0.12)) { i, p ->
+            when (i) {
+                1 -> p - 60                                  // Am without its C
+                2 -> p + 61                                  // F with a C♯ in it
+                3 -> p.map { if (it == 47) 59 else it }      // G with its B an octave up
+                4 -> emptyList()                             // the second C not played
+                else -> p
+            }
+        } + RefNote(0.5 + 8 * 1.1, 0.5 + 8 * 1.1 + 0.5, 64)
+        val r = PerformanceCheck.chords(progression, played)
+        assertEquals(setOf(Issue.NOTES_MISSING), r.notes[1].issues)
+        assertEquals(listOf(60), r.notes[1].missing)
+        assertEquals(setOf(Issue.WRONG_NOTES), r.notes[2].issues)
+        assertEquals(listOf(61), r.notes[2].wrongNotes)
+        assertTrue(r.notes[3].good, r.notes[3].toString())
+        assertEquals(listOf(47), r.notes[3].octave)
+        assertEquals(setOf(Issue.MISSED), r.notes[4].issues)
+        assertTrue(Issue.LATE in r.notes[5].issues && r.notes[5].timingMs!! in 90..150, r.notes[5].toString())
+        assertTrue(listOf(0, 6, 7).all { r.notes[it].good }, r.notes.toString())
+        assertEquals(1, r.extra.size, "the strum after the last chord")
+        assertEquals(50, r.score, "chords 0, 3, 6 and 7 of 8")
+    }
+
     // A rock beat, two bars: hats on eighths, snare on 2 and 4, kick on 1 and 3 (and the "and" of 3), a ghost snare on the last sixteenth of 2.
     private val beat = com.betterappmafia.apophenia.core.tools.DrumChart(com.betterappmafia.apophenia.core.tools.DrumGrid.of(
         "4/4", 4, 2,

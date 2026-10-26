@@ -62,13 +62,20 @@ import kotlinx.coroutines.withContext
 private class RefChoice(val label: String, val note: String, val drums: Boolean = false, val load: suspend () -> List<RefNote>)
 private class TakeChoice(val label: String, val title: String, val take: TakeEntity)
 
+/** What you played against a pitched reference: one line (from the pitch tracker) or chords (from Notes → MIDI). */
+private enum class Played(val label: String, val note: String) {
+    LINE("One line", "VOICE, BASS, A LEAD LINE · PITCH TRACKING"),
+    CHORDS("Chords", "GUITAR, PIANO · FROM NOTES → MIDI, LOWER CONFIDENCE"),
+}
+
 /** The longest take checked, in seconds. [Claude] Five minutes keeps the alignment inside the phone's memory. */
 private const val MAX_TAKE_SECONDS = 300
 
 /**
  * Performance check (plan §10.6): pick what you were playing or singing (a written part, or the notes transcribed from a
- * recording) and the take of you doing it; the app lines them up and shows where you were off and why. This build
- * checks a single line (voice, bass, a lead line); chords and drums come later.
+ * recording) and the take of you doing it; the app lines them up and shows where you were off and why: a single line
+ * (voice, bass, a lead line), chords (the take's Notes → MIDI transcription, notes present or missing per chord), or
+ * drums (timing only).
  */
 @Composable
 fun PerformanceScreen(model: AppModel) {
@@ -83,6 +90,16 @@ fun PerformanceScreen(model: AppModel) {
     var problem by remember { mutableStateOf<String?>(null) }
     var result by remember { mutableStateOf<PerformanceCheck.Result?>(null) }
     var checked by remember { mutableStateOf<TakeChoice?>(null) }
+    var played by remember { mutableStateOf(Played.LINE) }
+    var playedMenu by remember { mutableStateOf(false) }
+    var needsMidi by remember { mutableStateOf<TakeChoice?>(null) }
+    // [Claude] A reference with notes sounding together starts on Chords, otherwise One line; either can be changed.
+    LaunchedEffect(ref) {
+        val r = ref ?: return@LaunchedEffect
+        if (r.drums) return@LaunchedEffect
+        val notes = withContext(Dispatchers.Default) { runCatching { r.load() }.getOrDefault(emptyList()) }
+        played = if (PerformanceCheck.chordsOf(notes).any { (it.chord?.size ?: 0) >= 2 }) Played.CHORDS else Played.LINE
+    }
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             val lib = model.app.db.scraps().library()
@@ -114,12 +131,19 @@ fun PerformanceScreen(model: AppModel) {
     }
     fun run() {
         val r = ref ?: return; val t = take ?: return
-        busy = true; problem = null; result = null
+        busy = true; problem = null; result = null; needsMidi = null
         scope.launch {
+            var wantMidi: TakeChoice? = null
             val out = withContext(Dispatchers.Default) {
                 runCatching {
                     val notes = r.load()
                     require(notes.isNotEmpty()) { "That reference has no notes." }
+                    if (!r.drums && played == Played.CHORDS) {
+                        val tr = model.app.db.transcriptions().get(t.take.id)
+                        val mine = TranscriptionText.decode(tr?.body).orEmpty().map { RefNote(it.start, it.end, it.midi) }
+                        if (tr == null || mine.isEmpty()) { wantMidi = t; error("Take ${t.take.letter} hasn't been through Notes → MIDI yet: chords are checked from its transcription.") }
+                        return@runCatching PerformanceCheck.chords(notes, mine)
+                    }
                     val (x, rate) = Wav.readMono(model.app.captures.fileOf(t.take), TakeAnalysis.RATE, MAX_TAKE_SECONDS) ?: error("Couldn't read the take.")
                     if (r.drums) return@runCatching PerformanceCheck.drums(notes, Onsets.pick(Onsets.envelope(x, rate)))
                     // Listen from an octave and a tone below the reference's lowest note to an octave and a tone above its highest.
@@ -132,6 +156,7 @@ fun PerformanceScreen(model: AppModel) {
                 }
             }
             out.onSuccess { result = it; checked = t }.onFailure { problem = it.message ?: "The check didn't finish." }
+            needsMidi = wantMidi
             busy = false
         }
     }
@@ -140,11 +165,11 @@ fun PerformanceScreen(model: AppModel) {
         TitleBar {
             Sq("‹", { model.performanceOpen = false })
             Text("PERFORMANCE CHECK", style = T.title, modifier = Modifier.weight(1f))
-            Text("PITCH + DTW", style = T.label)
+            Text(if (ref?.drums == true) "ONSETS" else if (played == Played.CHORDS) "NOTES → MIDI" else "PITCH + DTW", style = T.label)
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             Text(
-                "Pick what you were playing or singing, and the take of you doing it. The app lines them up (a slower or later take isn't wrong) and shows each note you were off on, by how much, and why. Pitch and timing for single lines (voice, bass, lead lines); timing only against a drum chart. Chords come later.",
+                "Pick what you were playing or singing, and the take of you doing it. The app lines them up (a slower or later take isn't wrong) and shows each note you were off on, by how much, and why. Pitch and timing for single lines (voice, bass, lead lines); the notes of each chord from the take's Notes → MIDI transcription; timing only against a drum chart.",
                 style = T.small.copy(lineHeight = 16.sp), modifier = Modifier.padding(14.dp),
             )
             Box {
@@ -158,10 +183,22 @@ fun PerformanceScreen(model: AppModel) {
                 Kv("YOUR TAKE", onClick = { takeMenu = true }) {
                     Text(take?.label ?: if (takes == null) "Loading…" else if (takes!!.isEmpty()) "No recordings yet" else "Pick ▾", style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
                 }
-                ConsoleMenu(takeMenu, { takeMenu = false }, "YOUR TAKE", takes.orEmpty().map { c -> MenuItem(c.label, clock(c.take.durationFrames, c.take.sampleRate)) { take = c; result = null } })
+                ConsoleMenu(takeMenu, { takeMenu = false }, "YOUR TAKE", takes.orEmpty().map { c -> MenuItem(c.label, clock(c.take.durationFrames, c.take.sampleRate)) { take = c; result = null; needsMidi = null } })
+            }
+            if (ref != null && !ref!!.drums) Box {
+                Kv("YOU PLAYED", onClick = { playedMenu = true }) {
+                    Text("${played.label} ▾", style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
+                    Text(played.note, style = T.label)
+                }
+                ConsoleMenu(playedMenu, { playedMenu = false }, "YOU PLAYED", Played.entries.map { p -> MenuItem(p.label, p.note) { played = p; result = null } })
             }
             Row { BigButton(if (busy) "CHECKING…" else "CHECK", { run() }, primary = true, enabled = !busy && ref != null && take != null) }
             problem?.let { Text(it, style = T.body.copy(color = C.rec), modifier = Modifier.padding(14.dp)) }
+            needsMidi?.let { c ->
+                Row(Modifier.padding(horizontal = 14.dp)) {
+                    Sq("▶ TRANSCRIBE TAKE ${c.take.letter}", { model.app.transcriber.start(c.take, c.title); needsMidi = null; problem = "Transcribing take ${c.take.letter}: it's in AI › JOBS. Check again when it's done." }, on = true)
+                }
+            }
             val res = result
             val t = checked
             if (res != null && t != null) Results(model, res, t)
@@ -169,7 +206,10 @@ fun PerformanceScreen(model: AppModel) {
     }
 }
 
-private fun noteName(n: RefNote) = n.label ?: noteName(n.midi)
+private fun noteName(n: RefNote) = n.label ?: n.chord?.let { notesOf(it) } ?: noteName(n.midi)
+
+/** Pitches low to high, as note names. */
+private fun notesOf(midi: List<Int>) = midi.joinToString(" ") { noteName(it) }
 
 private fun noteName(midi: Int) = if (midi < 0) "A hit" else KeyMode.displayName(PitchClass(Math.floorMod(midi, 12)).defaultSpelling()) + (Math.floorDiv(midi, 12) - 1)
 
@@ -185,24 +225,32 @@ private fun what(r: PerformanceCheck.NoteResult): String = buildList {
         PerformanceCheck.Issue.FLAT -> "${-r.cents!!} cents flat"
         PerformanceCheck.Issue.EARLY -> "${-ms!!} ms early"
         PerformanceCheck.Issue.LATE -> "$ms ms late"
+        PerformanceCheck.Issue.NOTES_MISSING -> "no ${notesOf(r.missing)}"
+        PerformanceCheck.Issue.WRONG_NOTES -> "${notesOf(r.wrongNotes)} not in the chord"
     })
 }.joinToString(" · ")
 
 @Composable
 private fun Results(model: AppModel, res: PerformanceCheck.Result, t: TakeChoice) {
     val bad = res.notes.count { !it.good }
+    val chords = res.notes.any { it.ref.chord != null }
+    val drums = res.notes.all { it.ref.midi < 0 }
     Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
         Text("${res.score}", style = T.hi.copy(fontSize = 52.sp, color = C.acc))
         Column(Modifier.padding(start = 12.dp)) {
-            Text("${res.notes.size - bad} OF ${res.notes.size} NOTES RIGHT", style = T.button)
+            Text("${res.notes.size - bad} OF ${res.notes.size} ${if (chords) "CHORDS" else if (drums) "HITS" else "NOTES"} RIGHT", style = T.button)
             Text(
-                (if (res.octaveShift != 0) "Taken an octave ${if (res.octaveShift < 0) "down" else "up"}, which isn't counted. " else "") +
-                    "Within ${PerformanceCheck.CENTS_OK} cents and ${PerformanceCheck.TIMING_OK_MS} ms of where your own tempo puts the note.",
+                when {
+                    chords -> "Every note of the chord there in some octave, nothing outside it, within ${PerformanceCheck.TIMING_OK_MS} ms of where your own tempo puts it. Read from the take's Notes → MIDI transcription: if a chord looks wrong, check the transcription first."
+                    drums -> "Within ${PerformanceCheck.DRUM_TIMING_OK_MS} ms of where your own tempo puts the hit."
+                    else -> (if (res.octaveShift != 0) "Taken an octave ${if (res.octaveShift < 0) "down" else "up"}, which isn't counted. " else "") +
+                        "Within ${PerformanceCheck.CENTS_OK} cents and ${PerformanceCheck.TIMING_OK_MS} ms of where your own tempo puts the note."
+                },
                 style = T.small.copy(lineHeight = 15.sp),
             )
         }
     }
-    if (res.notes.any { it.ref.midi >= 0 }) Graph(res)
+    if (!chords && !drums) Graph(res)
     // Problems in sections: notes in a row that were off, with what and why, each to hear against the reference.
     val sections = ArrayList<List<PerformanceCheck.NoteResult>>()
     var cur = ArrayList<PerformanceCheck.NoteResult>()
@@ -213,13 +261,13 @@ private fun Results(model: AppModel, res: PerformanceCheck.Result, t: TakeChoice
         val head = if (s.size == 1) where(s[0].ref) else "${where(s.first().ref)} – ${where(s.last().ref).removePrefix("Bar ")}"
         val why = s.flatMap { it.why }.distinct()
         Text(
-            "$head · ${s.size} NOTE${if (s.size == 1) "" else "S"} OFF" + if (why.isNotEmpty()) " · " + why.joinToString(", ") { it.label }.uppercase() else "",
+            "$head · ${s.size} ${if (chords) "CHORD" else if (drums) "HIT" else "NOTE"}${if (s.size == 1) "" else "S"} OFF" + if (why.isNotEmpty()) " · " + why.joinToString(", ") { it.label }.uppercase() else "",
             style = T.label.copy(color = C.acc), modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 4.dp),
         )
         for (n in s) ProblemRow(model, n, res, t)
     }
     if (res.extra.isNotEmpty()) {
-        Text("EXTRA NOTES (THE REFERENCE RESTS THERE)", style = T.label.copy(color = C.acc), modifier = Modifier.padding(start = 14.dp, top = 14.dp, bottom = 4.dp))
+        Text(if (chords) "EXTRA STRUMS (NO CHORD THERE)" else if (drums) "EXTRA HITS" else "EXTRA NOTES (THE REFERENCE RESTS THERE)", style = T.label.copy(color = C.acc), modifier = Modifier.padding(start = 14.dp, top = 14.dp, bottom = 4.dp))
         for (e in res.extra) Text("${noteName(e.midi)} at ${"%d:%04.1f".format(java.util.Locale.ROOT, (e.start / 60).toInt(), e.start % 60)} in your take", style = T.body, modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp))
     }
 }
@@ -229,6 +277,10 @@ private fun ProblemRow(model: AppModel, n: PerformanceCheck.NoteResult, res: Per
     Column(Modifier.fillMaxWidth().heightIn(min = 58.dp).underline().padding(horizontal = 14.dp, vertical = 8.dp)) {
         Text("${where(n.ref)} · ${noteName(n.ref)}: ${what(n)}", style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
         if (n.why.isNotEmpty()) Text(n.why.joinToString(", ") { it.label }.replaceFirstChar(Char::uppercase), style = T.small)
+        if (n.ref.chord != null && n.takeStart != null) Text(
+            "You played ${notesOf(n.played)}" + if (n.octave.isNotEmpty()) " (${notesOf(n.octave)} only in another octave, not counted)" else "",
+            style = T.small,
+        )
         Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // Yours: the stretch of the take that lined up with this note, looped, half a second either side.
             val (from, to) = (n.takeStart ?: res.warp.firstOrNull { it.first >= n.ref.start }?.second ?: 0.0) to (n.takeEnd ?: res.warp.firstOrNull { it.first >= n.ref.end }?.second ?: 0.0)
@@ -241,7 +293,7 @@ private fun ProblemRow(model: AppModel, n: PerformanceCheck.NoteResult, res: Per
             if (n.ref.midi >= 0) Sq("▶ REFERENCE", {
                 val near = res.notes.map { it.ref }.filter { it.end > n.ref.start - 1.0 && it.start < n.ref.end + 1.0 }
                 val t0 = near.minOf { it.start }
-                hearNotes(model, "perf-${n.ref.start}-${n.ref.midi}", "Reference · ${where(n.ref)}", near.map { PlayNote(it.start - t0, it.end - t0, it.midi, RefSound.VELOCITY) })
+                hearNotes(model, "perf-${n.ref.start}-${n.ref.midi}-${n.ref.chord?.size ?: 1}", "Reference · ${where(n.ref)}", near.flatMap { r -> (r.chord ?: listOf(r.midi)).map { PlayNote(r.start - t0, r.end - t0, it, RefSound.VELOCITY) } })
             })
         }
     }

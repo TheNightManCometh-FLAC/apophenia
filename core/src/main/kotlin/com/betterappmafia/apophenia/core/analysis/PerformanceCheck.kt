@@ -28,23 +28,53 @@ object PerformanceCheck {
     const val TIMING_OK_MS = 70
     private const val SILENCE_COST = 0.6
 
-    /** A reference note; a drum hit has no pitch ([midi] −1), a [label] (the drums it is) and may be [optional] (a ghost note). */
-    data class RefNote(val start: Double, val end: Double, val midi: Int, val bar: Int? = null, val beat: Double? = null, val label: String? = null, val optional: Boolean = false)
+    /**
+     * A reference note; a drum hit has no pitch ([midi] −1), a [label] (the drums it is) and may be [optional] (a ghost
+     * note); a chord ([chords]) holds its pitches in [chord], [midi] being the top one.
+     */
+    data class RefNote(val start: Double, val end: Double, val midi: Int, val bar: Int? = null, val beat: Double? = null, val label: String? = null, val optional: Boolean = false, val chord: List<Int>? = null)
 
     /** Drum timing: how far from your own tempo a hit may land, in ms. [Claude] Tighter than for a melody. */
     const val DRUM_TIMING_OK_MS = 40
 
     /**
      * Drums and percussion (plan §10.6: "timing only, from onsets"). Your [onsets] are matched one to one to the
-     * reference [hits] after finding your tempo and start (every tempo from 0.8× to 1.25× and every way of lining an
-     * early onset up with an early hit is tried; the one that puts most hits within 60 ms of an onset wins), then
-     * judged against a Theil–Sen line through the matches. A hit with no onset within 150 ms is missed (a ghost note
+     * reference [hits] ([lineUp]), then judged against the line through the matches. A hit with no onset within 150 ms is missed (a ghost note
      * isn't counted); an onset with no hit is extra.
      */
     fun drums(hits: List<RefNote>, onsets: List<Double>): Result {
         val h = hits.sortedBy { it.start }
         val o = onsets.sorted()
         if (h.isEmpty()) return Result(emptyList(), emptyList(), 0, 0, emptyList())
+        val m = lineUp(h, o)
+        val hitAt = m.at.map { n -> n?.let { o[it] } }
+        val used = BooleanArray(o.size).also { u -> m.at.forEach { n -> if (n != null) u[n] = true } }
+        val a = m.a; val b = m.b
+        val results = h.indices.map { k ->
+            val at = hitAt[k]
+            if (at == null) NoteResult(h[k], null, null, null, null, null, if (h[k].optional) emptySet() else setOf(Issue.MISSED), emptySet())
+            else {
+                val ms = ((at - (a + b * h[k].start)) * 1000).roundToInt()
+                val issues = buildSet { if (ms > DRUM_TIMING_OK_MS) add(Issue.LATE); if (ms < -DRUM_TIMING_OK_MS) add(Issue.EARLY) }
+                NoteResult(h[k], at, at, null, null, ms, issues, emptySet())
+            }
+        }.toMutableList()
+        markDrift(results, DRUM_TIMING_OK_MS)
+        val extra = o.indices.filter { !used[it] }.map { Extra(o[it], o[it], -1) }
+        val counted = results.filter { !it.ref.optional || it.takeStart != null }
+        return Result(results, extra, if (counted.isEmpty()) 0 else (100.0 * counted.count { it.good } / counted.size).roundToInt(), 0, emptyList())
+    }
+
+    /** Which onset each hit got ([at], an index into the onsets, or null) and the line onset = [a] + [b] · hit time. */
+    private class LineUp(val at: Array<Int?>, val a: Double, val b: Double)
+
+    /**
+     * Your onsets [o] (sorted) matched one to one to the reference's starts [h] (sorted): your tempo and start are found
+     * first (every tempo from 0.8× to 1.25× and every way of lining an early onset up with an early hit; the one that
+     * puts most hits within 60 ms of an onset wins), then closest pairs within 150 ms go first, then a Theil–Sen line
+     * through the pairs.
+     */
+    private fun lineUp(h: List<RefNote>, o: List<Double>): LineUp {
         fun nearest(x: Double): Int {
             var i = java.util.Collections.binarySearch(o, x).let { if (it < 0) -it - 1 else it }
             if (i >= o.size || (i > 0 && x - o[i - 1] < o[i] - x)) i--
@@ -60,30 +90,89 @@ object PerformanceCheck {
             }
         }
         val (ratio, c) = best
-        // One to one, closest pairs first.
         val cand = ArrayList<Triple<Int, Int, Double>>()
         for ((k, x) in h.withIndex()) {
             val e = ratio * x.start + c
             for (n in o.indices) { val d = abs(o[n] - e); if (d < 0.15) cand += Triple(k, n, d) }
         }
-        val hitAt = arrayOfNulls<Double>(h.size); val used = BooleanArray(o.size)
-        for ((k, n, _) in cand.sortedBy { it.third }) if (hitAt[k] == null && !used[n]) { hitAt[k] = o[n]; used[n] = true }
-        val matched = h.indices.filter { hitAt[it] != null }
+        val at = arrayOfNulls<Int>(h.size); val used = BooleanArray(o.size)
+        for ((k, n, _) in cand.sortedBy { it.third }) if (at[k] == null && !used[n]) { at[k] = n; used[n] = true }
+        val matched = h.indices.filter { at[it] != null }
         val sample = if (matched.size > 300) matched.filterIndexed { q, _ -> q % (matched.size / 300 + 1) == 0 } else matched
-        val (a, b) = if (sample.size >= 2) fit(sample.map { h[it].start }, sample.map { hitAt[it]!! }) else c to ratio
+        val (a, b) = if (sample.size >= 2) fit(sample.map { h[it].start }, sample.map { o[at[it]!!] }) else c to ratio
+        return LineUp(at, a, b)
+    }
+
+    /** Each note of a chord may start this long after the one before (a written or played strum, a rolled chord). [Claude] */
+    private const val CHORD_SPREAD = 0.05
+
+    /** How long after a strum begins its notes may still come in (a slow strum), unless the next chord comes first. [Claude] */
+    private const val SLOW_STRUM = 0.2
+
+    /** The reference as chords: notes strummed together ([sameStrum]) become one RefNote holding them in [RefNote.chord]. */
+    fun chordsOf(notes: List<RefNote>): List<RefNote> {
+        val out = ArrayList<RefNote>()
+        var group = ArrayList<RefNote>()
+        fun close() {
+            if (group.isEmpty()) return
+            val g = group
+            out += RefNote(g.minOf { it.start }, g.maxOf { it.end }, g.maxOf { it.midi }, g[0].bar, g[0].beat, chord = g.map { it.midi }.distinct().sorted())
+            group = ArrayList()
+        }
+        for (n in notes.filter { it.midi >= 0 }.sortedBy { it.start }) { if (group.isNotEmpty() && !sameStrum(group, n)) close(); group += n }
+        close()
+        return out
+    }
+
+    /** [n] belongs to the strum [g]: it comes within [CHORD_SPREAD] of the note before, and within [SLOW_STRUM] of the first. */
+    private fun sameStrum(g: List<RefNote>, n: RefNote) = n.start - g.last().start <= CHORD_SPREAD && n.start - g[0].start < SLOW_STRUM
+
+    /**
+     * Chords (plan §10.6: "notes present or missing per chord, from Basic Pitch, at lower confidence"). The reference
+     * becomes chords ([chordsOf]); your [played] notes (a Basic Pitch transcription of the take) become strums the same
+     * way. Strums are lined up with chords on timing alone, as for drums, so a wrong chord on the beat is still that
+     * chord, played wrong. Then, per chord:
+     * - **notes missing**: a pitch class of the chord you didn't play in any octave;
+     * - **wrong notes**: pitch classes you played that aren't in the chord;
+     * - a chord note played only in another octave is listed but not counted wrong ([Claude]: Basic Pitch's commonest
+     *   mistake is the octave, and another voicing of the same chord isn't wrong);
+     * - early or late against your own tempo, and missed when nothing was played near it.
+     */
+    fun chords(reference: List<RefNote>, played: List<RefNote>): Result {
+        val h = chordsOf(reference)
+        if (h.isEmpty()) return Result(emptyList(), emptyList(), 0, 0, emptyList())
+        val p = played.filter { it.midi >= 0 }.sortedBy { it.start }
+        val strums = ArrayList<MutableList<RefNote>>()
+        for (n in p) if (strums.isNotEmpty() && sameStrum(strums.last(), n)) strums.last() += n else strums += mutableListOf(n)
+        val o = strums.map { it[0].start }
+        val m = lineUp(h, o)
+        val owner = IntArray(strums.size) { -1 }
+        h.indices.forEach { k -> m.at[k]?.let { owner[it] = k } }
         val results = h.indices.map { k ->
-            val at = hitAt[k]
-            if (at == null) NoteResult(h[k], null, null, null, null, null, if (h[k].optional) emptySet() else setOf(Issue.MISSED), emptySet())
-            else {
-                val ms = ((at - (a + b * h[k].start)) * 1000).roundToInt()
-                val issues = buildSet { if (ms > DRUM_TIMING_OK_MS) add(Issue.LATE); if (ms < -DRUM_TIMING_OK_MS) add(Issue.EARLY) }
-                NoteResult(h[k], at, at, null, null, ms, issues, emptySet())
+            val n = m.at[k] ?: return@map NoteResult(h[k], null, null, null, null, null, setOf(Issue.MISSED), emptySet())
+            // This strum, and any unmatched strums right after it (the rest of a slow strum).
+            var last = n
+            while (last + 1 < strums.size && owner[last + 1] < 0 && o[last + 1] - o[n] < SLOW_STRUM) { last++; owner[last] = k }
+            val notes = (n..last).flatMap { strums[it] }
+            val pitches = notes.map { it.midi }.distinct().sorted()
+            val want = h[k].chord!!
+            val wantPc = want.map { Math.floorMod(it, 12) }.toSet()
+            val havePc = pitches.map { Math.floorMod(it, 12) }.toSet()
+            val missing = want.filter { Math.floorMod(it, 12) !in havePc }
+            val octave = want.filter { it !in pitches && Math.floorMod(it, 12) in havePc }
+            val wrong = pitches.filter { Math.floorMod(it, 12) !in wantPc }
+            val ms = ((o[n] - (m.a + m.b * h[k].start)) * 1000).roundToInt()
+            val issues = buildSet {
+                if (missing.isNotEmpty()) add(Issue.NOTES_MISSING)
+                if (wrong.isNotEmpty()) add(Issue.WRONG_NOTES)
+                if (ms > TIMING_OK_MS) add(Issue.LATE)
+                if (ms < -TIMING_OK_MS) add(Issue.EARLY)
             }
+            NoteResult(h[k], o[n], notes.maxOf { it.end }, null, null, ms, issues, emptySet(), played = pitches, missing = missing, wrongNotes = wrong, octave = octave)
         }.toMutableList()
-        markDrift(results, DRUM_TIMING_OK_MS)
-        val extra = o.indices.filter { !used[it] }.map { Extra(o[it], o[it], -1) }
-        val counted = results.filter { !it.ref.optional || it.takeStart != null }
-        return Result(results, extra, if (counted.isEmpty()) 0 else (100.0 * counted.count { it.good } / counted.size).roundToInt(), 0, emptyList())
+        markDrift(results, TIMING_OK_MS)
+        val extra = strums.indices.filter { owner[it] < 0 }.map { q -> Extra(o[q], strums[q].maxOf { it.end }, strums[q].maxOf { it.midi }) }
+        return Result(results, extra, (100.0 * results.count { it.good } / results.size).roundToInt(), 0, emptyList())
     }
 
     /**
@@ -125,16 +214,24 @@ object PerformanceCheck {
         }
     }
 
-    enum class Issue(val label: String) { MISSED("missed"), WRONG_NOTE("wrong note"), SHARP("sharp"), FLAT("flat"), EARLY("early"), LATE("late") }
+    enum class Issue(val label: String) {
+        MISSED("missed"), WRONG_NOTE("wrong note"), SHARP("sharp"), FLAT("flat"), EARLY("early"), LATE("late"),
+        NOTES_MISSING("notes missing"), WRONG_NOTES("notes not in the chord"),
+    }
     enum class Why(val label: String) {
         SCOOP("scooping up into the note"), DRIFT_FLAT("drifting flat on a held note"), DRIFT_SHARP("drifting sharp on a held note"),
         VIBRATO_OFF("vibrato centred off the pitch"), RUSHING("rushing the phrase"), DRAGGING("dragging the phrase"),
     }
 
-    /** One reference note: where you played it in the take, cents off, semitones off when wrong, ms early (−) or late (+). */
+    /**
+     * One reference note: where you played it in the take, cents off, semitones off when wrong, ms early (−) or late (+).
+     * For a chord: the pitches you [played], the chord's [missing] ones, your [wrongNotes], and chord notes you played
+     * only in another [octave].
+     */
     data class NoteResult(
         val ref: RefNote, val takeStart: Double?, val takeEnd: Double?, val cents: Int?, val wrongBy: Int?, val timingMs: Int?,
         val issues: Set<Issue>, val why: Set<Why>,
+        val played: List<Int> = emptyList(), val missing: List<Int> = emptyList(), val wrongNotes: List<Int> = emptyList(), val octave: List<Int> = emptyList(),
     ) { val good get() = issues.isEmpty() }
 
     /** A pitched stretch of the take that lines up with silence in the reference. */

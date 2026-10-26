@@ -36,7 +36,7 @@ private val AI_TOOLS = listOf(
     AiTool("Find the chords", "per beat → a chord chart · automatic on every take", "ANALYSIS", "READY"),
     AiTool("Tempo and key", "ranked guesses with the reason shown · automatic on every take", "ANALYSIS", "READY"),
     AiTool("Speech → text", "voice memos and thinking out loud, time-stamped · a recording's AI ▾ › Speech → text", "MOONSHINE", "READY"),
-    AiTool("Performance check", "a take of you against a written part or a transcription; where and why you were off · tap to start", "PITCH + DTW", "READY"),
+    AiTool("Performance check", "a take of you against a written part, a transcription or a drum chart: single lines, chords, drums; where and why you were off · tap to start", "PITCH · NOTES · ONSETS", "READY"),
 )
 
 /**
