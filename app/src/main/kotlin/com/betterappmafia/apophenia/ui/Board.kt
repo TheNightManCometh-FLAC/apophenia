@@ -142,14 +142,10 @@ private fun ProjectBoard(model: AppModel, project: ProjectEntity, requestMic: ((
         val list = rows ?: return@Column
         if (list.isEmpty()) {
             Text(
-                "Nothing on this Board yet. Record, write anything (WRITE ▾ or + NEW at the top: lyrics, a note, a chord or drum chart, tab, sheet music, the piano roll), or add scraps from the Library (they stay there, and in any other project too).",
+                "Nothing on this Board yet. + NEW at the top records or writes anything into it (a take, lyrics, a note, a chord or drum chart, tab, sheet music, the piano roll); ⋯ › Add from the Library brings scraps in (they stay in the Library, and in any other project too).",
                 style = T.body.copy(lineHeight = 20.sp), modifier = Modifier.padding(14.dp).weight(1f),
             )
-            Row(Modifier.fillMaxWidth()) {
-                BigButton("● RECORD", { record() })
-                WriteButton(model, project.id)
-                BigButton("LIBRARY ›", { model.pickFromLibrary(project.id) }, primary = true)
-            }
+            // No add row of its own (Christopher, 26 Oct 2026): the top strip's REC and + NEW are the ways in.
             return@Column
         }
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {

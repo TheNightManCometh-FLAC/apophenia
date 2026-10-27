@@ -2,6 +2,13 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.9.11 (26 Oct 2026): the empty Board has no add row of its own
+Christopher on finding 5: "Drop the empty Board's add row; the top strip's REC and + NEW are enough."
+- An empty project Board no longer has ● RECORD · WRITE ▾ · LIBRARY ›. Its text points to + NEW at the top (which, on a Board, records or writes into the project) and to ⋯ › Add from the Library. The ⋯ menu still has Record into the project, the Write items and Add from the Library.
+- The no-project screen (shown when no project is open) keeps + NEW PROJECT and its row, since it isn't a Board.
+- **Tests: 605**, unchanged. Emulator-verified: a new empty project shows only the text. Not on the phone.
+- Emulator-pass findings now all closed except 20 (key guess on a short take: needs a real mic on the phone) and 2 (set aside).
+
 ## Build 0.9.10 (26 Oct 2026): one toolbar in the piano roll
 Christopher said to skip the Device Lab finding (he hasn't used it) and continue.
 - **14** In piano-roll view, the step-entry rows (length bar; INPUT / MODE / ADD / EFFECTS / TUNING / EDIT / SCORE) and NEXT › / + CHORD are hidden. Only the roll's own toolbar shows (TOOL / SNAP / SCALE / EDIT / TOOLS / zoom), with ▶ PLAY under the roll. Before, there were two EDIT ▾ menus on screen.
