@@ -272,8 +272,9 @@ fun ScoreDetail(model: AppModel, row: LibraryRow, projectId: Long?) {
         }
 
         // C4's duration bar: pick a length (it goes on the selected beat and on what NEXT adds), dots, rest, tie, tuplet, voice.
+        // The piano roll has its own toolbar (draw, snap, EDIT, TOOLS), so neither step-entry row shows over it.
         val lenScroll = rememberScrollState()
-        Row(Modifier.fillMaxWidth().underline().scrollCue(lenScroll).horizontalScroll(lenScroll).padding(horizontal = 6.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (!roll) Row(Modifier.fillMaxWidth().underline().scrollCue(lenScroll).horizontalScroll(lenScroll).padding(horizontal = 6.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             DURATION_BAR.forEach { (v, glyph, name) ->
                 DurKey(glyph, name, on = entryValue == v) { entryValue = v; applyDuration(enter = true) }
             }
@@ -317,7 +318,7 @@ fun ScoreDetail(model: AppModel, row: LibraryRow, projectId: Long?) {
         }
         // C4's tab toolbar: INPUT, EFFECTS, TUNING, EDIT, SCORE.
         val menuScroll = rememberScrollState()
-        Row(Modifier.fillMaxWidth().underline().scrollCue(menuScroll).horizontalScroll(menuScroll).padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (!roll) Row(Modifier.fillMaxWidth().underline().scrollCue(menuScroll).horizontalScroll(menuScroll).padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Box {
                 Sq("INPUT: ${when (input) { "frets" -> "FRETS"; "staff" -> "STAFF"; else -> "PIANO" }} ▾", { inputMenu = true })
                 ConsoleMenu(inputMenu, { inputMenu = false }, "ENTER NOTES WITH", listOf(
@@ -667,7 +668,8 @@ fun ScoreDetail(model: AppModel, row: LibraryRow, projectId: Long?) {
             DisposableEffect(Unit) { onDispose { rtJob?.cancel(); if (rtRunning) model.app.audio.setClick(false, rtUserBpm) } }
             LaunchedEffect(realtimeOff) { if (realtimeOff) { rtFinish(); realtimeOff = false } }
             if (roll) {
-                PianoRollPane(score, part, voice, cursor?.let { it.bar to it.index }, { commit(it) }, { playPitch(model, it) }, { model.notice(it) })
+                PianoRollPane(score, part, voice, cursor?.let { it.bar to it.index }, { commit(it) }, { playPitch(model, it) }, { model.notice(it) },
+                    undo = if (at > 0) ({ restore(at - 1) }) else null, redo = if (at < history.lastIndex) ({ restore(at + 1) }) else null)
             } else if (chartView) {
                 ChordChartPane(score, part, title, playingHere && p!!.playing, { if (playingHere) model.app.audio.togglePlay() else playScore(model, s.id, title, score, part, chords = true) }, model) { commit(it) }
             } else if (notation) {
@@ -693,7 +695,7 @@ fun ScoreDetail(model: AppModel, row: LibraryRow, projectId: Long?) {
                 Sq(if (playingHere && p!!.playing) "■ STOP" else "▶ PLAY", {
                     if (playingHere) model.app.audio.togglePlay() else playScore(model, s.id, title, score, part)
                 }, on = true)
-                when (mode) {
+                if (!roll) when (mode) {
                     "realtime" -> {
                         Sq(if (rtRunning) "■ STOP CLICK" else "● START CLICK", { if (rtRunning) rtFinish() else rtStart() }, on = true, color = if (rtRunning) C.rec else C.hi)
                         Sq("ADVANCE ›", { rtTick(restIfNone = true) })
@@ -708,7 +710,7 @@ fun ScoreDetail(model: AppModel, row: LibraryRow, projectId: Long?) {
                         select(p2); lastInserted = null
                     }, on = true)
                 }
-                if (input != "frets" && mode != "realtime" && mode != "tap") Sq(if (chordAdd) "+ CHORD ✓" else "+ CHORD", { chordAdd = !chordAdd }, on = chordAdd)
+                if (!roll && input != "frets" && mode != "realtime" && mode != "tap") Sq(if (chordAdd) "+ CHORD ✓" else "+ CHORD", { chordAdd = !chordAdd }, on = chordAdd)
             }
             if (!roll && !chartView) {
             val ev = selEvent

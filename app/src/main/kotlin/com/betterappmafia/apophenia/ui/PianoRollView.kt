@@ -64,6 +64,7 @@ private val SNAPS = listOf("Bar" to 0L, "Beat (♩)" to 960L, "♪ 1/8" to 480L,
 @Composable
 fun PianoRollPane(
     score: Score, part: Part, voice: Int, cursor: Pair<Int, Int>?, commit: (Score) -> Unit, play: (Int) -> Unit, notice: (String) -> Unit,
+    undo: (() -> Unit)? = null, redo: (() -> Unit)? = null,
 ) {
     val density = LocalDensity.current
     val sp = remember(score.key) { KeySpeller(score.key ?: KeyMode.parseOrNull("C major")!!) }
@@ -123,11 +124,13 @@ fun PianoRollPane(
             Sq("SNAP: ${SNAPS.first { it.second == snap }.first.uppercase()} ▾", { snapMenu = true })
             ConsoleMenu(snapMenu, { snapMenu = false }, "SNAP TO GRID", SNAPS.map { (label, t) -> MenuItem(label, if (snap == t) "✓" else "") { snap = t } })
         }
-        Sq(if (scaleSnap) "SCALE ✓" else "SCALE", { if (score.key == null) notice("Snap to scale needs a key: ADD ▾ › Clefs · keys · meters.") else scaleSnap = !scaleSnap }, on = scaleSnap)
+        Sq(if (scaleSnap) "SCALE ✓" else "SCALE", { if (score.key == null) notice("Snap to scale needs a key: PIANO ROLL ▾ › Notation, then ADD ▾ › Clefs · keys · meters.") else scaleSnap = !scaleSnap }, on = scaleSnap)
         if (score.parts.size > 1) Sq(if (ghosts) "GHOSTS ✓" else "GHOSTS", { ghosts = !ghosts }, on = ghosts)
         Box {
             Sq("EDIT ▾", { editMenu = true })
             ConsoleMenu(editMenu, { editMenu = false }, "EDIT · $targetWord", listOf(
+                MenuItem("Undo", if (undo != null) "" else "NOTHING", enabled = undo != null) { undo?.invoke() },
+                MenuItem("Redo", if (redo != null) "" else "NOTHING", enabled = redo != null) { redo?.invoke() },
                 MenuItem("Select all", "${notes.size}") { selection = notes.map { it.id }.toSet() },
                 MenuItem("Deselect", "", enabled = sel.isNotEmpty()) { selection = emptySet() },
                 MenuItem("Duplicate", "AFTER IT", enabled = sel.isNotEmpty()) { val (n, ids) = PianoRoll.duplicate(notes, sel); apply(n, ids) },

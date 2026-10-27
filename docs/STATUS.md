@@ -2,6 +2,13 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.9.10 (26 Oct 2026): one toolbar in the piano roll
+Christopher said to skip the Device Lab finding (he hasn't used it) and continue.
+- **14** In piano-roll view, the step-entry rows (length bar; INPUT / MODE / ADD / EFFECTS / TUNING / EDIT / SCORE) and NEXT › / + CHORD are hidden. Only the roll's own toolbar shows (TOOL / SNAP / SCALE / EDIT / TOOLS / zoom), with ▶ PLAY under the roll. Before, there were two EDIT ▾ menus on screen.
+- The roll's EDIT ▾ gained Undo and Redo, which share the editor's history [Claude]. SCALE without a key now says to use PIANO ROLL ▾ › Notation, then ADD ▾, because ADD ▾ isn't on the roll's toolbar.
+- **Tests: 605**, unchanged. Emulator-verified: one toolbar; drawing a note, then EDIT ▾ › Undo, removes it. Not on the phone.
+- Still open: 5 (the empty Board's add row) and 20 (the key guess on a short take). 2 (Device Lab icon) is set aside.
+
 ## Build 0.9.9 (26 Oct 2026): a note heard while writing stays out of the player
 Christopher on finding 13: "Yes, separate."
 - Tapping a fret, a piano key or a piano-roll note now sounds through a **cue voice** in the audio engine (`nativeCue`, `renderCue` in `engine.cpp`), mixed beside the player. Whatever is loaded in the bottom player stays loaded and keeps its place. Before, each note was loaded into the player as "Note", which replaced the take.
