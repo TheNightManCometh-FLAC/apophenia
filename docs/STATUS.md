@@ -2,6 +2,14 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.9.9 (26 Oct 2026): a note heard while writing stays out of the player
+Christopher on finding 13: "Yes, separate."
+- Tapping a fret, a piano key or a piano-roll note now sounds through a **cue voice** in the audio engine (`nativeCue`, `renderCue` in `engine.cpp`), mixed beside the player. Whatever is loaded in the bottom player stays loaded and keeps its place. Before, each note was loaded into the player as "Note", which replaced the take.
+- The cue is a 2 s buffer in five pre-allocated slots. The control thread fills a slot the audio thread isn't reading, then publishes it; a new note fades the old one out over 5 ms [Claude]. Notes are rendered once per MIDI number and kept in memory (`pitchCache`, 17 MB at most) instead of as WAV files.
+- Other ▶ buttons (Reference, Ear, Performance check, a score's ▶ PLAY) still load into the player, as before.
+- **Tests: 605**, unchanged; the engine change has no unit test (C++ callback). Emulator-verified: with the tab loaded in the player, tapping a fret left "GUITAR TAB 0:09 / 0:10" in the player and nothing crashed. **Not ear-verified**: the emulator has no usable sound here, so whether the note is heard needs the phone.
+- Still open for Christopher: 2, 5, 14 (two toolbars), 20.
+
 ## Build 0.9.8 (26 Oct 2026): emulator-pass findings fixed
 Christopher said "Continue" on fixing the emulator-pass findings (`docs/reviews/emulator-pass-2026-10-26.md`). Fixed:
 - **11** Music labels no longer go through `uppercase()`: Ear's drill lists read m2 · M2 · m3 · M3; a Reference chord page lists its other names as written (Cmin · Cmi · C-, not "CM · CM · CM").

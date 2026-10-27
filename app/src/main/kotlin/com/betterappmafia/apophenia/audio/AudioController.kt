@@ -228,6 +228,9 @@ class AudioController(private val context: Context, private val audioDir: File) 
         ensurePolling()
     }
 
+    /** A short sound heard while writing (a note): played once beside the player, never loaded into it. */
+    fun cue(pcm: FloatArray) = scope.launch { NativeEngine.cue(pcm) }
+
     private val _tuner = MutableStateFlow(false)
     /** True while the tuner's screen holds the mic open (no pre-roll). */
     val tuner: StateFlow<Boolean> = _tuner.asStateFlow()

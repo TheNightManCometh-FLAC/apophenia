@@ -59,6 +59,10 @@ object NativeEngine {
 
     fun setDrone(on: Boolean, hz: FloatArray) = nativeSetDrone(on, hz)
 
+    /** Plays [pcm] (mono, at [sampleRate], two seconds at most) once beside the player, which it leaves alone. */
+    fun cue(pcm: FloatArray) = nativeCue(pcm)
+    private external fun nativeCue(pcm: FloatArray)
+
     /** Isolator settings (live): panMode 0 off / 1 keep / 2 remove; toneHit -1..1; cuts in Hz, 0 = off. */
     fun setIsolator(panMode: Int, panCenter: Float, panWidth: Float, toneHit: Float, lowCut: Float, highCut: Float) =
         nativeSetIsolator(panMode, panCenter, panWidth, toneHit, lowCut, highCut)

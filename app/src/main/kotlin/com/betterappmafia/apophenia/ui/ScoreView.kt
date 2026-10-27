@@ -1256,15 +1256,21 @@ internal fun playScore(model: AppModel, scrapId: Long, title: String, score: Sco
     }
 }
 
-/** One note on the piano, at mf, held most of a second. */
+/**
+ * One note on the piano, at mf, held most of a second. It sounds beside the bottom player (Christopher, 26 Oct
+ * 2026): whatever is loaded there stays loaded and keeps its place.
+ */
 private fun playPitch(model: AppModel, midi: Int) {
     model.app.io.launch {
-        val f = renderReference(model, "piano-$midi-v1.wav") {
-            Piano.render(model.app, listOf(PlayNote(0.0, 0.8, midi, Piano.RECORDED)), model.app.audio.sampleRate, 1.0)
+        val pcm = synchronized(pitchCache) {
+            pitchCache.getOrPut(midi) { Piano.render(model.app, listOf(PlayNote(0.0, 0.8, midi, Piano.RECORDED)), model.app.audio.sampleRate, 1.0) }
         }
-        model.app.audio.load(REFERENCE_SCRAP, -1, "Note", f.absolutePath, play = true)
+        model.app.audio.cue(pcm)
     }
 }
+
+/** Rendered notes by MIDI number: 88 keys at one second each is 17 MB at most, so they are kept. */
+private val pitchCache = HashMap<Int, FloatArray>()
 
 /** A read-only tab staff for [part], as the Course draws it. */
 @Composable

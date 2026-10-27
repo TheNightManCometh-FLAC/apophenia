@@ -544,6 +544,23 @@ public:
     double dronePhase[4] = {0, 0, 0, 0};
     float droneLevel = 0.0f;                 // audio thread: ramps to on/off
 
+    // cue: a short sound heard while writing (one note, a chord), mixed beside the player so the take
+    // loaded there stays put. Five slots: the control thread fills one that is neither published nor
+    // claimed, playing or fading by the audio thread, then publishes it (slot + 5 * generation).
+    static constexpr int kCueSlots = 5;
+    static constexpr int kCueFrames = kRate * 2;
+    static constexpr int kCueFade = kRate / 200;   // 5 ms: a new cue fades the old one out instead of cutting it
+    std::vector<float> cue[kCueSlots];
+    int cueLen[kCueSlots] = {};              // written before publish, read after the load of cuePublished
+    std::atomic<int> cuePublished{-1};
+    std::atomic<int> cueClaim{-1};           // audio thread: the slot it is about to start
+    std::atomic<int> cuePlaying{-1};         // audio thread: the slot it reads
+    std::atomic<int> cueFadingSlot{-1};      // audio thread: the slot it fades out
+    int cueGen = 0;                          // control thread
+    int cueSeen = -1, cueSlot = -1, cueOld = -1;   // audio thread
+    int64_t cuePos = 0, cueOldPos = 0;
+    int cueOldLeft = 0;
+
     std::vector<float> scratch = std::vector<float>(kMaxCallbackFrames);
     std::vector<PlayFrame> playScratch = std::vector<PlayFrame>(kMaxCallbackFrames);
     Player *lastPlayer = nullptr;            // audio thread: the player mixed in the last callback
@@ -570,7 +587,10 @@ public:
     std::vector<int64_t> lastGrid;           // control thread: [aligned, n, frame, flags, frame, flags…]
     std::vector<int64_t> lastGridCounted;    // control thread: the same clicks placed by frame counts only, as overdubs are
 
-    Engine() { for (auto &h : droneHz) h.store(0.0f); }
+    Engine() {
+        for (auto &h : droneHz) h.store(0.0f);
+        for (auto &c : cue) c.assign(kCueFrames, 0.0f);
+    }
     int inputPreset = static_cast<int>(oboe::InputPreset::VoiceRecognition);
     int inputDevice = oboe::kUnspecified;    // control thread: the mic to open (the phone's own while headphones are the output)
     std::unique_ptr<Recording> rec;
@@ -709,6 +729,37 @@ void renderDrone(Engine &e, float *mix, int frames, int rate) {
     }
 }
 
+// The cue: the newest published sound, once. Starting a new one fades the old one out over kCueFade.
+// The claim, then a second look at cuePublished, keeps the control thread off a slot this is about to read.
+void renderCue(Engine &e, float *mix, int frames) {
+    const int v = e.cuePublished.load();
+    if (v >= 0 && v != e.cueSeen) {
+        const int s = v % Engine::kCueSlots;
+        e.cueClaim.store(s);
+        if (e.cuePublished.load() == v) {
+            if (e.cueSlot >= 0 && e.cuePos < e.cueLen[e.cueSlot]) {
+                e.cueOld = e.cueSlot; e.cueOldPos = e.cuePos; e.cueOldLeft = Engine::kCueFade;
+                e.cueFadingSlot.store(e.cueOld);
+            }
+            e.cuePlaying.store(s);
+            e.cueSeen = v; e.cueSlot = s; e.cuePos = 0;
+        }
+        e.cueClaim.store(-1);
+    }
+    if (e.cueOld >= 0) {
+        const float *o = e.cue[e.cueOld].data();
+        const int64_t len = e.cueLen[e.cueOld];
+        for (int i = 0; i < frames && e.cueOldLeft > 0 && e.cueOldPos < len; ++i, --e.cueOldLeft)
+            mix[i] += o[e.cueOldPos++] * static_cast<float>(e.cueOldLeft) / Engine::kCueFade;
+        if (e.cueOldLeft <= 0 || e.cueOldPos >= len) { e.cueOld = -1; e.cueFadingSlot.store(-1); }
+    }
+    if (e.cueSlot >= 0) {
+        const float *c = e.cue[e.cueSlot].data();
+        const int64_t len = e.cueLen[e.cueSlot];
+        for (int i = 0; i < frames && e.cuePos < len; ++i) mix[i] += c[e.cuePos++];
+    }
+}
+
 class OutputCallback : public oboe::AudioStreamDataCallback, public oboe::AudioStreamErrorCallback {
 public:
     oboe::DataCallbackResult onAudioReady(oboe::AudioStream *s, void *data, int32_t n) override {
@@ -767,6 +818,7 @@ public:
 
         renderClick(e, mix, frames, rate);
         renderDrone(e, mix, frames, rate);
+        renderCue(e, mix, frames);
 
         for (int i = 0; i < frames; ++i) {
             const float v = std::clamp(mix[i], -1.0f, 1.0f);
@@ -1063,6 +1115,21 @@ JNI() void JNICALL FN(nativeSetDrone)(JNIEnv *env, jobject, jboolean on, jfloatA
     e.droneCount.store(n, std::memory_order_release);
     if (on) ensureOutput();
     e.droneOn.store(on);
+}
+
+// Plays [pcm] (mono, kRate, at most two seconds) once, beside the player: a note heard while writing.
+// Control thread only (one caller at a time).
+JNI() void JNICALL FN(nativeCue)(JNIEnv *env, jobject, jfloatArray pcmA) {
+    Engine &e = engine();
+    const int published = e.cuePublished.load();
+    const int busy[4] = {published < 0 ? -1 : published % Engine::kCueSlots, e.cueClaim.load(), e.cuePlaying.load(), e.cueFadingSlot.load()};
+    int s = 0;
+    while (std::find(std::begin(busy), std::end(busy), s) != std::end(busy)) ++s;   // five slots, four busy at most
+    const jsize n = std::min<jsize>(env->GetArrayLength(pcmA), Engine::kCueFrames);
+    env->GetFloatArrayRegion(pcmA, 0, n, e.cue[s].data());
+    e.cueLen[s] = n;
+    e.cuePublished.store(s + Engine::kCueSlots * (e.cueGen++ % 100000));
+    ensureOutput();
 }
 
 // The tuner holds the mic open while its screen is up (plan §7), with no pre-roll. Returns false if
