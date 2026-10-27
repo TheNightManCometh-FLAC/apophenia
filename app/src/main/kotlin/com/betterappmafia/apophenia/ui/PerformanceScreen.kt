@@ -127,6 +127,7 @@ fun PerformanceScreen(model: AppModel) {
             takes = lib.filter { it.format == ScrapFormat.RECORDING }.flatMap { s ->
                 model.app.db.takes().takesOf(s.id).map { t -> TakeChoice("${displayTitle(s)} · ${t.letter}", displayTitle(s), t) }
             }
+            model.performanceTake?.let { id -> take = takes?.firstOrNull { it.take.id == id }; model.performanceTake = null }
         }
     }
     fun run() {

@@ -104,6 +104,10 @@ class AppModel(val app: ApopheniaApp) {
     var showNotices by mutableStateOf(false)
     /** AI › Performance check open over the AI screen. */
     var performanceOpen by mutableStateOf(false)
+    /** The take a recording's AI ▾ › Performance check opens with as YOU PLAYED; the screen takes it once it has loaded. */
+    var performanceTake: Long? = null
+
+    fun checkPerformance(takeId: Long) { go(Mode.AI); performanceTake = takeId; performanceOpen = true }
 
     /** The exercise open in PRACTICE › EXERCISES, by id. */
     var exerciseOpen by mutableStateOf<Long?>(null)
@@ -151,6 +155,8 @@ class AppModel(val app: ApopheniaApp) {
     // ---- How chord symbols are read (plan §6.2): pop or jazz for the ambiguous ones, and the note names. ----
     /** The project shown in stand mode (plan §4.4), or null. Kept here so turning the phone doesn't leave it. */
     var standProject by mutableStateOf<Long?>(null)
+    /** The orientation asked for before Stand mode turned the screen, kept here because turning rebuilds the activity. */
+    var standOrientationBefore: Int? = null
 
     var chordDialect by mutableStateOf(com.betterappmafia.apophenia.core.chord.ChordDialect())
         private set
@@ -159,9 +165,11 @@ class AppModel(val app: ApopheniaApp) {
         app.io.launch { chordDialect = com.betterappmafia.apophenia.core.chord.ChordDialect.parse(app.db.settings().get(CHORD_DIALECT)) }
     }
 
-    /** The Ear drill open (plan §9), its mode (LISTEN, PRACTICE, TEST), the sound settings and how answers are given. */
+    /** The Ear drill open (plan §9), the sound settings and how answers are given. */
     var earDrill by mutableStateOf<String?>(null)
-    var earMode by mutableStateOf("PRACTICE")
+    /** Ear's home: PRACTICE or HIGH SCORES, and the drill type open in PRACTICE; kept here so leaving a drill returns to them. */
+    var earSection by mutableStateOf("PRACTICE")
+    var earFamily by mutableStateOf<String?>(null)
     var earSettings by mutableStateOf(com.betterappmafia.apophenia.core.learn.EarSettings())
     /** NAME, PIANO or GUITAR. */
     var earAnswerOn by mutableStateOf("NAME")

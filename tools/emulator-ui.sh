@@ -4,7 +4,7 @@
 # ui.sh tap X Y | text "words" | back | swipeup | swipedown | crash
 export MSYS_NO_PATHCONV=1
 ADB="/d/Android/Sdk/platform-tools/adb.exe -s emulator-5554"
-SP="C:/Users/Wi-Fi/AppData/Local/Temp/claude/C--Users-Wi-Fi-Apophenia/d49f80a5-ad09-4b12-a909-6c9a51e48d0e/scratchpad"
+SP="${SP:-C:/Users/Wi-Fi/AppData/Local/Temp/claude/C--Users-Wi-Fi--claude-spares-spare-plRSHS/9b9131c3-5e17-4735-b4af-e474fb2b0d0b/scratchpad}"
 case "$1" in
   dump)
     $ADB shell uiautomator dump /sdcard/u.xml >/dev/null 2>&1

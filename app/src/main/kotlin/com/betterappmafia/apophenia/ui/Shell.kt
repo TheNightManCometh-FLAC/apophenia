@@ -95,7 +95,8 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
         model.restartMessage?.let { RestartScreen(it) }
     }
 
-    BackHandler(enabled = model.sheet != Sheet.None || model.correcting != null || model.detail != null || model.showTrash || model.showNotices || model.showSettings || model.showStack || model.selecting || model.performanceOpen || (model.mode == Mode.EXERCISES && model.exerciseOpen != null) || (model.mode == Mode.TOOLS && model.tools.screen != null) || (model.mode.learn && (model.learnRudiment != null || model.learnGroove != null))) {
+    BackHandler(enabled = model.sheet != Sheet.None || model.correcting != null || model.detail != null || model.showTrash || model.showNotices || model.showSettings || model.showStack || model.selecting || model.performanceOpen || (model.mode == Mode.EXERCISES && model.exerciseOpen != null) || (model.mode == Mode.TOOLS && model.tools.screen != null) || (model.mode.learn && (model.learnRudiment != null || model.learnGroove != null)) ||
+        (model.mode == Mode.REFERENCE && (model.refPage != null || model.learnList != null)) || (model.mode == Mode.COURSE && (model.coursePage != null || model.courseCat != null))) {
         when {
             model.sheet != Sheet.None -> model.sheet = Sheet.None
             model.correcting != null -> model.correcting = null
@@ -109,6 +110,11 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
             model.mode == Mode.TOOLS && model.tools.screen != null -> model.tools.screen = null
             model.mode.learn && model.learnGroove != null -> model.learnGroove = null
             model.mode.learn && model.learnRudiment != null -> model.learnRudiment = null
+            // Back goes up one level, as each screen's ‹ does (it left the app from any Reference or Course page).
+            model.mode == Mode.REFERENCE && model.refPage != null -> model.refPage = null
+            model.mode == Mode.REFERENCE && model.learnList != null -> model.learnList = model.learnList!!.let { if (":" in it) it.substringBefore(":") else null }
+            model.mode == Mode.COURSE && model.coursePage != null -> { model.courseCat = com.betterappmafia.apophenia.core.learn.Course.categoryOf(model.coursePage!!)?.id; model.coursePage = null }
+            model.mode == Mode.COURSE && model.courseCat != null -> model.courseCat = null
             else -> model.showTrash = false
         }
     }
@@ -224,10 +230,12 @@ private fun ClickRecBar(model: AppModel, mic: Mic, requestMic: (() -> Unit) -> U
         ToolsSlots(model, Modifier.weight(1f))
         Box(Modifier.width(1.dp).fillMaxHeight().background(C.line))
         val recording = mic == Mic.RECORDING
+        // While the stack plays, ● REC records a new layer of it (AppModel.startRecording); the spoken label says so.
+        val stack by audio.stack.collectAsState()
         Box(
             Modifier.weight(0.85f).fillMaxHeight()
                 .clickable(role = Role.Button) { if (recording) model.stopRecording() else requestMic { model.startRecording() } }
-                .semantics { contentDescription = if (recording) "Stop recording" else "Record to the Library" },
+                .semantics { contentDescription = if (recording) "Stop recording" else if (stack?.playing == true) "Record a new layer of the playing stack" else "Record to the Library" },
             contentAlignment = Alignment.Center,
         ) { Text(if (recording) "■ STOP" else "● REC", style = T.button.copy(color = C.rec, fontSize = 12.sp)) }
         Box(Modifier.width(1.dp).fillMaxHeight().background(C.line))

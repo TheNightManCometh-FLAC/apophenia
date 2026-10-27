@@ -78,11 +78,16 @@ fun StandMode(model: AppModel, projectId: Long, requestMic: (() -> Unit) -> Unit
     val activity = LocalContext.current as? Activity
     val view = LocalView.current
     DisposableEffect(Unit) {
-        val before = activity?.requestedOrientation
+        if (model.standOrientationBefore == null) model.standOrientationBefore = activity?.requestedOrientation
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         view.keepScreenOn = true
         onDispose {
-            activity?.requestedOrientation = before ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            // Turning to landscape rebuilds the activity, which disposes this first: only leaving Stand mode turns back
+            // (resetting here sent the rebuilt activity to portrait, then to landscape again).
+            if (activity?.isChangingConfigurations != true) {
+                activity?.requestedOrientation = model.standOrientationBefore ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                model.standOrientationBefore = null
+            }
             view.keepScreenOn = false
         }
     }
@@ -137,35 +142,41 @@ fun StandMode(model: AppModel, projectId: Long, requestMic: (() -> Unit) -> Unit
             Box(Modifier.height(400.dp))
         }
         // One-thumb controls.
-        Column(Modifier.width(92.dp).fillMaxHeight().background(C.panel), verticalArrangement = Arrangement.SpaceEvenly, horizontalAlignment = Alignment.CenterHorizontally) {
-            Box {
-                StandKey(if (p?.playing == true) "■" else "▶", if (p?.playing == true) "Stop" else "Play", C.acc) {
-                    if (p?.playing == true) model.app.audio.togglePlay() else playMenu = true
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.width(92.dp).fillMaxHeight().background(C.panel)) {
+            val keyH = minOf(64.dp, (maxHeight - 16.dp) / 7)
+            androidx.compose.runtime.CompositionLocalProvider(LocalKeyHeight provides keyH) { Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly, horizontalAlignment = Alignment.CenterHorizontally) {
+                Box {
+                    StandKey(if (p?.playing == true) "■" else "▶", if (p?.playing == true) "Stop" else "Play", C.acc) {
+                        if (p?.playing == true) model.app.audio.togglePlay() else playMenu = true
+                    }
+                    ConsoleMenu(playMenu, { playMenu = false }, "PLAY ALONG", playAlongItems(model, rows, p, projectId, inStack))
                 }
-                ConsoleMenu(playMenu, { playMenu = false }, "PLAY ALONG", playAlongItems(model, rows, p, projectId, inStack))
-            }
-            StandKey("⟲", "Back to the start", C.hi) { if (p != null) model.app.audio.seek(0f, play = p.playing) }
-            StandKey(if (p?.playback?.hasLoop == true) "⟳✓" else "⟳", if (p?.playback?.hasLoop == true) "Stop looping" else "Loop the line being played", if (p?.playback?.hasLoop == true) C.acc else C.hi) {
-                val pl = p ?: return@StandKey
-                if (pl.playback.hasLoop) model.app.audio.setPlayback(pl.playback.copy(loopA = -1, loopB = -1))
-                else loopSpan(ordered, pl, syncs)?.let { (a, b) -> model.app.audio.setPlayback(pl.playback.copy(loopA = a, loopB = b)) }
-                    ?: model.notice("Play something on the Board first; a recording loops a line of a lyric synced to it.")
-            }
-            StandKey(if (recording) "■" else "●", if (recording) "Stop recording" else "Record into this project over the playback", C.rec) {
-                if (recording) model.stopRecording()
-                else requestMic { model.startRecording(RecordTarget.Project(projectId, model.projectName(projectId) ?: "")) }
-            }
-            StandKey("A+", "Larger type", C.hi) { size = (size + 4).coerceAtMost(56) }
-            StandKey("A−", "Smaller type", C.hi) { size = (size - 4).coerceAtLeast(14) }
-            StandKey("✕", "Leave stand mode", C.dim) { exit() }
+                StandKey("⟲", "Back to the start", C.hi) { if (p != null) model.app.audio.seek(0f, play = p.playing) }
+                StandKey(if (p?.playback?.hasLoop == true) "⟳✓" else "⟳", if (p?.playback?.hasLoop == true) "Stop looping" else "Loop the line being played", if (p?.playback?.hasLoop == true) C.acc else C.hi) {
+                    val pl = p ?: return@StandKey
+                    if (pl.playback.hasLoop) model.app.audio.setPlayback(pl.playback.copy(loopA = -1, loopB = -1))
+                    else loopSpan(ordered, pl, syncs)?.let { (a, b) -> model.app.audio.setPlayback(pl.playback.copy(loopA = a, loopB = b)) }
+                        ?: model.notice("Play something on the Board first; a recording loops a line of a lyric synced to it.")
+                }
+                StandKey(if (recording) "■" else "●", if (recording) "Stop recording" else "Record into this project over the playback", C.rec) {
+                    if (recording) model.stopRecording()
+                    else requestMic { model.startRecording(RecordTarget.Project(projectId, model.projectName(projectId) ?: "")) }
+                }
+                StandKey("A+", "Larger type", C.hi) { size = (size + 4).coerceAtMost(56) }
+                StandKey("A−", "Smaller type", C.hi) { size = (size - 4).coerceAtLeast(14) }
+                StandKey("✕", "Leave stand mode", C.dim) { exit() }
+            } }
         }
     }
 }
 
+/** A key's height: seven share the column (up to 64 dp each), since a phone on its side is about 360–390 dp tall. */
+private val LocalKeyHeight = androidx.compose.runtime.compositionLocalOf { 64.dp }
+
 @Composable
 private fun StandKey(label: String, description: String, color: Color, onClick: () -> Unit) {
     Box(
-        Modifier.width(76.dp).height(64.dp).background(C.bg).clickable(onClick = onClick).semantics { contentDescription = description },
+        Modifier.width(76.dp).height(LocalKeyHeight.current).background(C.bg).clickable(onClick = onClick).semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) { Text(label, style = T.title.copy(fontSize = 28.sp, color = color), textAlign = TextAlign.Center) }
 }

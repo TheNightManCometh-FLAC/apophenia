@@ -512,6 +512,9 @@ object MusicXmlRead {
                         raw.tuplets = tuplets
                         pendingGraces.remove(vk)?.let { raw.graces = it }
                         marksOf(el, raw.marks)
+                        // MusicXML also allows a dynamic on the note itself (<notations><dynamics>), not only in a <direction>.
+                        if (!isRest) el.kids("notations").flatMap { it.kids("dynamics") }.firstNotNullOfOrNull { d -> d.kids().firstOrNull()?.tagName?.let { t -> Dynamic.entries.firstOrNull { it.token == t } } }
+                            ?.let { ats += At(staff, pos, dynamic = it) }
                         lyricsOf(el, raw.lyrics)
                         noteLines(el, staff, voice, mi, pos)
                         for (t in el.kids("notations").flatMap { it.kids("ornaments") }.flatMap { it.kids("tremolo") }) when (t.attr("type") ?: "single") {

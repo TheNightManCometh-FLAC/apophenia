@@ -1,5 +1,6 @@
 package com.betterappmafia.apophenia.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -63,8 +64,8 @@ import kotlin.random.Random
 
 @Composable
 internal fun EarHome(model: AppModel) {
-    var section by remember { mutableStateOf("PRACTICE") }
-    var family by remember { mutableStateOf<String?>(null) }
+    var section by model::earSection
+    var family by model::earFamily
     val streaks by model.app.db.earResults().streaks().collectAsState(emptyList())
     val bestOf = streaks.associate { it.drill to it.best }
     Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -118,6 +119,7 @@ internal fun EarHome(model: AppModel) {
         }
         return
     }
+    BackHandler { family = null }
     TitleBar {
         Sq("‹", { family = null })
         Text(f.uppercase(), style = T.title, modifier = Modifier.weight(1f), maxLines = 1)
@@ -241,6 +243,7 @@ internal fun EarDrillView(model: AppModel, drill: EarDrill, requestMic: (() -> U
     }
     fun next() { question = Ear.question(drill, settings, random, missed, question) }
 
+    BackHandler { save(); model.earDrill = null }
     Column(Modifier.fillMaxSize()) {
         TitleBar {
             Sq("‹", { save(); model.earDrill = null })

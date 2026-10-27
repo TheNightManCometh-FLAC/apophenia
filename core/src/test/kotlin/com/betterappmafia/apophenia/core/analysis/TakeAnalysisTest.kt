@@ -96,6 +96,16 @@ class TakeAnalysisTest {
         assertTrue(flat.uncertain)   // C major and A minor (and the other modes) share every note
     }
 
+    @Test fun `a spread of nearly every note names no key, even with a strong bass note`() {
+        // The emulator's microphone (26 Oct 2026): eleven pitch classes at 4–15% each, G strongest in the bass. It ranked
+        // G Lydian without doubt. Real piano chords and lines put 0.795–0.838 of their chroma in the top key's scale.
+        val w = DoubleArray(12).also { for ((pc, v) in listOf(7 to 15.0, 9 to 11.0, 10 to 8.0, 0 to 2.0, 2 to 13.0, 4 to 5.0, 6 to 12.0, 1 to 7.0, 3 to 4.0, 5 to 8.0, 8 to 9.0, 11 to 6.0)) it[pc] = v }
+        val hints = DoubleArray(12).also { it[7] = 0.6 }
+        val k = KeyEvidence.rank(KeyEvidence.Evidence(w, hints, mapOf(7 to listOf("strongest in the bass")), "chroma"))
+        assertTrue(k.candidates[0].key.toString(), k.uncertain)
+        assertEquals(null, k.best)
+    }
+
     @Test fun `a result survives being stored as text, and other text reads as nothing`() {
         val x = melody(57 to 0.4, 59 to 0.3, 60 to 0.3, 62 to 0.3, 64 to 0.3, 65 to 0.3, 67 to 0.3, 64 to 0.3, 60 to 0.3, 57 to 0.8)
         val r = TakeAnalysis.analyse(x, rate)

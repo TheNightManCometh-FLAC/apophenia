@@ -111,8 +111,9 @@ fun RecordingDetail(model: AppModel, scrapId: Long, requestMic: (() -> Unit) -> 
                         if (speechJob == null && spoken == null) model.app.speechReader.start(take, title)
                         tab = "text"
                     },
-                    MenuItem("Sheet music and tab", "M5", enabled = false) {},
-                    MenuItem("Check a performance against it", "LATER", enabled = false) {},
+                    // Made from the take's notes: the MIDI tab's MAKE TAB · SHEET ▾ (it offers Notes → MIDI first when there are none).
+                    MenuItem("Sheet music and tab", "MIDI TAB ›") { tab = "midi" },
+                    MenuItem("Performance check", "AI ›") { model.checkPerformance(take.id) },
                 ))
             }
         }

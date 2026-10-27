@@ -90,8 +90,10 @@ internal fun LearnHome(model: AppModel) {
     Column(Modifier.fillMaxSize()) {
         TitleBar {
             if (list != null) Sq("‹", { model.learnList = if (":" in list) list.substringBefore(":") else null })
-            Text(model.learnPart, style = T.title)
-            Text(
+            // Inside a list the title names it (and its family), so a page deep in the Reference says where it is.
+            val title = if (model.learnPart != "REFERENCE" || list == null) model.learnPart else listTitle(list)
+            Text(title, style = T.title, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = if (list != null) Modifier.weight(1f) else Modifier)
+            if (list == null) Text(
                 when (model.learnPart) { "COURSE" -> "PICK A CATEGORY"; "EAR" -> "PRACTICE · HIGH SCORES"; else -> "EVERYTHING, ON YOUR TUNING" },
                 style = T.label, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f), maxLines = 1,
             )
@@ -154,11 +156,23 @@ private fun CategoryRow(count: String, name: String, note: String, onClick: () -
 }
 
 /** Guitar tunings by family: one row each, then the family's tunings. */
+/** A Reference list's title: "SCALES AND MODES", "GUITAR TUNINGS · OPEN MAJOR", "NAME A CHORD". */
+private fun listTitle(list: String): String {
+    val head = list.substringBefore(":")
+    val name = when (head) {
+        "GROOVES" -> "Drum grooves"
+        "RUDIMENTS" -> "Drum rudiments"
+        "NAME" -> "Name a chord"
+        else -> RefKind.entries.firstOrNull { it.name == head }?.label ?: head
+    }
+    return (if (":" in list) "$name · ${list.substringAfter(":")}" else name).uppercase()
+}
+
 @Composable
 private fun TuningFamilies(model: AppModel) {
     TuningReference.families.forEach { f ->
         val list = TuningReference.inFamily(f)
-        CategoryRow("${list.size}", f.replaceFirstChar(Char::uppercase), (TuningReference.familyNotes[f] ?: "") + " · " + list.take(3).joinToString(", ") { it.tuning.name }) {
+        CategoryRow("${list.size}", f.replaceFirstChar(Char::uppercase), (TuningReference.familyNotes[f] ?: "") + " · " + list.take(3).joinToString("; ") { it.tuning.name }) {
             model.learnList = "TUNING:$f"
         }
     }
@@ -179,7 +193,7 @@ private fun RefRow(model: AppModel, item: RefItem, root: PitchName?) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text((root?.let { refName(model, it) + " " } ?: "") + item.title, style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
+            Text((root?.let { refName(model, it) + " " } ?: "") + refTitle(item), style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
             Line1(rowNote(item), T.small)
         }
         Text("›", style = T.hi.copy(color = C.acc))
@@ -187,15 +201,21 @@ private fun RefRow(model: AppModel, item: RefItem, root: PitchName?) {
 }
 
 private fun rowNote(item: RefItem) = when (item.kind) {
-    RefKind.INTERVAL -> "${item.id} · ${Interval.parse(item.id).semitones} SEMITONES"
+    RefKind.INTERVAL -> "${item.id} · ${Interval.parse(item.id).semitones.let { if (it == 1) "1 SEMITONE" else "$it SEMITONES" }}"
     RefKind.SCALE -> Scales.byId(item.id).degrees.joinToString(" ") { degreeText(it.toString()) } + (if (item.also.isNotEmpty()) " · " + item.also.joinToString(" · ") else "")
-    RefKind.CHORD -> Chords.byId(item.id).let { c -> c.symbols.joinToString(" · ") + "  " + c.degrees.joinToString(" ") { degreeText(it.toString()) } }
+    RefKind.CHORD -> Chords.byId(item.id).let { c -> c.symbols.map(::symbolText).distinct().joinToString(" · ") + "  " + c.degrees.joinToString(" ") { degreeText(it.toString()) } }
     RefKind.PROGRESSION -> Progressions.byId(item.id).let { p -> (if (p.minor) "MINOR · " else "MAJOR · ") + item.also.joinToString(" · ") }
     RefKind.TUNING -> item.also.joinToString(" ").replace("#", "♯").replace(Regex("(?<=[A-G])b"), "♭")
 }
 
 /** A degree token or interval with real accidentals: b3 → ♭3, bb7 → 𝄫7, #11 → ♯11. */
 internal fun degreeText(s: String) = s.replace(Regex("bb(?=\\d)"), "𝄫").replace(Regex("b(?=\\d)"), "♭").replace(Regex("#(?=\\d)"), "♯").replace(Regex("(?<![A-Za-z])x(?=\\d)"), "𝄪")
+
+/** A catalog symbol as written, with real accidentals and the ° its ASCII "o" stands for ("Cm(b5)", "Co7"). */
+private fun symbolText(s: String) = com.betterappmafia.apophenia.core.sheet.ChordText.display(s).replace(Regex("^([A-G][♭♯]?)o(?=\\d|$)"), "$1°")
+
+/** A page's name as shown: scale names carry degrees ("Dorian b2" reads Dorian ♭2); a rudiment's "#1" is a number. */
+private fun refTitle(item: RefItem) = if (item.kind == RefKind.SCALE) degreeText(item.title) else item.title
 
 /** A note name with real accidentals, in the user's note names (CHORDS ▾). */
 internal fun refName(model: AppModel, p: PitchName) = ChordDisplay.name(p, model.chordDialect.names)
@@ -212,7 +232,8 @@ internal fun RefPageView(model: AppModel, hit: RefHit) {
     Column(Modifier.fillMaxSize()) {
         TitleBar {
             Sq("‹", { model.refPage = null })
-            Text(item.title.uppercase(), style = T.title, modifier = Modifier.weight(1f), maxLines = 1)
+            // Roman numerals carry quality in their case (ii is minor, II major): a progression's name stays as written.
+            Text(refTitle(item).let { if (item.kind == RefKind.PROGRESSION) it else it.uppercase() }, style = T.title, modifier = Modifier.weight(1f), maxLines = 1)
             if (item.kind != RefKind.TUNING) Box {
                 Sq("ROOT: ${refName(model, root)} ▾", { rootMenu = true })
                 ConsoleMenu(rootMenu, { rootMenu = false }, "ROOT", Reference.roots.map { r ->
@@ -287,7 +308,7 @@ private fun IntervalBody(model: AppModel, i: Interval, root: PitchName, open: Op
     ShowOn(model, midis, listOfNotNull(root, above), listOf("R", i.toString()), voicing = null, staff = listOf(midis))
     Hear(model, "interval-${i}-${root}", RefSound.interval(midis[0], midis[1]), "UP · DOWN · TOGETHER",
         Reference.intervals.filter { it != i && !it.isCompound }.map { other -> other.toString() to RefSound.interval(lowMidi, lowMidi + other.semitones) })
-    Para("SIZE", "${page.semitones} semitones · ${page.semitones * 100} ¢ in equal temperament" + (if (page.semitones % 12 == 6) " · the tritone" else ""))
+    Para("SIZE", "${if (page.semitones == 1) "1 semitone" else "${page.semitones} semitones"} · ${page.semitones * 100} ¢ in equal temperament" + (if (page.semitones % 12 == 6) " · the tritone" else ""))
     page.just?.let { j ->
         val diff = j.cents - page.semitones % 12 * 100.0
         Para("JUST", "${j.ratio} · ${"%.2f".format(j.cents)} ¢ (${if (diff >= 0) "+" else ""}${"%.2f".format(diff)} ¢ against equal)" + (j.note?.let { "\n$it" } ?: ""))
@@ -309,7 +330,7 @@ private fun ScaleBody(model: AppModel, id: String, root: PitchName, open: Open) 
     val def = Scales.byId(id)
     val page = remember(id, root) { ScalePages.page(def, root) }
     val r = page.root
-    Header(AnnotatedString("${refName(model, r)} ${def.names.first()}"), def.names.drop(1).joinToString(" · ").uppercase())
+    Header(AnnotatedString("${refName(model, r)} ${degreeText(def.names.first())}"), def.names.drop(1).joinToString(" · ") { degreeText(it) }.uppercase())
     page.respelledFrom?.let { Para("SPELLED ON", "${refName(model, r)}: on ${refName(model, it)} this scale would need triple accidentals.") }
     NotesRow(model, page.notes, def.degrees.map { d -> degreeText(d.toString()) + " · " + Math.floorMod(d.interval.semitones, 12) })
     val semis = def.semitones
@@ -318,9 +339,9 @@ private fun ScaleBody(model: AppModel, id: String, root: PitchName, open: Open) 
     Hear(model, "scale-$id-$r", RefSound.scale(midis), "UP AND DOWN",
         Scales.all.filter { it.id != id }.map { s -> s.names.first() to RefSound.scale(RefSound.midis(r.pitchClass, s.semitones, 60)) })
     Para("STEPS", page.steps.joinToString(" ") { ScalePages.stepName(it) } + "   (H half · W whole · 3 a minor third)")
-    page.parent?.let { (p, pr) -> Links("MODE OF", listOf("Mode ${def.modeIndex} of ${refName(model, pr)} ${p.names.first()}" to { open(RefKind.SCALE, p.id, pr) })) }
-    Links("SAME NOTES", page.modes.filter { it.first.id != id }.map { (m, mr) -> "${refName(model, mr)} ${m.names.first()}" to { open(RefKind.SCALE, m.id, mr) } } +
-        page.sameNotes.map { (s, sr) -> "${refName(model, sr)} ${s.names.first()}" to { open(RefKind.SCALE, s.id, sr) } })
+    page.parent?.let { (p, pr) -> Links("MODE OF", listOf("Mode ${def.modeIndex} of ${refName(model, pr)} ${degreeText(p.names.first())}" to { open(RefKind.SCALE, p.id, pr) })) }
+    Links("SAME NOTES", page.modes.filter { it.first.id != id }.map { (m, mr) -> "${refName(model, mr)} ${degreeText(m.names.first())}" to { open(RefKind.SCALE, m.id, mr) } } +
+        page.sameNotes.map { (s, sr) -> "${refName(model, sr)} ${degreeText(s.names.first())}" to { open(RefKind.SCALE, s.id, sr) } })
     val key = KeyMode(r, id)
     fun chordLinks(list: List<com.betterappmafia.apophenia.core.learn.DegreeChord>) = list.map { dc ->
         val sym = dc.symbol
@@ -342,7 +363,7 @@ private fun ChordBody(model: AppModel, id: String, root: PitchName, open: Open) 
     val def = Chords.byId(id)
     val page = remember(id, root) { ChordPages.page(def, root) }
     val r = page.root
-    Header(chordShown(model, page.symbols.first(), null), (listOf((Reference.CHORD_NAMES[id] ?: "").uppercase()) + page.symbols.drop(1).map { com.betterappmafia.apophenia.core.sheet.ChordText.display(it) }.distinct()).joinToString(" · "))
+    Header(chordShown(model, page.symbols.first(), null), (listOf((Reference.CHORD_NAMES[id] ?: "").uppercase()) + page.symbols.drop(1).map(::symbolText).distinct()).joinToString(" · "))
     page.respelledFrom?.let { Para("SPELLED ON", "${refName(model, r)}: on ${refName(model, it)} this chord would need triple accidentals.") }
     NotesRow(model, page.notes, def.degrees.map { d -> d.interval.toString() + " · " + d.interval.semitones })
     val midis = RefSound.midis(r.pitchClass, def.semitones, 48)
@@ -357,7 +378,7 @@ private fun ChordBody(model: AppModel, id: String, root: PitchName, open: Open) 
         if (def.omitOrder.isNotEmpty()) "\nVoicings leave out first: " + def.omitOrder.joinToString(", ") { degreeText(it.toString()) } else "")
     Links("INVERSIONS", page.inversions.drop(1).map { inv -> "${chordShown(model, inv.symbol, null).text}  ${inv.name}${if (inv.figures.isNotEmpty()) " · " + inv.figures else ""}" to {} })
     Links("SAME NOTES", page.sameNotes.map { (c, cr) -> chordShown(model, Reference.ascii(cr) + c.symbols.first().removePrefix("C"), null).text to { open(RefKind.CHORD, c.id, cr) } })
-    Links("SCALES THAT HOLD IT", page.scales.map { s -> "${refName(model, r)} ${s.names.first()}" to { open(RefKind.SCALE, s.id, r) } })
+    Links("SCALES THAT HOLD IT", page.scales.map { s -> "${refName(model, r)} ${degreeText(s.names.first())}" to { open(RefKind.SCALE, s.id, r) } })
     Written(Commentary.chords[id])
     Yours(model, r) { com.betterappmafia.apophenia.core.learn.InYours.chord(def, it, model.chordDialect) }
     def.note?.let { Para("NAMING", it) }
@@ -370,7 +391,7 @@ private fun ChordBody(model: AppModel, id: String, root: PitchName, open: Open) 
 private fun ProgressionFamilies(model: AppModel) {
     Progressions.families.forEach { f ->
         val list = Progressions.inFamily(f)
-        CategoryRow("${list.size}", f.replaceFirstChar(Char::uppercase), (Progressions.familyNotes[f] ?: "") + " · " + list.take(3).joinToString(", ") { it.name }) {
+        CategoryRow("${list.size}", f.replaceFirstChar(Char::uppercase), (Progressions.familyNotes[f] ?: "") + " · " + list.take(3).joinToString("; ") { it.name }) {
             model.learnList = "PROGRESSION:$f"
         }
     }

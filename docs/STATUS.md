@@ -2,6 +2,22 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.9.12 (26 Oct 2026): second emulator walk (the parts not walked before)
+Walked on the emulator: Stand mode, Reference (scale, chord, progression, tuning pages, Name a chord), Course and Ear navigation, import (MusicXML, WAV), every AI job on a recording, stacks (layers, overdub, bounce). Details in `docs/reviews/emulator-pass-2026-10-26.md`, "Second walk". Fixed:
+- **Back button** in Reference, Course and Ear went up one level only through the on-screen ‹; the phone's back left the app from any page. Now back goes page → list → home, as ‹ does. Leaving an Ear drill returns to its drill list, not Ear's home (the open list is kept on the model).
+- **Stand mode** turned to landscape, then back to portrait, then to landscape again (turning rebuilds the screen, and the rebuild undid the turn). It now turns once, and turns back only on leaving. Its seven keys didn't fit a phone on its side (7 × 64 dp against about 363–384 dp), so ✕ was off the screen; the keys now share the height (about 52 dp each on the emulator).
+- **Reference labels:** "1 SEMITONE" (not 1 SEMITONES); scale names with real accidentals (Dorian ♭2); catalog chord names with ° and ♭ (Cdim · C° · Cm(♭5)); a progression's title keeps its Roman numerals' case (ii–V–i, not II–V–I). Inside a list the title now names it (SCALES AND MODES, NAMED PROGRESSIONS · JAZZ, NAME A CHORD) instead of REFERENCE for all.
+- **Finding 20 (key guess from noise):** a key is no longer named when less than 75% of the weight sits in the top key's scale [Claude]. Measured: real piano (the Iowa samples: C I–IV–V–I, Am i–iv–v–i, B♭ ii–V–I, an A-minor line, an E arpeggio) keeps 0.795–0.838 in the scale; white and brown noise 0.59–0.60; 60 Hz hum 0.716; the emulator's mic about 0.69, lifted past the old test by its strongest bass note. A new emulator take now saves with KEY unknown. Takes already given a key keep it.
+- **MusicXML import** reads a dynamic written on the note (`<notations><dynamics>`), not only in a `<direction>`.
+- **A recording's AI ▾:** "Sheet music and tab · M5" and "Check a performance against it · LATER" were greyed out though both were built. Now Sheet music and tab opens the MIDI tab (MAKE TAB · SHEET ▾), and Performance check opens with this take as YOUR TAKE.
+- **Top ● REC** told a screen reader "Record to the Library" while a playing stack made it record a new layer; it now says so.
+- **Tests: 607** (+2: the note-level dynamic; the emulator's key evidence, which failed before the fix with G Lydian). Emulator-verified as listed; nothing on the phone.
+
+**Measured, not changed (for Christopher):**
+- On real piano audio the chroma key reader names the right notes but the wrong mode: C I–IV–V–I read as G Mixolydian, the A-minor line as B Locrian; the note reader calls most of those uncertain. The key guess needs work on real recordings before it can be trusted; a phone recording will show how far off.
+- A spoken memo (the Windows TTS fixture, pitched 37% of the time) gets a key, C♯ Mixolydian, and a BPM. Should speech get no key at all?
+- A stack bounce saves with BPM and KEY unknown though the stack has both (156 · C♯ Mixolydian here). Should a bounce take the stack's tempo and key?
+
 ## Build 0.9.11 (26 Oct 2026): the empty Board has no add row of its own
 Christopher on finding 5: "Drop the empty Board's add row; the top strip's REC and + NEW are enough."
 - An empty project Board no longer has ● RECORD · WRITE ▾ · LIBRARY ›. Its text points to + NEW at the top (which, on a Board, records or writes into the project) and to ⋯ › Add from the Library. The ⋯ menu still has Record into the project, the Write items and Add from the Library.

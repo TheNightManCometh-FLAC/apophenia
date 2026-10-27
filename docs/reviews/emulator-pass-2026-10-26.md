@@ -27,7 +27,7 @@ no speed. Findings are numbered; **[bug]** broken, **[dead end]** nowhere to go,
 17. **[layout]** Drum chart: each settings row (METER, STEPS, BARS, SWING, TEMPO) has two ▾, one after the value and one at the right edge.
 18. **[confusing]** Library rows have two unlabelled columns (96, —): tempo and key, with no header. The type tags are abbreviated: NOT (sheet music) reads as the word "not"; CHD, DRM, TXT. The screen reader says "NOT window", "CHD window" on the Board (as in 4).
 19. **[confusing]** PRACTICE › Tools › Playback speed and Isolator say "Play a recording first" while the player holds a drum chart: they take recordings only, and don't say that's why.
-20. **[confusing]** The save sheet after a 4-second emulator take filled KEY with "G Lydian · ANALYSIS" while BPM said unknown: a mode named from four seconds of the emulator's fake mic. Can't judge real input here; worth looking at on the phone.
+20. **[fixed 0.9.12: no key from noise]** **[confusing]** The save sheet after a 4-second emulator take filled KEY with "G Lydian · ANALYSIS" while BPM said unknown: a mode named from four seconds of the emulator's fake mic. Can't judge real input here; worth looking at on the phone.
 
 ## Checked and working
 Tab: fret entry, NEXT, ▶ PLAY (4 bars at 96 = 0:10). Sheet music: piano entry, NEXT. Piano roll: draw. Chord chart: typing with the | button, the grid, ▶ PLAY CHORDS. Drum chart (after 9): grid taps, HEAR IT. Text note: titled by its first line. Board: every new item lands on it. Library: FILTER (type, 2 match), FIND, SORT, ⋯. AI: the list, Performance check's pickers. Tools: metronome start/stop (top CLICK follows), tempo trainer, tuner (mic on while open, off on leaving), drone, playback speed, isolator, practice timer. Ear: a drill, answer and explanation (D♭–E♭ = M2). Exercises (after 10): add, ladder, click. Course: Intervals › Major, minor, perfect, its ▶ example, the P4 shapes on the neck. Reference: chord families, Minor triad page (C E♭ G, P1 m3 P5, x-3-1-0-1-3). Top strip: CLICK ▾, TOOLS ▾ (the two pinned), ● REC → save sheet, MIC OFF after. Settings: themes (Paper checked). Project switcher.
@@ -37,3 +37,21 @@ Import from the phone (system picker), stacks and overdub, a recording's AI jobs
 
 ## Fixed in 0.9.8
 1, 3, 4, 7, 11, 12, 15, 16, 17, 18, 19; part of 5 (the empty Board's text) and 14 (the octave jump). Open: 2, 5's add row, 13, 14's two toolbars, 20. Details in `docs/STATUS.md` (0.9.8).
+
+## Second walk (0.9.12, 26 Oct 2026, evening)
+The parts not walked above, except backup and restore (Christopher asked for no more work on save systems) and the widget and shortcuts (the emulator's launcher).
+
+Fixed in 0.9.12:
+21. **[bug]** The phone's back button left the app from any Reference or Course page and from an Ear drill list; only the on-screen ‹ went up a level.
+22. **[bug]** Stand mode turned the screen landscape, portrait, then landscape again on entering.
+23. **[layout]** Stand mode's ✕ was off the bottom of the screen on its side (seven 64 dp keys in about 363 dp).
+24. **[confusing]** Leaving an Ear drill went to Ear's home instead of the drill list it was opened from.
+25. **[confusing]** Every Reference list was titled REFERENCE; inside Scales or Name a chord nothing said where you were.
+26. **[label]** "1 SEMITONES"; scale names with ASCII b (Dorian b2); C° shown as "Co"; progression titles uppercased (II–V–I).
+27. **[import]** A MusicXML dynamic on the note (`<notations><dynamics>`) was dropped.
+28. **[dead end]** A recording's AI ▾ greyed out "Sheet music and tab · M5" and "Check a performance against it · LATER", both built.
+29. **[screen reader]** Top ● REC said "Record to the Library" while it would record a new stack layer.
+
+Checked and working: Stand mode keys, rotation and leaving; Reference chord page (Cdim, x-3-4-5-4-x = C G♭ C E♭, inversions, scales that hold it), progression page (ii–V–i in minor: Dm7♭5 G7♭9 Cm6, x-x-0-1-1-1), tuning page (Open D: D A D F♯ A D, retuned strings, open-string chord D), Name a chord (x-3-2-x-1-x → C no 5; x-3-2-0-1-0 → C major triad); MusicXML import (key, 3/4, tempo and Andante, chord symbols, beams, staccato, fermata, final barline); WAV import; Speech → text (the memo word for word), Notes → MIDI (11 notes), Separate stems (four stems, PLAY ALL); a stack from + STACK, overdub as a new layer (ONE-SHOT), bounce ("Stack 1 mix", tagged stack mix); Performance check from a recording.
+
+Measured, left for Christopher (STATUS 0.9.12): the key reader on real piano names the wrong mode; a spoken memo gets a key; a bounce doesn't take the stack's tempo and key.

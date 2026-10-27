@@ -368,8 +368,15 @@ object KeyEvidence {
         val tie = scored.drop(1).any {
             (it.third > first.third - 0.05 && it.first != first.first) || (it.third > first.third - 0.02 && it.second != first.second)
         }
-        return KeyResult(top, tie || first.third < 0.5, e.from)
+        // Noise spreads over every note; a strong bass note can still lift one mode past 0.5. Real piano chords and lines
+        // keep 0.795–0.838 of their weight in the top key's scale, noise and hum 0.59–0.72 (measured 26 Oct 2026).
+        val firstPcs = Scales.byId(first.second).semitones.map { (first.first + it) % 12 }.toSet()
+        val inScale = firstPcs.sumOf { e.weights[it] } / total
+        return KeyResult(top, tie || first.third < 0.5 || inScale < MIN_IN_SCALE, e.from)
     }
+
+    /** The share of the weight that must sit in the top key's scale before that key is named. */
+    const val MIN_IN_SCALE = 0.75
 
     /** The tonic spelled with the fewest accidentals in the key (D♭ major, not C♯; but F♯ for F♯ minor over G♭). */
     fun keyFor(pc: Int, mode: String): KeyMode {

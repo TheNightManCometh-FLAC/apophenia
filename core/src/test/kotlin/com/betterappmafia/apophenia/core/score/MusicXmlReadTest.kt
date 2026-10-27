@@ -73,6 +73,20 @@ class MusicXmlReadTest {
     }
 
     @Test
+    fun `a dynamic written on the note itself, inside notations, lands on that note`() {
+        val xml = doc(
+            """<part id="P1"><measure number="1">
+<attributes><divisions>1</divisions><time><beats>2</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>
+<note><pitch><step>C</step><octave>5</octave></pitch><duration>1</duration><type>quarter</type></note>
+<note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><type>quarter</type><notations><dynamics><mp/></dynamics></notations></note>
+</measure></part>""",
+            """<score-part id="P1"><part-name>Flute</part-name></score-part>""",
+        )
+        val v = read(xml).score.parts[0].bars[0].voices[0]
+        assertEquals(listOf(null, Dynamic.MP), v.map { it.dynamic })
+    }
+
+    @Test
     fun `a triplet inside a triplet keeps both brackets`() {
         val inner = e.inTuplet(3, 2).inTuplet(3, 2)
         val s = Score(parts = listOf(Part("P", Clef.TREBLE, bars = listOf(Bar(listOf(listOf(
