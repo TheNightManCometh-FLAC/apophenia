@@ -26,6 +26,11 @@ object ChordFinder {
     const val MIN_MATCH = 0.6
     /** [Claude] What one change of chord costs against the sum of matches. */
     const val CHANGE_COST = 0.08
+    /** [Claude] How much a chord gains when its root is the bass (share of the segment's bass). Measured 27 Oct 2026 on eight
+     *  piano progressions (32 chords, Iowa samples): 0 → 18 right, 0.1 → 20, 0.15 → 22, 0.2 → 24 (Dm7, G7, Cmaj7 named; with
+     *  harmonics 1–4 only, 22). Left wrong at 0.2: minor triads over a low root read as power chords (the root's 5th
+     *  harmonic is as loud as the third), and C/E reads Em. */
+    const val ROOT_IN_BASS = 0.2
     /** [Claude] Without a beat, the sound is looked at in steps this long (free time). */
     const val FREE_STEP = 0.5
 
@@ -61,8 +66,8 @@ object ChordFinder {
 
     private const val HOLD = "/"
 
-    /** Pitch-class offset and weight of harmonics 1–4 (0.6 per harmonic, as in harmonic-template chord recognition). */
-    private val HARMONICS = listOf(0 to 1.0, 0 to 0.6, 7 to 0.36, 0 to 0.216)
+    /** Pitch-class offset and weight of harmonics 1–7 (0.6 per harmonic, as in harmonic-template chord recognition): the 5th is a major third up, the 7th a flat minor seventh, so a ringing low note brings its own faint B♭ (a C read as C7 otherwise). */
+    private val HARMONICS = listOf(0 to 1.0, 0 to 0.6, 7 to 0.36, 0 to 0.216, 4 to 0.13, 7 to 0.078, 10 to 0.047)
 
     private class Template(val root: Int, val quality: String, val pcs: Set<Int>, val vector: DoubleArray)
 
@@ -85,6 +90,25 @@ object ChordFinder {
     /** Per segment: chroma (linear magnitudes, so overtones keep their real, smaller size), the bass note, and the mean frame energy. */
     class Segments(val chroma: List<DoubleArray>, val bass: List<DoubleArray>, val energy: DoubleArray)
 
+    /**
+     * The bass note's frequency in a magnitude spectrum ([mags] by bin, [binHz] apart): the lowest local peak between
+     * [KeyEvidence.BASS_LOW_HZ] and [KeyEvidence.BASS_HIGH_HZ] at least [KeyEvidence.BASS_PEAK] of the band's loudest,
+     * refined between bins by a parabola through the peak and its neighbours. Not the loudest bin: a low piano note's
+     * octave and twelfth are often louder than it, and a chord's own tones can sit low. Null when nothing is there.
+     */
+    internal fun bassHz(mags: DoubleArray, binHz: Double): Double? {
+        val lo = maxOf(1, (KeyEvidence.BASS_LOW_HZ / binHz).toInt()); val hi = minOf(mags.size - 2, (KeyEvidence.BASS_HIGH_HZ / binHz).toInt())
+        var bandMax = 0.0
+        for (b in lo..hi) if (mags[b] > bandMax) bandMax = mags[b]
+        if (bandMax <= 0) return null
+        for (b in lo..hi) if (mags[b] >= KeyEvidence.BASS_PEAK * bandMax && mags[b] >= mags[b - 1] && mags[b] >= mags[b + 1]) {
+            val a = mags[b - 1]; val c = mags[b + 1]; val d = a - 2 * mags[b] + c
+            val offset = if (d < 0.0) (0.5 * (a - c) / d).coerceIn(-0.5, 0.5) else 0.0
+            return ((b + offset) * binHz).takeIf { it > 0 && it.isFinite() }
+        }
+        return null
+    }
+
     fun chroma(x: FloatArray, rate: Int, bounds: List<Double>): Segments {
         val n = 4096
         val hop = 1024
@@ -99,6 +123,7 @@ object ChordFinder {
         val frames = IntArray(segs)
         val bass = List(segs) { DoubleArray(12) }
         val re = DoubleArray(n); val im = DoubleArray(n)
+        val mags = DoubleArray(n / 2)
         var f = 0
         var seg = 0
         while (f + n <= x.size && seg < segs) {
@@ -108,16 +133,17 @@ object ChordFinder {
             if (centre >= bounds[seg]) {
                 for (i in 0 until n) { re[i] = x[f + i] * win[i]; im[i] = 0.0 }
                 Fft.transform(re, im)
-                var lowBin = -1; var lowMag = 0.0
+                var frameEnergy = 0.0
                 for (b in 1 until n / 2) {
+                    val m = sqrt(re[b] * re[b] + im[b] * im[b])
+                    mags[b] = m
                     val pc = pcOf[b]
                     if (pc < 0) continue
-                    val m = sqrt(re[b] * re[b] + im[b] * im[b])
                     chroma[seg][pc] += m
-                    energy[seg] += m * m
-                    if (b * rate.toDouble() / n < 220 && m > lowMag) { lowMag = m; lowBin = b }
+                    frameEnergy += m * m
                 }
-                if (lowBin > 0) bass[seg][pcOf[lowBin]] += lowMag
+                bassHz(mags, rate.toDouble() / n)?.let { hz -> bass[seg][Math.floorMod((69 + 12 * log2(hz / 440.0)).roundToInt(), 12)] += sqrt(frameEnergy) }
+                energy[seg] += frameEnergy
                 frames[seg]++
             }
             f += hop
@@ -142,15 +168,19 @@ object ChordFinder {
             val mean = total / 12
             val v = DoubleArray(12) { maxOf(0.0, c[it] - mean) }
             val norm = sqrt(v.sumOf { it * it })
+            // [Claude] Under 2% of the loudest beat's energy (-17 dB) is silence, and a ringing tail's bass names nothing.
+            val silent = seg.energy[s] < loudest * 0.02
+            val bassTotal = if (silent) 0.0 else bass[s].sum()
             val row = DoubleArray(k + 1)
             for ((i, t) in templates.withIndex()) {
                 var dot = 0.0
                 for (p in 0 until 12) dot += v[p] * t.vector[p]
                 // A little behind for every extra note, so a triad wins a tie with its seventh.
                 row[i] = (if (norm > 0) dot / norm else 0.0) - 0.02 * (t.pcs.size - 3).coerceAtLeast(0)
+                // The bass names the root more often than not (bass chroma, Mauch & Dixon 2010): Cmaj7 over C, not Em.
+                if (bassTotal > 0) row[i] += ROOT_IN_BASS * bass[s][t.root] / bassTotal
             }
-            // [Claude] Under 2% of the loudest beat's energy (-17 dB) is silence.
-            row[k] = if (seg.energy[s] < loudest * 0.02 || norm == 0.0) 1.0 else MIN_MATCH
+            row[k] = if (silent || norm == 0.0) 1.0 else MIN_MATCH
             row
         }
         // Viterbi: the path with the best total match, less CHANGE_COST for every change.

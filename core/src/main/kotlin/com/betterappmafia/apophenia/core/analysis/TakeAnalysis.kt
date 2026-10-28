@@ -24,30 +24,70 @@ import kotlin.math.sqrt
  * Input is mono float audio at any rate; it is reduced to [RATE] first.
  */
 object TakeAnalysis {
-    /** 2 added the chords (0.4.2). */
-    const val VERSION = 2
+    /** 2 added the chords (0.4.2). 3 (0.9.17): speech gets no key or chords, vibrato is one note, chords and keys from the bass; every take is analysed again. */
+    const val VERSION = 3
     const val RATE = 24000
     /** [Claude] Notes are tracked over the first two minutes; longer files (imported songs) get tempo and key only. */
     const val NOTE_SECONDS = 120
+    /** [Claude] Below this share of held pitch ([MonoNotes.held]) a single line is speech: between speech's 0.27 and singing's 0.44. */
+    const val SPEECH_HELD = 0.35
+    /** [Claude] Speech is pitched only part of the time (TTS speech 0.34–0.62); notes ringing into each other (a piano arpeggio, 0.83) hold little too. */
+    const val SPEECH_VOICED = 0.7
 
-    data class Result(val seconds: Double, val tempo: Tempo, val notes: List<Note>, val voiced: Double, val key: KeyResult, val chords: ChordFinder.Track)
+    /** [oneAtATime]: what the take's Notes → MIDI said (true: one note at a time), or null when it hasn't been transcribed. */
+    data class Result(val seconds: Double, val tempo: Tempo, val notes: List<Note>, val voiced: Double, val key: KeyResult, val chords: ChordFinder.Track, val oneAtATime: Boolean? = null)
+
+    /**
+     * The share of sounding time with two or more notes at once, from a transcription's notes (start to end, seconds).
+     * [Claude] Under [SINGLE_LINE] is one note at a time. Measured 27 Oct 2026 on the emulator's Basic Pitch: a spoken
+     * memo 0.00, a sung line with ±85-cent vibrato 0.24 (Basic Pitch cut its 6 notes into 55, some overlapping), piano
+     * chords C F G C 0.66 (three or more at once 0.54). Two-note chords (power chords) stay chords. Three takes only.
+     */
+    fun overlap(notes: List<Pair<Double, Double>>): Double {
+        val edges = notes.flatMap { (s, e) -> listOf(s to 1, e to -1) }.sortedWith(compareBy({ it.first }, { it.second }))
+        var count = 0; var last = 0.0; var sounding = 0.0; var two = 0.0
+        for ((t, d) in edges) {
+            if (count >= 1) sounding += t - last
+            if (count >= 2) two += t - last
+            count += d; last = t
+        }
+        return if (sounding > 0) two / sounding else 0.0
+    }
+    const val SINGLE_LINE = 0.4
 
     /**
      * [clickBeats] (seconds, from the first downbeat) and [meter] come from the metronome when the take was
      * recorded with it; otherwise the chords sit on the analysed pulse, from the first attack, in 4/4 [Claude].
+     * [oneAtATime] comes from the take's Notes → MIDI when it has one (Christopher, 27 Oct 2026): a single line gets
+     * no chord chart, and its key comes from its notes only.
      */
-    fun analyse(x: FloatArray, rate: Int, minHz: Double = 30.0, maxHz: Double = 1000.0, clickBeats: List<Double>? = null, meter: TimeSignature = TimeSignature.of(4, 4)): Result {
+    fun analyse(x: FloatArray, rate: Int, minHz: Double = 30.0, maxHz: Double = 1000.0, clickBeats: List<Double>? = null, meter: TimeSignature = TimeSignature.of(4, 4), oneAtATime: Boolean? = null): Result {
         val y = Resample.to(x, rate, RATE)
         val env = Onsets.envelope(y, RATE)
         val onsets = Onsets.pick(env)
         val tempo = Tempo.estimate(env, onsets)
         val noteSpan = y.copyOf(minOf(y.size, RATE * NOTE_SECONDS))
-        val (notes, voiced) = MonoNotes.track(noteSpan, RATE, minHz, maxHz, onsets)
-        val key = KeyEvidence.rank(if (voiced >= 0.3 && notes.size >= 4) KeyEvidence.fromNotes(notes) else KeyEvidence.fromChroma(y, RATE))
+        val (notes, voiced, held) = MonoNotes.track(noteSpan, RATE, minHz, maxHz, Onsets.pick(Onsets.envelope(noteSpan, RATE, vibrato = true)))
+        val line = voiced >= 0.3 && notes.size >= 4
+        // A single line that hardly holds a pitch is speech (Christopher, 27 Oct 2026: a spoken memo gets no key).
+        // Chords also look like a line (the pitch tracker finds one pitch in them), but their notes name no key: when the
+        // notes leave it open and the sound as a whole names one, that one is taken. Measured 27 Oct 2026 on ten piano
+        // progressions (Iowa samples): the notes named none of the ten. [Claude]
+        val key = when {
+            line && held < SPEECH_HELD && voiced < SPEECH_VOICED -> KeyResult(emptyList(), true, "speech")
+            // A known single line never takes the sound-as-a-whole key: that one is read from its overtones.
+            oneAtATime == true -> KeyEvidence.rank(KeyEvidence.fromNotes(notes))
+            line -> KeyEvidence.rank(KeyEvidence.fromNotes(notes)).let { byNotes ->
+                if (!byNotes.uncertain) byNotes else KeyEvidence.rank(KeyEvidence.fromChroma(y, RATE)).takeIf { !it.uncertain } ?: byNotes
+            }
+            else -> KeyEvidence.rank(KeyEvidence.fromChroma(y, RATE))
+        }
         val seconds = y.size.toDouble() / RATE
         val beats = clickBeats ?: tempo.best?.let { bpm -> onsets.firstOrNull()?.let { first -> generateSequence(first) { it + 60.0 / bpm }.takeWhile { it < seconds }.toList() } }
-        val chords = ChordFinder.find(y, RATE, beats, meter, key.best ?: key.candidates.firstOrNull()?.key)
-        return Result(seconds, tempo, notes, voiced, key, chords)
+        // Speech has no chords either (Christopher, 27 Oct 2026: "No chart"): nothing for the chart, In yours or Ear to read.
+        val chords = if (key.from == "speech" || oneAtATime == true) ChordFinder.Track(emptyList(), meter, beats == null)
+            else ChordFinder.find(y, RATE, beats, meter, key.best ?: key.candidates.firstOrNull()?.key)
+        return Result(seconds, tempo, notes, voiced, key, chords, oneAtATime)
     }
 }
 
@@ -81,7 +121,7 @@ object Onsets {
     /** [strength] one value per hop; [hopSeconds] its spacing; [energy] the frame's RMS (for silence). */
     class Envelope(val strength: FloatArray, val energy: FloatArray, val hopSeconds: Double)
 
-    fun envelope(x: FloatArray, rate: Int): Envelope {
+    fun envelope(x: FloatArray, rate: Int, vibrato: Boolean = false): Envelope {
         val frames = if (x.size < FRAME) 0 else (x.size - FRAME) / HOP + 1
         val win = DoubleArray(FRAME) { 0.5 - 0.5 * cos(2 * PI * it / FRAME) }
         val half = FRAME / 2
@@ -95,10 +135,19 @@ object Onsets {
             energy[f] = sqrt(e / FRAME).toFloat()
             Fft.transform(re, im)
             val mag = DoubleArray(half)
+            for (b in 1 until half) mag[b] = ln(1 + 100 * sqrt(re[b] * re[b] + im[b] * im[b]))
+            // Vibrato suppression (SuperFlux, Böck & Widmer, DAFx 2013): each bin is compared with the loudest of its
+            // neighbours a frame earlier, so a harmonic drifting with vibrato isn't new energy. The paper's ±1 band of a
+            // 24-per-octave filterbank is about ±50 cents; these bins are linear, so the reach grows with frequency,
+            // about ±6% (±100 cents), at least one bin. [Claude] the width. Only for splitting notes ([vibrato]): on a full
+            // mix it blurred the beat (a YuE2 song's pulse regularity fell from 0.44 to 0.14), so tempo, beats and drum
+            // checks keep the plain flux.
             var flux = 0.0
             for (b in 1 until half) {
-                mag[b] = ln(1 + 100 * sqrt(re[b] * re[b] + im[b] * im[b]))
-                val d = mag[b] - prev[b]
+                val k = if (vibrato) maxOf(1, (b * 0.06).toInt()) else 0
+                var near = 0.0
+                for (j in maxOf(1, b - k)..minOf(half - 1, b + k)) if (prev[j] > near) near = prev[j]
+                val d = mag[b] - near
                 if (d > 0) flux += d
             }
             strength[f] = if (f == 0) 0f else flux.toFloat()
@@ -117,6 +166,10 @@ object Onsets {
         for (v in s) if (v > max) max = v
         if (max <= 0f) return out
         var last = -gap - 1
+        // A take that starts mid-sound (an imported file, a tight trim) has its first attack in frame 0, which has no
+        // frame before it to rise from: a loud first frame counts. [Claude] 30% of the loudest frame.
+        val loudest = env.energy.maxOrNull() ?: 0f
+        if (env.energy.isNotEmpty() && env.energy[0] >= 0.3f * loudest) { out += (FRAME / 2).toDouble() * env.hopSeconds / HOP; last = 0 }
         for (i in 1 until s.size - 1) {
             if (s[i] < s[i - 1] || s[i] < s[i + 1]) continue
             var mean = 0.0; var n = 0
@@ -231,10 +284,47 @@ object MonoNotes {
         return PitchCurve(HOP_SECONDS, centre, out)
     }
 
-    fun track(x: FloatArray, rate: Int, minHz: Double, maxHz: Double, onsets: List<Double>): Pair<List<Note>, Double> {
+    /** A single line's notes, the fraction of time something was pitched, and how much of that time held a pitch ([held]). */
+    data class Line(val notes: List<Note>, val voiced: Double, val held: Double)
+
+    /**
+     * The share of pitched time spent holding a pitch: runs of at least 0.3 s within ¾ of a semitone of their
+     * median, after smoothing over 0.18 s (one cycle of a 5.5 Hz vibrato, so a wide vibrato still counts as held).
+     * Speech slides between syllables and holds little; singing holds notes. Measured 27 Oct 2026 (settings chosen
+     * from a grid of smoothing, tolerance and run length): Windows TTS speech, seven files in two voices, 0.00–0.27;
+     * the Spleeter vocal stems of five YuE2 songs 0.44 (metal)–0.76; a rap vocal 0.38; a synthetic sung line with
+     * vibrato from none to ±120 cents 0.96–0.99.
+     */
+    fun held(pitch: DoubleArray): Double {
+        val voiced = pitch.count { !it.isNaN() }
+        if (voiced == 0) return 0.0
+        val smooth = smoothed(pitch)
+        var held = 0
+        var i = 0
+        while (i < smooth.size) {
+            if (smooth[i].isNaN()) { i++; continue }
+            val run = ArrayList<Double>()
+            var j = i
+            while (j < smooth.size && !smooth[j].isNaN() && (run.isEmpty() || abs(smooth[j] - run.sorted()[run.size / 2]) <= 0.75)) { run += smooth[j]; j++ }
+            if (run.size >= 15) held += run.size
+            i = maxOf(j, i + 1)
+        }
+        return held.toDouble() / voiced
+    }
+
+    /** [pitch] averaged over ±4 frames (0.18 s, one cycle of a 5.5 Hz vibrato), pitched frames only; NaN stays NaN. */
+    private fun smoothed(pitch: DoubleArray): DoubleArray = DoubleArray(pitch.size) { f ->
+        if (pitch[f].isNaN()) Double.NaN else {
+            var sum = 0.0; var n = 0
+            for (k in maxOf(0, f - 4)..minOf(pitch.size - 1, f + 4)) if (!pitch[k].isNaN()) { sum += pitch[k]; n++ }
+            sum / n
+        }
+    }
+
+    fun track(x: FloatArray, rate: Int, minHz: Double, maxHz: Double, onsets: List<Double>): Line {
         val win = (2.2 * rate / minHz).toInt()
         val hop = (HOP_SECONDS * rate).toInt()
-        if (x.size < win) return emptyList<Note>() to 0.0
+        if (x.size < win) return Line(emptyList(), 0.0, 0.0)
         val frames = (x.size - win) / hop + 1
         val pitch = DoubleArray(frames) { Double.NaN }
         val conf = DoubleArray(frames)
@@ -250,29 +340,44 @@ object MonoNotes {
         val notes = ArrayList<Note>()
         var start = -1
         val run = ArrayList<Double>()
-        fun close(endFrame: Int) {
-            if (start >= 0 && run.isNotEmpty() && (endFrame - start) * HOP_SECONDS >= MIN_NOTE) {
+        val runSmooth = ArrayList<Double>()
+        var splitByPitch = false
+        fun close(endFrame: Int, gap: Boolean = false) {
+            val seconds = (endFrame - start) * HOP_SECONDS
+            if (start >= 0 && gap && splitByPitch && seconds < 0.1 && notes.isNotEmpty() && abs(notes.last().end - (time(start) - HOP_SECONDS / 2)) < HOP_SECONDS / 2) {
+                // A piece split off by pitch just before a silence: the pitch window straddling the next note, or the
+                // note's own release. It belongs to the note it came from.
+                notes[notes.size - 1] = notes.last().copy(end = time(endFrame - 1) + HOP_SECONDS / 2)
+            } else if (start >= 0 && run.isNotEmpty() && seconds >= MIN_NOTE) {
                 val m = run.sorted()[run.size / 2]
                 val midi = m.roundToInt()
                 val c = (start until endFrame).map { conf[it] }.average()
                 notes += Note(time(start) - HOP_SECONDS / 2, time(endFrame - 1) + HOP_SECONDS / 2, midi, ((m - midi) * 100).roundToInt(), c)
             }
-            start = -1; run.clear()
+            start = -1; run.clear(); runSmooth.clear(); splitByPitch = false
         }
+        // A new pitch needs the smoothed pitch to leave the note too: vibrato swings the raw pitch only, a real change
+        // moves both at once. A note holds its first 0.12 s (the smoothing still carries the note before). [Claude] A trill
+        // as fast as a vibrato (about 6 a second) stays one note unless its notes have attacks.
+        val smooth = smoothed(pitch)
+        // The note's smoothed centre, from after its first four frames (those still carry the note before).
+        fun settled(s: List<Double>) = s.subList(4, s.size).sorted()[(s.size - 4) / 2]
         for (f in 0 until frames) {
             val p = pitch[f]
-            if (p.isNaN()) { close(f); continue }
+            if (p.isNaN()) { close(f, gap = true); continue }
             if (start >= 0) {
                 val m = run.sorted()[run.size / 2]
                 // An onset splits a held pitch (a repeated note), unless it is this note's own attack found a little late.
-                if (abs(p - m) > 0.6 || (f in onsetFrames && (f - start) * HOP_SECONDS > 0.08)) close(f)
+                val byPitch = run.size >= 6 && abs(p - m) > 0.6 && abs(smooth[f] - settled(runSmooth)) > 0.6
+                val byOnset = f in onsetFrames && (f - start) * HOP_SECONDS > 0.08
+                if (byPitch || byOnset) { close(f); splitByPitch = !byOnset }
             }
             if (start < 0) start = f
-            run += p
+            run += p; runSmooth += smooth[f]
         }
-        close(frames)
+        close(frames, gap = true)
         val voiced = pitch.count { !it.isNaN() }.toDouble() / frames
-        return notes to voiced
+        return Line(notes, voiced, held(pitch))
     }
 }
 
@@ -307,45 +412,55 @@ object KeyEvidence {
         return Evidence(w, h, clues, "notes")
     }
 
-    /** Chroma from the whole file (for chords and mixes): log magnitudes 55 Hz–2 kHz folded to pitch classes, the bass band as the clue. */
+    /**
+     * Chroma from the whole file (for chords and mixes): log magnitudes 55 Hz–2 kHz folded to pitch classes. The home
+     * clues come from the bass: the pitch class most often lowest, and the last bass note (as a line's last note is).
+     */
     fun fromChroma(x: FloatArray, rate: Int): Evidence {
         val n = 8192
         val hop = n
         val w = DoubleArray(12); val bass = DoubleArray(12)
+        var lastBass = -1
         val win = DoubleArray(n) { 0.5 - 0.5 * cos(2 * PI * it / n) }
         val re = DoubleArray(n); val im = DoubleArray(n)
+        fun pcAt(hz: Double) = Math.floorMod((69 + 12 * log2(hz / 440.0)).roundToInt(), 12)
         val pcOf = IntArray(n / 2) { b ->
             val hz = b * rate.toDouble() / n
-            if (hz < 55 || hz > 2000) -1 else Math.floorMod((69 + 12 * log2(hz / 440.0)).roundToInt(), 12)
+            if (hz < 55 || hz > 2000) -1 else pcAt(hz)
         }
+        val mags = DoubleArray(n / 2)
         var f = 0
         while (f + n <= x.size) {
             for (i in 0 until n) { re[i] = x[f + i] * win[i]; im[i] = 0.0 }
             Fft.transform(re, im)
             val frame = DoubleArray(12)
-            // Down low a semitone is about one bin, so the bass is the single strongest bin under 250 Hz, not a fold.
-            var lowBin = -1; var lowMag = 0.0
             for (b in 1 until n / 2) {
+                mags[b] = sqrt(re[b] * re[b] + im[b] * im[b])
                 val pc = pcOf[b]
-                if (pc < 0) continue
-                val m = sqrt(re[b] * re[b] + im[b] * im[b])
-                frame[pc] += m
-                if (b * rate.toDouble() / n < 250 && m > lowMag) { lowMag = m; lowBin = b }
+                if (pc >= 0) frame[pc] += mags[b]
             }
+            // The bass: the lowest strong peak (ChordFinder.bassHz), not the loudest bin.
+            val bassHz = ChordFinder.bassHz(mags, rate.toDouble() / n)
             // Each frame counts by its shape, not its loudness.
             val total = frame.sum()
             if (total > 1e-6) {
                 for (i in 0 until 12) w[i] += frame[i] / total
-                if (lowBin > 0) bass[pcOf[lowBin]] += lowMag / total
+                if (bassHz != null) { val pc = pcAt(bassHz); bass[pc] += 1.0; lastBass = pc }
             }
             f += hop
         }
         val h = DoubleArray(12)
-        val clues = HashMap<Int, List<String>>()
-        val top = bass.indices.maxByOrNull { bass[it] }
-        if (top != null && bass[top] > 0) { h[top] = 0.6; clues[top] = listOf("strongest in the bass") }
+        val clues = HashMap<Int, MutableList<String>>()
+        fun clue(pc: Int, amount: Double, words: String) { h[pc] += amount; clues.getOrPut(pc) { ArrayList() } += words }
+        if (lastBass >= 0) clue(lastBass, 0.5, "the last bass note")
+        bass.indices.maxByOrNull { bass[it] }?.takeIf { bass[it] > 0 }?.let { clue(it, 0.3, "most often in the bass") }
         return Evidence(w, h, clues, "chroma")
     }
+
+    /** The bass search: 40–300 Hz (E1 up to about D4), the lowest local peak at least a quarter of the band's loudest. [Claude] */
+    const val BASS_LOW_HZ = 40.0
+    const val BASS_HIGH_HZ = 300.0
+    const val BASS_PEAK = 0.25
 
     fun rank(e: Evidence): KeyResult {
         val total = e.weights.sum()
@@ -422,6 +537,7 @@ object AnalysisText {
         r.notes.forEach { line("note", it.start, it.end, it.midi, it.cents, it.confidence) }
         line("chords", r.chords.meter, r.chords.free)
         r.chords.beats.forEach { line("chord", it.time, it.label, it.match) }
+        r.oneAtATime?.let { line("line", it) }
     }
 
     fun decode(s: String?): TakeAnalysis.Result? = runCatching {
@@ -444,6 +560,7 @@ object AnalysisText {
                 lines.filter { it[0] == "chord" }.map { ChordFinder.Beat(it[1].toDouble(), it[2], it[3].toDouble()) },
                 TimeSignature.parse(chordLine[1]), chordLine[2].toBoolean(),
             ),
+            oneAtATime = lines.firstOrNull { it[0] == "line" }?.get(1)?.toBooleanStrictOrNull(),
         )
     }.getOrNull()
 }

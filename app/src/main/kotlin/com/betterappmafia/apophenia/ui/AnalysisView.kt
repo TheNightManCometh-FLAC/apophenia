@@ -79,7 +79,8 @@ fun AnalysisSection(model: AppModel, s: ScrapEntity, take: TakeEntity) {
     // Key and mode.
     Kv("KEY") {
         Text(
-            (if (r.key.uncertain) "Uncertain: the notes fit more than one key or mode equally. " else "") +
+            if (r.key.from == "speech") "Speech: the pitch slides between syllables instead of holding notes, so no key."
+            else (if (r.key.uncertain) "Uncertain: no key stands out (the notes fit more than one, or nearly every note is there). " else "") +
                 if (r.key.from == "notes") "From the notes played." else "From the sound as a whole (chords or a mix).",
             style = T.small,
         )
@@ -97,7 +98,11 @@ fun AnalysisSection(model: AppModel, s: ScrapEntity, take: TakeEntity) {
     // Chords (0.4.2): per beat, as a chart you can keep.
     Kv("CHORDS") {
         val c = r.chords
-        if (c.beats.isEmpty() || c.beats.all { it.label == com.betterappmafia.apophenia.core.analysis.ChordFinder.NO_CHORD }) {
+        if (r.key.from == "speech") {
+            Text("Speech: no chords.", style = T.small)
+        } else if (r.oneAtATime == true) {
+            Text("One note at a time (from Notes → MIDI): a single line, so no chords.", style = T.small)
+        } else if (c.beats.isEmpty() || c.beats.all { it.label == com.betterappmafia.apophenia.core.analysis.ChordFinder.NO_CHORD }) {
             Text("No chords found.", style = T.small)
         } else {
             Text(

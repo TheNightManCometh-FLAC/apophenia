@@ -27,4 +27,9 @@ dependencies {
 
 tasks.test {
     useJUnit()
+    // ONNX Runtime unpacks its native library into a new temp folder every run and never deletes it on Windows
+    // (101 folders, 1.7 GB, by 27 Oct 2026): keep them in the build folder, where a clean removes them.
+    val tmp = layout.buildDirectory.dir("tmp/test-jvm").get().asFile
+    doFirst { tmp.deleteRecursively(); tmp.mkdirs() }
+    systemProperty("java.io.tmpdir", tmp.absolutePath)
 }

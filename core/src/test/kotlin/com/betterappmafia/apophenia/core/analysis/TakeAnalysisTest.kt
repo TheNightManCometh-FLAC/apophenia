@@ -106,6 +106,94 @@ class TakeAnalysisTest {
         assertEquals(null, k.best)
     }
 
+    /** A sung "ah" (two formants) along [hz], each held [each] seconds, with a 5.5 Hz vibrato [cents] wide either way. */
+    private fun sung(hz: List<Double>, each: Double, cents: Double): FloatArray {
+        var phase = 0.0
+        return FloatArray((hz.size * each * rate).toInt()) { i ->
+            val t = i.toDouble() / rate
+            val f0 = hz[(t / each).toInt()] * Math.pow(2.0, cents / 1200 * sin(2 * PI * 5.5 * t))
+            phase += 2 * PI * f0 / rate
+            var v = 0.0
+            for (h in 1..20) v += (exp(-Math.pow((f0 * h - 700) / 180, 2.0)) + 0.6 * exp(-Math.pow((f0 * h - 1200) / 220, 2.0)) + 0.1) * sin(phase * h)
+            (0.1 * v * minOf(1.0, (t % each) / 0.03, (each - t % each) / 0.03)).toFloat()
+        }
+    }
+
+    @Test fun `a spoken memo gets no key, a sung line with wide vibrato still holds its notes`() {
+        val (memo, memoRate) = SpeechTest.readWav(java.io.File(javaClass.getResource("/speech/memo.wav")!!.toURI()))
+        val memoResult = TakeAnalysis.analyse(memo, memoRate)
+        val spoken = memoResult.key
+        assertTrue("speech has no chords: ${memoResult.chords.beats.map { it.label }}", memoResult.chords.beats.isEmpty())
+        assertEquals("speech", spoken.from)
+        assertEquals(null, spoken.best)
+        // D E G E D C, 1.5 s each, vibrato ±85 cents: the smoothing keeps it held, so it is not taken for speech.
+        val line = sung(listOf(293.66, 329.63, 392.0, 329.63, 293.66, 261.63), 1.5, 85.0)
+        val curve = MonoNotes.curve(Resample.to(line, rate, TakeAnalysis.RATE), TakeAnalysis.RATE, 30.0, 1000.0).midi
+        assertTrue("held ${MonoNotes.held(curve)}", MonoNotes.held(curve) > 0.9)
+        assertEquals("notes", TakeAnalysis.analyse(line, rate).key.from)
+    }
+
+    @Test fun `a sung note with wide vibrato is one note, at its centre pitch`() {
+        // D E G E D C, 1.5 s each; vibrato ±85 cents used to cut each note into a dozen or more.
+        for (cents in listOf(0.0, 50.0, 85.0, 100.0, 120.0)) {
+            val notes = TakeAnalysis.analyse(sung(listOf(293.66, 329.63, 392.0, 329.63, 293.66, 261.63), 1.5, cents), rate).notes
+            assertEquals("±$cents: $notes", listOf(62, 64, 67, 64, 62, 60), notes.map { it.midi })
+        }
+    }
+
+    /** The app's own piano (Iowa MIS, real recordings: a low note's overtones are louder than its fundamental). */
+    private val piano by lazy {
+        val samples = java.io.File("../app/src/main/assets/piano").listFiles()!!.mapNotNull { f ->
+            val m = Regex("mf-(\\d+)\\.wav").matchEntire(f.name)?.groupValues?.get(1)?.toInt() ?: return@mapNotNull null
+            val b = f.readBytes()
+            val pcm = java.nio.ByteBuffer.wrap(b, 44, b.size - 44).order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+            m to FloatArray(pcm.remaining()) { pcm.get(it) / 32768f }
+        }.toMap()
+        com.betterappmafia.apophenia.core.sound.PianoSampler(listOf(com.betterappmafia.apophenia.core.sound.PianoSampler.Layer(80, samples)))
+    }
+
+    /** Chords (MIDI, bass first), 1.5 s each, played twice through on the piano. */
+    private fun pianoChords(vararg chords: List<Int>): FloatArray {
+        val all = chords.toList() + chords.toList()
+        return piano.render(all.flatMapIndexed { i, ms -> ms.map { com.betterappmafia.apophenia.core.sound.PlayNote(i * 1.5, (i + 1) * 1.5, it, 80) } }, rate, all.size * 1.5)
+    }
+
+    @Test fun `piano chords name their key from the bass, and ringing arpeggios are not speech`() {
+        // Before 0.9.15 none of these named a key: chords went down the single-line path, and the bass clue took the
+        // loudest bin under 250 Hz (G, the overtone of a low C; B3 inside a G7).
+        assertEquals("C major", TakeAnalysis.analyse(pianoChords(listOf(36, 60, 64, 67), listOf(41, 60, 65, 69), listOf(43, 62, 67, 71), listOf(36, 60, 64, 67)), rate).key.best.toString())
+        assertEquals("C major", TakeAnalysis.analyse(pianoChords(listOf(38, 60, 65, 69), listOf(43, 59, 62, 65), listOf(36, 59, 64, 67), listOf(36, 59, 64, 67)), rate).key.best.toString())
+        assertEquals("A aeolian", TakeAnalysis.analyse(pianoChords(listOf(45, 60, 64, 69), listOf(41, 60, 65, 69), listOf(43, 59, 62, 67), listOf(45, 60, 64, 69)), rate).key.best.toString())
+        assertEquals("Eb major", TakeAnalysis.analyse(pianoChords(listOf(39, 63, 67, 70), listOf(44, 63, 68, 72), listOf(46, 62, 65, 70), listOf(39, 63, 67, 70)), rate).key.best.toString())
+        // Its chords, a beat each from the first attack at 0 s (the file starts mid-sound): before, the first C was lost
+        // (no onset at frame 0) and C read as C/G (the low C's overtone taken for the bass).
+        val cfgc = TakeAnalysis.analyse(pianoChords(listOf(36, 60, 64, 67), listOf(41, 60, 65, 69), listOf(43, 62, 67, 71), listOf(36, 60, 64, 67)), rate).chords
+        assertEquals(listOf("C", "F", "G", "C", "C", "F", "G", "C"), cfgc.beats.take(8).map { it.label })
+        // A C arpeggio whose notes ring into each other: the pitch jumps between them, but it is pitched nearly throughout.
+        val arp = listOf(48, 52, 55, 60, 55, 52, 48, 52, 55, 60).mapIndexed { i, m -> com.betterappmafia.apophenia.core.sound.PlayNote(i * 0.3, i * 0.3 + 0.9, m, 80) }
+        assertTrue(TakeAnalysis.analyse(piano.render(arp, rate, 4.0), rate).key.from != "speech")
+    }
+
+    @Test fun `overlap is the share of sounding time with two or more notes`() {
+        assertEquals(0.0, TakeAnalysis.overlap(listOf(0.0 to 1.0, 1.0 to 2.0, 2.5 to 3.0)), 1e-9)          // one after another
+        assertEquals(0.1, TakeAnalysis.overlap(listOf(0.0 to 1.1, 0.9 to 2.0)), 1e-9)                       // 0.2 s of 2.0 s
+        assertEquals(1.0, TakeAnalysis.overlap(listOf(0.0 to 1.0, 0.0 to 1.0, 0.0 to 1.0)), 1e-9)          // a chord
+        assertTrue(TakeAnalysis.overlap(listOf(0.0 to 1.1, 0.9 to 2.0)) < TakeAnalysis.SINGLE_LINE)
+    }
+
+    @Test fun `a line Notes to MIDI calls one note at a time gets no chords, and no key read from its overtones`() {
+        // Both read a confident wrong key from the chord path in 0.9.15 (G major, C Lydian); their own notes leave it open.
+        val pianoLine = piano.render(listOf(60, 62, 64, 67, 64, 62, 60, 55).mapIndexed { i, m -> com.betterappmafia.apophenia.core.sound.PlayNote(i * 0.8, i * 0.8 + 0.75, m, 80) }, rate, 7.4)
+        val sungLine = sung(listOf(293.66, 329.63, 392.0, 329.63, 293.66, 261.63), 1.5, 0.0)
+        for (x in listOf(pianoLine, sungLine)) {
+            val r = TakeAnalysis.analyse(x, rate, oneAtATime = true)
+            assertEquals("notes", r.key.from)
+            assertTrue("chords: ${r.chords.beats.map { it.label }}", r.chords.beats.isEmpty())
+            assertEquals(true, AnalysisText.decode(AnalysisText.encode(r))?.oneAtATime)
+        }
+        assertEquals("G major", TakeAnalysis.analyse(pianoLine, rate).key.best.toString())   // untranscribed: as before
+    }
+
     @Test fun `a result survives being stored as text, and other text reads as nothing`() {
         val x = melody(57 to 0.4, 59 to 0.3, 60 to 0.3, 62 to 0.3, 64 to 0.3, 65 to 0.3, 67 to 0.3, 64 to 0.3, 60 to 0.3, 57 to 0.8)
         val r = TakeAnalysis.analyse(x, rate)

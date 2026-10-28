@@ -65,12 +65,17 @@ class Analyser(private val db: ApopheniaDatabase, private val audioDir: File) {
         }
         val meter = grid?.meter?.let { runCatching { com.betterappmafia.apophenia.core.rhythm.TimeSignature.parse(it) }.getOrNull() } ?: com.betterappmafia.apophenia.core.rhythm.TimeSignature.of(4, 4)
         val (x, rate) = Wav.readMono(file, TakeAnalysis.RATE, MAX_SECONDS) ?: error("can't read ${file.name}")
-        val r = TakeAnalysis.analyse(x, rate, clickBeats = clickBeats, meter = meter)
+        // Once the take has Notes → MIDI, it says whether this is one note at a time (no chord chart then).
+        val oneAtATime = com.betterappmafia.apophenia.core.analysis.TranscriptionText.decode(db.transcriptions().get(takeId)?.body)
+            ?.let { notes -> TakeAnalysis.overlap(notes.map { it.start to it.end }) < TakeAnalysis.SINGLE_LINE }
+        val r = TakeAnalysis.analyse(x, rate, clickBeats = clickBeats, meter = meter, oneAtATime = oneAtATime)
         db.analysis().put(TakeAnalysisEntity(takeId, TakeAnalysis.VERSION, System.currentTimeMillis(), AnalysisText.encode(r)))
         val s = db.scraps().get(scrapId) ?: return
         // A take recorded with the click already has its tempo from the metronome.
         if (!clicked && s.bpmLow == null && !s.freeTime) r.tempo.best?.let { db.scraps().offerBpm(scrapId, Math.round(it * 10) / 10.0, source = ValueSource.ANALYSIS) }
         if (s.key == null && s.keySource == null) r.key.best?.let { db.scraps().offerKey(scrapId, it.token, ValueSource.ANALYSIS) }
+        // Speech has no key: one this analysis offered before (an older build) goes; one the musician set stays.
+        if (r.key.from == "speech" && s.key != null && s.keySource == ValueSource.ANALYSIS) db.scraps().offerKey(scrapId, null, ValueSource.ANALYSIS)
         Breadcrumbs.add("analysed take $takeId: ${r.tempo.best} ${r.key.best} ${r.notes.size} notes")
     }
 

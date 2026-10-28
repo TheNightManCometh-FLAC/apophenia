@@ -60,10 +60,16 @@ Icon: `images/icon.png` 512×512 from Christopher's painting (new 25 Oct 2026, f
 
 ### Measuring the Play download size
 bundletool 1.18.3 is in the Gradle cache (no download needed). Put its jar and dependencies on a classpath of Windows
-paths, then, after `./gradlew.bat bundleRelease`:
+paths (`;`-separated), each the jar under `~/.gradle/caches/modules-2/files-2.1/<group>/<name>/<version>/<hash>/`:
+`com.google.guava/guava` **a `-jre` version** (33.4.0-jre; the `-android` one fails with "NotPredicate does not implement
+java.util.function.Predicate"), `com.android.tools.build/bundletool/1.18.3`, `com.android.tools.build/aapt2-proto`
+(without it: "ClassNotFoundException com.android.aapt.Resources$XmlNode"), `com.google.guava/failureaccess`,
+`com.google.protobuf/protobuf-java`, `com.google.protobuf/protobuf-java-util`, `com.google.code.gson/gson`,
+`org.bitbucket.b_c/jose4j`, `com.google.dagger/dagger`, `javax.inject/javax.inject`,
+`com.google.auto.value/auto-value-annotations` (27 Oct 2026). Then, after `./gradlew.bat bundleRelease`:
 ```
 java -cp "<classpath>" com.android.tools.build.bundletool.BundleToolMain build-apks --aapt2=D:\Android\Sdk\build-tools\36.1.0\aapt2.exe --bundle=app\build\outputs\bundle\release\app-release.aab --output=app.apks
 java -cp "<classpath>" com.android.tools.build.bundletool.BundleToolMain get-size total --apks=app.apks --dimensions=ABI,SDK
 ```
-0.8.8: 156,532,363–156,536,559 bytes. The largest pieces: Moonshine base 60 MB, Spleeter 4×18.8 MB, ONNX Runtime 32.6 MB,
+0.8.8: 156,532,363–156,536,559 bytes. 0.9.15 (27 Oct 2026): 156,646,836–156,651,026. The largest pieces: Moonshine base 60 MB, Spleeter 4×18.8 MB, ONNX Runtime 32.6 MB,
 dex 24.6 MB (R8 off).

@@ -77,6 +77,8 @@ class Transcriber(private val context: Context, private val db: ApopheniaDatabas
             val timed = BasicPitch.timed(BasicPitch.withBends(BasicPitch.unwrap(contours, audio.size), events))
             db.transcriptions().put(TakeTranscriptionEntity(takeId, MODEL_ID, System.currentTimeMillis(), TranscriptionText.encode(MODEL_ID, timed)))
             Breadcrumbs.add("transcribed take $takeId: ${timed.size} notes from ${windows.size} windows")
+            // The notes say whether the take is one note at a time, which changes its key and chords: analyse it again.
+            (context.applicationContext as? com.betterappmafia.apophenia.ApopheniaApp)?.analyser?.again(takeId)
             dismiss(takeId)
         } catch (t: Throwable) {
             Breadcrumbs.add("transcription failed take $takeId: $t")
