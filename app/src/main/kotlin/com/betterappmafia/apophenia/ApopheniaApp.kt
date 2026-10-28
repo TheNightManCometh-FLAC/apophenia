@@ -27,7 +27,7 @@ class ApopheniaApp : Application() {
     lateinit var model: AppModel
     val audioDir: File by lazy { File(filesDir, "audio") }
     /** Take analysis in the background (plan §10.2). */
-    val analyser by lazy { com.betterappmafia.apophenia.audio.Analyser(db, audioDir) }
+    val analyser by lazy { com.betterappmafia.apophenia.audio.Analyser(db, audioDir, com.betterappmafia.apophenia.audio.BeatTracker(this)) }
     /** Notes → MIDI with Basic Pitch (plan §10.3). */
     val transcriber by lazy { com.betterappmafia.apophenia.audio.Transcriber(this, db, audioDir) }
     val separator by lazy { com.betterappmafia.apophenia.audio.Separator(this, db, audioDir) }

@@ -1,6 +1,8 @@
 package com.betterappmafia.apophenia.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,14 +51,14 @@ fun StemsSection(model: AppModel, s: ScrapEntity, take: TakeEntity, title: Strin
         }
         job?.error != null -> {
             Kv("STEMS") { Text("It didn't finish: ${job!!.error}", style = T.body.copy(color = C.acc)) }
-            Row(Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) { Sq("TRY AGAIN", { separator.start(take, title) }) }
+            Row(Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) { Sq("TRY AGAIN", { separator.start(take, title, job.stems) }) }
             return
         }
         stems.isEmpty() -> {
             Kv("STEMS") {
-                Text("Spleeter splits this take into vocals, drums, bass and other, in stereo, on the phone. Each stem becomes its own recording in the Library, linked here. The take itself is never changed.", style = T.small.copy(lineHeight = 16.sp))
+                Text("Spleeter splits this take into vocals, drums, bass and other, in stereo, on the phone. Pick the stems you want; each becomes its own recording in the Library, linked here. The take itself is never changed.", style = T.small.copy(lineHeight = 16.sp))
             }
-            Row(Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) { Sq("▶ SEPARATE TAKE ${take.letter}", { separator.start(take, title) }, on = true) }
+            Pick(take) { separator.start(take, title, it) }
             Limits()
             return
         }
@@ -118,11 +120,26 @@ fun StemsSection(model: AppModel, s: ScrapEntity, take: TakeEntity, title: Strin
         }, on = audible.isNotEmpty())
         if (player != null && ordered.any { it.takeId == player!!.takeId }) Sq("■ STOP", { model.app.audio.togglePlay() })
     }
-    Row(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
-        Sq("SEPARATE AGAIN", { separator.start(take, title) })
-    }
-    Hint("Played together with nothing muted, the stems add back up to the take. Separating again makes four new recordings; these stay until you delete them.")
+    var again by remember(take.id) { mutableStateOf(false) }
+    if (again) Pick(take) { again = false; separator.start(take, title, it) }
+    else Row(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) { Sq("SEPARATE AGAIN ▾", { again = true }) }
+    Hint(if (ordered.size == Spleeter.STEMS.size) "Played together with nothing muted, the stems add back up to the take. Separating again makes new recordings of the stems you pick; these stay until you delete them."
+        else "Separating again makes new recordings of the stems you pick (the ones not made yet, or new copies); these stay until you delete them.")
     Limits()
+}
+
+/** Which stems to make (Christopher, 28 Oct 2026: pick before separating). [Claude] All four start picked. */
+@Composable
+private fun Pick(take: TakeEntity, go: (Set<String>) -> Unit) {
+    var picked by remember(take.id) { mutableStateOf(Spleeter.STEMS.toSet()) }
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Spleeter.STEMS.forEach { name ->
+            Sq((if (name in picked) "✓ " else "") + name.uppercase(), { picked = if (name in picked) picked - name else picked + name }, on = name in picked)
+        }
+    }
+    Row(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
+        Sq(if (picked.isEmpty()) "PICK A STEM" else "▶ SEPARATE TAKE ${take.letter}", { if (picked.isNotEmpty()) go(picked) }, on = picked.isNotEmpty())
+    }
 }
 
 private fun stemTitle(st: StemRow) = st.title?.takeIf { it.isNotBlank() } ?: st.stem

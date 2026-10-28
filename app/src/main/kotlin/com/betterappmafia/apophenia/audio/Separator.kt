@@ -38,7 +38,7 @@ import java.nio.channels.FileChannel
  */
 class Separator(private val context: Context, private val db: ApopheniaDatabase, private val audioDir: File) {
     /** A job in the AI mode's JOBS list: [done] of [total] parts (about 12 s of audio each), or why it failed. */
-    data class Job(val takeId: Long, val scrapId: Long, val title: String, val letter: String, val audioPath: String, val done: Int = 0, val total: Int = 0, val error: String? = null) {
+    data class Job(val takeId: Long, val scrapId: Long, val title: String, val letter: String, val audioPath: String, val stems: Set<String>, val done: Int = 0, val total: Int = 0, val error: String? = null) {
         val percent: Int get() = if (total == 0) 0 else done * 100 / total
     }
 
@@ -51,9 +51,10 @@ class Separator(private val context: Context, private val db: ApopheniaDatabase,
         scope.launch { for (job in queue) run(job) }
     }
 
-    fun start(take: TakeEntity, title: String) {
-        if (_jobs.value.any { it.takeId == take.id && it.error == null }) return
-        val job = Job(take.id, take.scrapId, title, take.letter, take.audioPath)
+    /** Separates [take]; only the [stems] picked (Christopher, 28 Oct 2026) are saved. All four models still run: each mask needs all four. */
+    fun start(take: TakeEntity, title: String, stems: Set<String>) {
+        if (stems.isEmpty() || _jobs.value.any { it.takeId == take.id && it.error == null }) return
+        val job = Job(take.id, take.scrapId, title, take.letter, take.audioPath, stems)
         _jobs.update { list -> list.filter { it.takeId != take.id } + job }
         AiWork.begin(context)
         queue.trySend(job)
@@ -66,6 +67,7 @@ class Separator(private val context: Context, private val db: ApopheniaDatabase,
         fun progress(done: Int, total: Int) = _jobs.update { l -> l.map { if (it.takeId == takeId) it.copy(done = done, total = total) else it } }
         val scratch = File(context.cacheDir, "stems-in.f32")
         val now = System.currentTimeMillis()
+        val keep = Spleeter.STEMS.map { it in job.stems }
         val parts = Spleeter.STEMS.map { File(audioDir, "take-$now-$it.wav.separating") }
         try {
             val file = File(audioDir, job.audioPath)
@@ -89,7 +91,7 @@ class Separator(private val context: Context, private val db: ApopheniaDatabase,
                 }
             }
             if (length == 0L) error("the take is empty")
-            val writers = parts.map { WavWriter(it, 48_000, 2) }
+            val writers = parts.mapIndexed { s, f -> if (keep[s]) WavWriter(f, 48_000, 2) else null }
             val back = Spleeter.STEMS.map { Resampler(Spleeter.RATE, 48_000) to Resampler(Spleeter.RATE, 48_000) }
             val inter = FloatArray(2 * 4096)
             val bl = FloatArray(4096); val br = FloatArray(4096)
@@ -101,21 +103,23 @@ class Separator(private val context: Context, private val db: ApopheniaDatabase,
                             var p = (start * 2).toInt()
                             for (i in 0 until count) { l[off + i] = fb.get(p); r[off + i] = fb.get(p + 1); p += 2 }
                         }, models, { s, l, r, count ->
+                            val w = writers[s] ?: return@separate
                             val (ra, rb) = back[s]
                             var nl = 0; var nr = 0
                             ra.process(l, count) { b, k -> System.arraycopy(b, 0, bl, nl, k); nl += k }
                             rb.process(r, count) { b, k -> System.arraycopy(b, 0, br, nr, k); nr += k }
                             val k = minOf(nl, nr)
                             for (i in 0 until k) { inter[2 * i] = bl[i]; inter[2 * i + 1] = br[i] }
-                            writers[s].write(inter, 2 * k)
-                        }) { done, total -> progress(done, total) }
+                            w.write(inter, 2 * k)
+                        }, wiener = true) { done, total -> progress(done, total) }
                     }
                 }
             } finally {
-                writers.forEach { runCatching { it.close() } }
+                writers.forEach { w -> runCatching { w?.close() } }
             }
             val source = db.scraps().get(job.scrapId)
             for ((s, name) in Spleeter.STEMS.withIndex()) {
+                if (!keep[s]) continue
                 val final = File(audioDir, "take-$now-$name.wav")
                 if (!parts[s].renameTo(final)) error("couldn't save the $name stem")
                 val frames = Wav.info(final)?.frames ?: 0L
@@ -128,7 +132,7 @@ class Separator(private val context: Context, private val db: ApopheniaDatabase,
                 val stemTake = db.takes().takesOf(id).single()
                 db.stems().put(TakeStemEntity(takeId, name, stemTake.id, MODEL_ID, now))
             }
-            Breadcrumbs.add("separated take $takeId: ${length / Spleeter.RATE} s into ${Spleeter.STEMS.size} stems")
+            Breadcrumbs.add("separated take $takeId: ${length / Spleeter.RATE} s into ${job.stems.sorted()}")
             dismiss(takeId)
         } catch (t: Throwable) {
             Breadcrumbs.add("separation failed take $takeId: $t")

@@ -124,6 +124,8 @@ class TakeAnalysisTest {
         val memoResult = TakeAnalysis.analyse(memo, memoRate)
         val spoken = memoResult.key
         assertTrue("speech has no chords: ${memoResult.chords.beats.map { it.label }}", memoResult.chords.beats.isEmpty())
+        // Nor a tempo (it read 156 BPM before 0.9.19).
+        assertTrue("speech has no tempo: ${memoResult.tempo.candidates}", memoResult.tempo.free && memoResult.tempo.best == null)
         assertEquals("speech", spoken.from)
         assertEquals(null, spoken.best)
         // D E G E D C, 1.5 s each, vibrato ±85 cents: the smoothing keeps it held, so it is not taken for speech.

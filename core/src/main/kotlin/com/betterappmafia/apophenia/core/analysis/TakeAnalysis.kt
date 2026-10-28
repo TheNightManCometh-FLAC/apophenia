@@ -24,8 +24,9 @@ import kotlin.math.sqrt
  * Input is mono float audio at any rate; it is reduced to [RATE] first.
  */
 object TakeAnalysis {
-    /** 2 added the chords (0.4.2). 3 (0.9.17): speech gets no key or chords, vibrato is one note, chords and keys from the bass; every take is analysed again. */
-    const val VERSION = 3
+    /** 2 added the chords (0.4.2). 3 (0.9.17): speech gets no key or chords, vibrato is one note, chords and keys from the bass; every take is analysed again.
+     *  4 (0.9.19): tempo and the chords' beats from Beat This!, and speech gets no tempo; every take is analysed again. */
+    const val VERSION = 4
     const val RATE = 24000
     /** [Claude] Notes are tracked over the first two minutes; longer files (imported songs) get tempo and key only. */
     const val NOTE_SECONDS = 120
@@ -60,12 +61,14 @@ object TakeAnalysis {
      * recorded with it; otherwise the chords sit on the analysed pulse, from the first attack, in 4/4 [Claude].
      * [oneAtATime] comes from the take's Notes → MIDI when it has one (Christopher, 27 Oct 2026): a single line gets
      * no chord chart, and its key comes from its notes only.
+     * [found] is what [BeatThis] found in the take (the app runs the model); then the tempo comes from its beats and the
+     * chords sit on them from its first downbeat, and the onset estimate is only the fallback without it.
      */
-    fun analyse(x: FloatArray, rate: Int, minHz: Double = 30.0, maxHz: Double = 1000.0, clickBeats: List<Double>? = null, meter: TimeSignature = TimeSignature.of(4, 4), oneAtATime: Boolean? = null): Result {
+    fun analyse(x: FloatArray, rate: Int, minHz: Double = 30.0, maxHz: Double = 1000.0, clickBeats: List<Double>? = null, meter: TimeSignature = TimeSignature.of(4, 4), oneAtATime: Boolean? = null, found: BeatThis.Track? = null): Result {
         val y = Resample.to(x, rate, RATE)
         val env = Onsets.envelope(y, RATE)
         val onsets = Onsets.pick(env)
-        val tempo = Tempo.estimate(env, onsets)
+        val pulse = found?.let { Tempo.fromBeats(it.beats) } ?: Tempo.estimate(env, onsets)
         val noteSpan = y.copyOf(minOf(y.size, RATE * NOTE_SECONDS))
         val (notes, voiced, held) = MonoNotes.track(noteSpan, RATE, minHz, maxHz, Onsets.pick(Onsets.envelope(noteSpan, RATE, vibrato = true)))
         val line = voiced >= 0.3 && notes.size >= 4
@@ -82,8 +85,12 @@ object TakeAnalysis {
             }
             else -> KeyEvidence.rank(KeyEvidence.fromChroma(y, RATE))
         }
+        // Nor a tempo (Christopher, 28 Oct 2026: speech gets no BPM).
+        val tempo = if (key.from == "speech") Tempo(emptyList(), pulse.clarity, true, pulse.from) else pulse
         val seconds = y.size.toDouble() / RATE
-        val beats = clickBeats ?: tempo.best?.let { bpm -> onsets.firstOrNull()?.let { first -> generateSequence(first) { it + 60.0 / bpm }.takeWhile { it < seconds }.toList() } }
+        // The beats found, from the first downbeat (the bar line), when they hold a tempo.
+        val foundBeats = found?.takeIf { tempo.best != null }?.let { f -> f.beats.filter { it >= (f.downbeats.firstOrNull() ?: f.beats.first()) - 1e-6 } }?.takeIf { it.size >= 2 }
+        val beats = clickBeats ?: foundBeats ?: tempo.best?.let { bpm -> onsets.firstOrNull()?.let { first -> generateSequence(first) { it + 60.0 / bpm }.takeWhile { it < seconds }.toList() } }
         // Speech has no chords either (Christopher, 27 Oct 2026: "No chart"): nothing for the chart, In yours or Ear to read.
         val chords = if (key.from == "speech" || oneAtATime == true) ChordFinder.Track(emptyList(), meter, beats == null)
             else ChordFinder.find(y, RATE, beats, meter, key.best ?: key.candidates.firstOrNull()?.key)
@@ -190,7 +197,7 @@ object Onsets {
  * Tempo candidates (plan §10.2): the fastest clear pulse in the onsets, with its half and double, or
  * free time. [clarity] is the autocorrelation peak against lag 0 (1 = perfectly periodic).
  */
-data class Tempo(val candidates: List<Candidate>, val clarity: Double, val free: Boolean) {
+data class Tempo(val candidates: List<Candidate>, val clarity: Double, val free: Boolean, val from: String = "onsets") {
     /** [why] says how it relates to the first: "pulse", "half", "double", "next". */
     data class Candidate(val bpm: Double, val why: String)
 
@@ -237,6 +244,39 @@ data class Tempo(val candidates: List<Candidate>, val clarity: Double, val free:
                 if (lead * 2 <= MAX_BPM * 1.25) add(Candidate(lead * 2, "double"))
             }
             return Tempo(list, clarity, clarity < MIN_CLARITY)
+        }
+
+        /**
+         * Below this share of beat intervals within 10% of their median, the beats don't hold a tempo. Measured 28 Oct
+         * 2026 on 42 MUSDB18 excerpts (7 s) with the drums taken out: of the tempos under 0.55, 5 of 6 were wrong; above
+         * it, 33 of 36 were right (or half or double).
+         */
+        const val MIN_REGULARITY = 0.55
+
+        /**
+         * The tempo of beats found by [BeatThis] ("beats"): the beat period by least squares over the beats, each
+         * numbered by counting every gap in whole median intervals [Claude]; half and double as alternatives.
+         * [clarity] is the share of intervals within 10% of the median.
+         */
+        fun fromBeats(beats: List<Double>): Tempo {
+            if (beats.size < 4) return Tempo(emptyList(), 0.0, true, "beats")
+            val gaps = beats.zipWithNext { a, b -> b - a }.sorted()
+            val median = gaps[gaps.size / 2]
+            val regularity = gaps.count { abs(it / median - 1) < 0.1 }.toDouble() / gaps.size
+            // Each gap counts as a whole number of beats (a missed beat is two), so the count can't drift over a long take.
+            val n = DoubleArray(beats.size)
+            for (i in 1 until beats.size) n[i] = n[i - 1] + maxOf(1, ((beats[i] - beats[i - 1]) / median).roundToInt())
+            val mn = n.average(); val mt = beats.average()
+            var sxy = 0.0; var sxx = 0.0
+            for (i in beats.indices) { sxy += (n[i] - mn) * (beats[i] - mt); sxx += (n[i] - mn) * (n[i] - mn) }
+            val period = if (sxx > 0) sxy / sxx else median
+            val bpm = 60.0 / (if (period > 0) period else median)
+            val list = buildList {
+                add(Candidate(bpm, "pulse"))
+                if (bpm / 2 >= MIN_BPM / 2) add(Candidate(bpm / 2, "half"))
+                if (bpm * 2 <= MAX_BPM * 1.25) add(Candidate(bpm * 2, "double"))
+            }
+            return Tempo(list, regularity, regularity < MIN_REGULARITY, "beats")
         }
 
         /** Mean onset strength on even pulses over odd ones, from the onset times; 1 when there's no pattern. */
@@ -529,7 +569,7 @@ object AnalysisText {
         fun line(vararg f: Any) { append(f.joinToString("\t") { it.toString().replace('\t', ' ').replace('\n', ' ') }).append('\n') }
         line("analysis", TakeAnalysis.VERSION)
         line("seconds", r.seconds)
-        line("tempo", r.tempo.free, r.tempo.clarity)
+        line("tempo", r.tempo.free, r.tempo.clarity, r.tempo.from)
         r.tempo.candidates.forEach { line("bpm", it.bpm, it.why) }
         line("voiced", r.voiced)
         line("key", r.key.uncertain, r.key.from)
@@ -549,7 +589,7 @@ object AnalysisText {
         val chordLine = one("chords")
         TakeAnalysis.Result(
             seconds = one("seconds")[1].toDouble(),
-            tempo = Tempo(lines.filter { it[0] == "bpm" }.map { Tempo.Candidate(it[1].toDouble(), it[2]) }, tempoLine[2].toDouble(), tempoLine[1].toBoolean()),
+            tempo = Tempo(lines.filter { it[0] == "bpm" }.map { Tempo.Candidate(it[1].toDouble(), it[2]) }, tempoLine[2].toDouble(), tempoLine[1].toBoolean(), tempoLine.getOrNull(3) ?: "onsets"),
             notes = lines.filter { it[0] == "note" }.map { Note(it[1].toDouble(), it[2].toDouble(), it[3].toInt(), it[4].toInt(), it[5].toDouble()) },
             voiced = one("voiced")[1].toDouble(),
             key = KeyResult(

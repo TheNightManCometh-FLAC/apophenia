@@ -23,7 +23,7 @@ import java.io.File
  * take of a scrap offers its tempo and key, which only fill in what nobody has set (the click's grid
  * and the user's entry always win, plan §3.4).
  */
-class Analyser(private val db: ApopheniaDatabase, private val audioDir: File) {
+class Analyser(private val db: ApopheniaDatabase, private val audioDir: File, private val beatTracker: BeatTracker? = null) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default.limitedParallelism(1))
     private var job: Job? = null
     private val _running = MutableStateFlow<Long?>(null)
@@ -68,11 +68,20 @@ class Analyser(private val db: ApopheniaDatabase, private val audioDir: File) {
         // Once the take has Notes → MIDI, it says whether this is one note at a time (no chord chart then).
         val oneAtATime = com.betterappmafia.apophenia.core.analysis.TranscriptionText.decode(db.transcriptions().get(takeId)?.body)
             ?.let { notes -> TakeAnalysis.overlap(notes.map { it.start to it.end }) < TakeAnalysis.SINGLE_LINE }
-        val r = TakeAnalysis.analyse(x, rate, clickBeats = clickBeats, meter = meter, oneAtATime = oneAtATime)
+        // The beats (0.9.19): a take with the click has its beats already. If the model fails, the onset estimate stands in.
+        val found = if (clicked) null else beatTracker?.let { bt ->
+            runCatching { bt.track(x, rate) }.onFailure { Breadcrumbs.add("beat tracking failed take $takeId: $it") }.getOrNull()
+        }
+        val r = TakeAnalysis.analyse(x, rate, clickBeats = clickBeats, meter = meter, oneAtATime = oneAtATime, found = found)
         db.analysis().put(TakeAnalysisEntity(takeId, TakeAnalysis.VERSION, System.currentTimeMillis(), AnalysisText.encode(r)))
         val s = db.scraps().get(scrapId) ?: return
-        // A take recorded with the click already has its tempo from the metronome.
-        if (!clicked && s.bpmLow == null && !s.freeTime) r.tempo.best?.let { db.scraps().offerBpm(scrapId, Math.round(it * 10) / 10.0, source = ValueSource.ANALYSIS) }
+        // A take recorded with the click already has its tempo from the metronome. A newer analysis replaces the tempo an
+        // older one offered (a better tempo finder reaches takes analysed before it); yours and the click's stay.
+        // [Claude] Only the scrap's first take replaces it, so takes analysed one after another don't take turns.
+        val analysed = s.bpmSource == ValueSource.ANALYSIS && db.takes().takesOf(scrapId).minByOrNull { it.id }?.id == takeId
+        if (!clicked && ((s.bpmLow == null && !s.freeTime) || analysed)) r.tempo.best?.let { db.scraps().offerBpm(scrapId, Math.round(it * 10) / 10.0, source = ValueSource.ANALYSIS) }
+        // Speech has no tempo either (Christopher, 28 Oct 2026): one analysis offered before goes.
+        if (r.key.from == "speech" && analysed && s.bpmLow != null) db.scraps().offerBpm(scrapId, null, source = ValueSource.ANALYSIS)
         if (s.key == null && s.keySource == null) r.key.best?.let { db.scraps().offerKey(scrapId, it.token, ValueSource.ANALYSIS) }
         // Speech has no key: one this analysis offered before (an older build) goes; one the musician set stays.
         if (r.key.from == "speech" && s.key != null && s.keySource == ValueSource.ANALYSIS) db.scraps().offerKey(scrapId, null, ValueSource.ANALYSIS)

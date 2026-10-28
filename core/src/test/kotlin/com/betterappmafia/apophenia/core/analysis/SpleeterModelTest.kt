@@ -67,6 +67,19 @@ class SpleeterModelTest {
         return mapOf("vocals" to vocals, "drums" to drums, "bass" to bass, "other" to other)
     }
 
+    /**
+     * 0.9.19: the bundled files keep fp16 weights but compute in fp32 (each weight is cast to float;
+     * tools/spleeter/f32compute.py names those weights "…__f16"). ONNX Runtime has native fp16 Conv kernels on CPUs with fp16 vector
+     * instructions (the S22's Snapdragon 8 Gen 1), where the bass model's activations reach 44 224 of fp16's 65 504.
+     */
+    @Test fun the_bundled_models_compute_in_float32() {
+        for (name in Spleeter.STEMS) {
+            val bytes = File(dir, "$name.fp16.onnx").readBytes()
+            val text = String(bytes, Charsets.ISO_8859_1)
+            assertTrue("$name still computes in fp16", text.contains("__f16") && text.contains("__cast"))
+        }
+    }
+
     @Test fun the_bundled_models_separate_a_synthetic_song() {
         val files = Spleeter.STEMS.map { File(dir, "$it.fp16.onnx") }
         files.forEach { assertTrue("missing $it", it.isFile) }

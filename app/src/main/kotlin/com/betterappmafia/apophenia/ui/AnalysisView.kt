@@ -70,8 +70,10 @@ fun AnalysisSection(model: AppModel, s: ScrapEntity, take: TakeEntity) {
             Sq("FREE TIME", { setBpm(null, free = true) }, on = s.freeTime)
         }
         Text(
-            if (r.tempo.free) "No steady pulse found (regularity ${(r.tempo.clarity * 100).roundToInt()}%): free time, or too short to tell."
-            else "From the attacks: regularity ${(r.tempo.clarity * 100).roundToInt()}%. Half and double are the same pulse counted differently.",
+            if (r.key.from == "speech") "Speech: no tempo."
+            else if (r.tempo.free) "No steady pulse found (regularity ${(r.tempo.clarity * 100).roundToInt()}%): free time, or too short to tell."
+            else (if (r.tempo.from == "beats") "From the beats found (Beat This!): ${(r.tempo.clarity * 100).roundToInt()}% of them evenly spaced. "
+                else "From the attacks: regularity ${(r.tempo.clarity * 100).roundToInt()}%. ") + "Half and double are the same pulse counted differently.",
             style = T.small, modifier = Modifier.padding(top = 4.dp),
         )
     }
@@ -109,6 +111,7 @@ fun AnalysisSection(model: AppModel, s: ScrapEntity, take: TakeEntity) {
                 when {
                     c.free -> "No steady beat, so one bar per chord, in order."
                     clicked -> "On the click's beats, in ${c.meter}, from its first downbeat."
+                    r.tempo.from == "beats" -> "On the beats found, from the first downbeat found, in ${c.meter} (the meter is a guess)."
                     else -> "On the analysed pulse from the first attack, in ${c.meter} (the bar line is a guess)."
                 },
                 style = T.small,

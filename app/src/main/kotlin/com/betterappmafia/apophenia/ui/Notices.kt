@@ -39,6 +39,7 @@ object Notices {
         Licence("LiteRT 2.3.0", "Runs the Basic Pitch model on the phone", "Apache-2.0, with its third-party notices", "Google LLC", listOf("litert-LICENSE.txt", "litert-THIRD_PARTY_NOTICE.txt")),
         Licence("ONNX Runtime 1.31.0", "Runs the Spleeter and Moonshine models on the phone", "MIT, with its third-party notices", "Microsoft Corporation", listOf("onnxruntime-LICENSE.txt", "onnxruntime-ThirdPartyNotices.txt")),
         Licence("Basic Pitch (ICASSP 2022 model)", "Turns recordings into notes", "Apache-2.0", "Spotify AB", listOf("basic-pitch-LICENSE.txt")),
+        Licence("Beat This! (small)", "Finds the beats and downbeats for a take's tempo and chord chart", "MIT (code and weights)", "Institute of Computational Perception, JKU Linz", listOf("beat-this-LICENSE.txt")),
         Licence("Spleeter 4 stems", "Separates a song into vocals, drums, bass and other", "MIT (Spleeter); Apache-2.0 (the ONNX conversion)", "Deezer SA", listOf("spleeter-LICENSE.txt", "spleeter-4stems-onnx-README.md")),
         Licence("Moonshine base", "Speech to text for spoken lyric ideas", "MIT", "Moonshine AI", listOf("moonshine-LICENSE.txt")),
         Licence("Bravura", "The music font on the staff", "SIL Open Font License 1.1", "Steinberg Media Technologies GmbH", listOf("Bravura-OFL.txt")),

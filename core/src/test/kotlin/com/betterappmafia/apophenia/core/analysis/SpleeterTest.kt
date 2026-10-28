@@ -26,13 +26,50 @@ class SpleeterTest {
         }
     }
 
-    private fun run(left: FloatArray, right: FloatArray, net: Spleeter.Net): Collect {
+    private fun run(left: FloatArray, right: FloatArray, net: Spleeter.Net, wiener: Boolean = false): Collect {
         val c = Collect(left.size)
         val source = Spleeter.Source { start, l, r, offset, count ->
             System.arraycopy(left, start.toInt(), l, offset, count); System.arraycopy(right, start.toInt(), r, offset, count)
         }
-        Spleeter.separate(left.size.toLong(), source, net, c.sink)
+        Spleeter.separate(left.size.toLong(), source, net, c.sink, wiener = wiener)
         return c
+    }
+
+    @Test fun the_wiener_stems_add_back_up_to_the_mix_and_differ_from_the_masks() {
+        val (l, r) = song(690_000)
+        val w = run(l, r, scrambled, wiener = true)
+        val m = run(l, r, scrambled)
+        assertTrue(w.at.all { it == l.size })
+        // The filters sum to I − √eps·C⁻¹: the mix comes back but for the quietest bins (−26.9 dB here, as norbert gives;
+        // the ratio masks give it back exactly).
+        var err = 0.0; var pow = 0.0
+        for (i in l.indices) {
+            err += (w.l.sumOf { it[i].toDouble() } - l[i]).let { it * it } + (w.r.sumOf { it[i].toDouble() } - r[i]).let { it * it }
+            pow += l[i].toDouble() * l[i] + r[i].toDouble() * r[i]
+        }
+        val db = 10 * kotlin.math.log10(err / pow)
+        println("wiener sum error $db dB")
+        assertTrue("sum error $db dB", db < -20)
+        // The filter mixes the channels and reweights by covariance: not the masks again.
+        var diff = 0.0
+        for (i in l.indices) diff = maxOf(diff, abs(w.l[0][i] - m.l[0][i]).toDouble())
+        assertTrue("wiener and masks agree to $diff", diff > 0.01)
+    }
+
+    @Test fun a_wiener_stem_that_gets_everything_is_the_mix() {
+        val (l, r) = song(100_000, seed = 3)
+        val c = run(l, r, Spleeter.Net { m -> List(4) { s -> if (s == 1) m.copyOf() else FloatArray(m.size) } }, wiener = true)
+        var err = 0.0; var pow = 0.0; var rest = 0.0
+        for (i in l.indices) {
+            err += (c.l[1][i] - l[i].toDouble()).let { it * it } + (c.r[1][i] - r[i].toDouble()).let { it * it }
+            pow += l[i].toDouble() * l[i] + r[i].toDouble() * r[i]
+            for (s in listOf(0, 2, 3)) rest = maxOf(rest, abs(c.l[s][i].toDouble()), abs(c.r[s][i].toDouble()))
+        }
+        val db = 10 * kotlin.math.log10(err / pow)
+        println("wiener all-to-drums: $db dB, rest $rest")
+        // Again all but the quietest bins.
+        assertTrue("drums differ from the mix by $db dB", db < -20)
+        assertTrue("the other stems hold $rest", rest < 1e-5)
     }
 
     /** Worst |sum of the four stems − mix| over both channels. */

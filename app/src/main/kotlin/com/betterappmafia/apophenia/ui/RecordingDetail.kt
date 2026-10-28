@@ -102,8 +102,8 @@ fun RecordingDetail(model: AppModel, scrapId: Long, requestMic: (() -> Unit) -> 
                         tab = "midi"
                     },
                     MenuItem("Tempo and key", "✓ AUTOMATIC") { tab = "info" },
-                    MenuItem("Separate stems", when { stemJob?.error != null -> "FAILED ›"; stemJob != null -> "${stemJob.percent}%"; stems.isNotEmpty() -> "✓ DONE"; else -> "RUN" }) {
-                        if (stemJob == null && stems.isEmpty()) model.app.separator.start(take, title)
+                    // The STEMS tab asks which stems first (Christopher, 28 Oct 2026).
+                    MenuItem("Separate stems", when { stemJob?.error != null -> "FAILED ›"; stemJob != null -> "${stemJob.percent}%"; stems.isNotEmpty() -> "✓ DONE"; else -> "PICK ›" }) {
                         tab = "stems"
                     },
                     MenuItem("Find the chords", "✓ AUTOMATIC") { tab = "info" },

@@ -34,7 +34,7 @@ class NoticesTest {
     fun everyAssetModelAndFontHasANotice() {
         // Models in assets/models and fonts in res/font each need an entry.
         val text = Notices.all.joinToString(" ") { it.name + " " + it.use }.lowercase()
-        for (m in File("src/main/assets/models").list()!!) assertTrue("no notice for model $m", listOf("basic-pitch" to "basic pitch", "moonshine" to "moonshine", "spleeter" to "spleeter").any { (k, v) -> m.startsWith(k) && v in text })
+        for (m in File("src/main/assets/models").list()!!) assertTrue("no notice for model $m", listOf("basic-pitch" to "basic pitch", "beat-this" to "beat this", "moonshine" to "moonshine", "spleeter" to "spleeter").any { (k, v) -> m.startsWith(k) && v in text })
         for (f in File("src/main/res/font").list()!!) assertTrue("no notice for font $f", listOf("bravura", "jetbrains", "noto").any { f.startsWith(it) && it.replace("jetbrains", "jetbrains mono") in text })
     }
 }
