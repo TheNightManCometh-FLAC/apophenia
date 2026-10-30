@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -47,6 +48,7 @@ import com.betterappmafia.apophenia.core.learn.EarDirection
 import com.betterappmafia.apophenia.core.learn.EarDrill
 import com.betterappmafia.apophenia.core.learn.EarKind
 import com.betterappmafia.apophenia.core.learn.EarQuestion
+import com.betterappmafia.apophenia.core.learn.EarMode
 import com.betterappmafia.apophenia.core.learn.given
 import com.betterappmafia.apophenia.data.EarResultEntity
 import com.betterappmafia.apophenia.ui.theme.C
@@ -55,102 +57,11 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 /*
- * Learn › Ear (plan §9; Christopher, 25 Oct 2026: "drop the course approach and just have the practice and high score
- * section", with "a streak counter for how many in a row"). PRACTICE: the drill types as rows that open on their drills
- * (no levels, no order to follow); tap a drill and you're practising. HIGH SCORES: every drill's best streak. The drill
- * screen: the streak large, the drill's best beside it, ▶ PLAY, SOUND ▾, ANSWER ▾ (by name, on the piano, on your
+ * Learn › Ear (plan §9; updated by Christopher 29 Oct 2026): focused practice, configurable tests and high scores.
+ * EarHome exposes the presentation before the interval drill; records keep test percentages and practice streaks separate.
+ * Drill screen: ▶ PLAY, SOUND ▾, ANSWER ▾ (by name, on the piano, on your
  * guitar), and the answer explained with the right one and yours to hear.
  */
-
-@Composable
-internal fun EarHome(model: AppModel) {
-    var section by model::earSection
-    var family by model::earFamily
-    val streaks by model.app.db.earResults().streaks().collectAsState(emptyList())
-    val bestOf = streaks.associate { it.drill to it.best }
-    Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Sq("PRACTICE", { section = "PRACTICE" }, on = section == "PRACTICE")
-        Sq("HIGH SCORES", { section = "HIGH SCORES" }, on = section == "HIGH SCORES")
-    }
-    if (section == "HIGH SCORES") {
-        // Fixed drills, mixed ones and your picks (their ids carry what was picked).
-        val all = streaks.mapNotNull { s -> Ear.drill(s.drill)?.let { s.drill to it } }.toMap()
-        val played = streaks.filter { it.best > 0 && it.drill in all }.sortedWith(compareByDescending<com.betterappmafia.apophenia.data.EarStreak> { it.best }.thenByDescending { it.last })
-        if (played.isEmpty()) Text("No streaks yet. Practise any drill: every answer right in a row counts, and your longest run on each drill is its high score.", style = T.body.copy(lineHeight = 18.sp), modifier = Modifier.padding(14.dp))
-        played.forEach { s ->
-            val d = all.getValue(s.drill)
-            Row(Modifier.fillMaxWidth().heightIn(min = 58.dp).underline().clickable(role = Role.Button) { model.earDrill = d.id }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(d.name, style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
-                    Text("${d.chapter.uppercase()} · ${s.sessions} ${if (s.sessions == 1) "SESSION" else "SESSIONS"}", style = T.label)
-                }
-                Text("${s.best}", style = T.hi.copy(fontSize = 26.sp, color = C.acc))
-                Text(" IN A ROW", style = T.label, modifier = Modifier.padding(start = 4.dp))
-            }
-        }
-        return
-    }
-    val f = family
-    if (f == null) {
-        // The drill types, each opening on its drills (long lists open on family rows).
-        val families = listOf(null) + Ear.chapters + com.betterappmafia.apophenia.core.learn.YourEar.CHAPTER
-        families.forEach { c ->
-            val label = c ?: "Mixed"
-            val drills = when (c) {
-                null -> listOf(Ear.mixed(null))
-                com.betterappmafia.apophenia.core.learn.YourEar.CHAPTER -> emptyList()
-                else -> listOf(Ear.mixed(c)) + Ear.drills.filter { it.chapter == c }
-            }
-            val top = drills.maxOfOrNull { bestOf[it.id] ?: 0 } ?: 0
-            Row(
-                Modifier.fillMaxWidth().heightIn(min = 58.dp).underline().clickable(role = Role.Button) { if (c == null) model.earDrill = Ear.mixed(null).id else family = c }.padding(horizontal = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(if (c == null) "Mixed: everything" else label, style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
-                    Text(when (c) {
-                        null -> "QUESTIONS FROM EVERY DRILL"
-                        com.betterappmafia.apophenia.core.learn.YourEar.CHAPTER -> "DRILLS BUILT FROM YOUR OWN SCRAPS"
-                        else -> "${drills.size - 1} DRILLS"
-                    } + if (top > 0) " · BEST $top IN A ROW" else "", style = T.label)
-                }
-                Text(if (c == null) "▶" else "›", style = T.title.copy(color = C.acc))
-            }
-        }
-        return
-    }
-    BackHandler { family = null }
-    TitleBar {
-        Sq("‹", { family = null })
-        Text(f.uppercase(), style = T.title, modifier = Modifier.weight(1f), maxLines = 1)
-    }
-    val own = f == com.betterappmafia.apophenia.core.learn.YourEar.CHAPTER
-    if (own) {
-        val pool by androidx.compose.runtime.produceState(model.earPool, f) { value = loadPool(model).also { model.earPool = it } }
-        val p = pool
-        if (p == null) Text("Looking through your material…", style = T.small, modifier = Modifier.padding(14.dp))
-        else com.betterappmafia.apophenia.core.learn.YourEar.missing(p).forEach { Text(it, style = T.small.copy(lineHeight = 16.sp), modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) }
-    }
-    val rows = if (own) model.earPool?.let { com.betterappmafia.apophenia.core.learn.YourEar.drills(it) }.orEmpty()
-        else listOf(Ear.mixed(f)) + Ear.drills.filter { it.chapter == f }
-    rows.forEach { d ->
-        val best = bestOf[d.id] ?: 0
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 62.dp).underline().clickable(role = Role.Button) { model.earDrill = d.id }.padding(start = 14.dp, end = 14.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(d.name, style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
-                Text(d.note.ifEmpty { null } ?: if (d.id.startsWith("mixed")) "" else d.answers.joinToString(" · ") { Ear.label(d, it) }, style = T.label, maxLines = 2)
-            }
-            if (best > 0) Column(horizontalAlignment = Alignment.End) {
-                Text("$best", style = T.hi.copy(fontSize = 20.sp, color = C.acc))
-                Text("BEST", style = T.label)
-            }
-        }
-    }
-    if (!own) PickYourOwn(model, f)
-}
 
 /**
  * PICK YOUR OWN under a chapter's drills (Christopher, 25 Oct 2026: "There's no way to practice specific intervals and
@@ -159,10 +70,12 @@ internal fun EarHome(model: AppModel) {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PickYourOwn(model: AppModel, chapter: String) {
-    val groups = remember(chapter) { Ear.pickable(chapter) }
-    val picked = model.earPicks[chapter].orEmpty()
-    fun set(p: Set<String>) { model.earPicks = model.earPicks + (chapter to p) }
+internal fun PickYourOwn(model: AppModel, chapter: String, direction: EarDirection? = null) {
+    val groups = remember(chapter, direction) { Ear.pickable(chapter, direction) }
+    val key = if (direction == null) chapter else "$chapter:${direction.name}"
+    val picked = model.earPicks[key].orEmpty()
+    fun set(p: Set<String>) { model.earPicks = model.earPicks + (key to p) }
+    val test = model.earSection == "TEST"
     Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 18.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Text("PICK YOUR OWN", style = T.label.copy(color = C.acc), modifier = Modifier.weight(1f))
         if (picked.isNotEmpty()) Sq("CLEAR", { set(emptySet()) })
@@ -184,64 +97,49 @@ private fun PickYourOwn(model: AppModel, chapter: String) {
     }
     Row(Modifier.padding(top = 14.dp)) {
         BigButton(
-            if (picked.size < 2) "PICK TWO OR MORE" else "PRACTISE THESE ${picked.size}",
-            { model.earDrill = Ear.pick(groups.flatMap { it.second }.filter { it in picked }).id },
-            primary = true, enabled = picked.size >= 2,
+            if (picked.size < 2) "PICK TWO OR MORE" else "${if (test) "TEST" else "PRACTISE"} THESE ${picked.size}",
+            { model.startEar(Ear.pick(groups.flatMap { it.second }.filter { it in picked }), if (test) EarMode.TEST else EarMode.PRACTICE) },
+            primary = true, enabled = picked.size >= 2 && (!test || model.earTestQuestionsText.toIntOrNull()?.let { it > 0 } == true),
         )
     }
-}
-
-/** The answers and how the session is going, kept across recompositions of one drill screen. */
-private class Session {
-    var asked = 0
-    var right = 0
-    var streak = 0
-    var best = 0
-    var saved = false
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun EarDrillView(model: AppModel, drill: EarDrill, requestMic: (() -> Unit) -> Unit) {
-    // Practice only (Christopher, 25 Oct 2026): the old Listen and Test modes are gone.
-    val mode = "PRACTICE"
+    val run = model.earRun?.takeIf { it.drill.id == drill.id } ?: EarRun(drill, model.earMode,
+        model.earTestQuestionsText.toIntOrNull()?.takeIf { it > 0 } ?: Ear.TEST_LENGTH, model.earSettings, model.learnGuitar.stringCount).also { model.earRun = it }
+    val mode = run.mode.name
     val streaks by model.app.db.earResults().streaks().collectAsState(emptyList())
     val stored = streaks.firstOrNull { it.drill == drill.id }?.best ?: 0
-    val settings = model.earSettings
-    val random = remember { Random(System.nanoTime()) }
-    var round by remember { mutableIntStateOf(0) }
-    val session = remember(drill.id, mode, round) { Session() }
-    val missed = remember(drill.id, mode, round) { mutableStateMapOf<String, Int>() }
-    var question by remember(drill.id, mode, round) { mutableStateOf(Ear.question(drill, settings, random)) }
-    var picked by remember(question) { mutableStateOf<String?>(null) }
-    var tapped by remember(question) { mutableStateOf(setOf<Int>()) }
-    var frets by remember(question) { mutableStateOf(List<Int?>(model.learnGuitar.stringCount) { null }) }
-    var counts by remember(drill.id, mode, round) { mutableStateOf(Triple(0, 0, 0)) }
+    val settings = run.settings
+    val session = run.progress
+    val missed = run.missed
+    var question by run::question
+    var picked by run::picked
+    var tapped by run::tapped
+    var frets by run::frets
+    var counts by run::counts
     var soundMenu by remember { mutableStateOf(false) }
     var answerMenu by remember { mutableStateOf(false) }
     val kind = Ear.source(drill, question.answer).first.kind
 
-    val currentMode by rememberUpdatedState(mode)
-    fun save() {
-        if (session.saved || session.asked == 0) return
-        session.saved = true
-        val r = EarResultEntity(drill = drill.id, mode = currentMode.lowercase(), correct = session.right, total = session.asked, bestStreak = session.best, finishedAt = System.currentTimeMillis())
-        model.app.io.launch { model.app.db.earResults().add(r) }
-    }
-    DisposableEffect(drill.id, mode) { onDispose { save() } }
+    fun save() = run.save(model)
+    DisposableEffect(run) { onDispose { run.save(model) } }
 
     fun play(q: EarQuestion = question) = hearEar(model, "ear-${Ear.source(drill, q.answer).first.kind}-${q.midis.joinToString("_")}-${q.direction}-${settings.chord}-${settings.context}-${q.cents}-${q.tonic}-${q.bpm}-${q.chords.flatten().joinToString("_")}-${q.rhythm.hashCode()}-${q.meter}-${q.answer}-${q.clip?.let { "${it.path.hashCode()}_${(it.start * 1000).toInt()}_${(it.length * 1000).toInt()}" }}", drill.name, Ear.sound(q, settings))
-    LaunchedEffect(question) { if (mode != "LISTEN" && Ear.source(drill, question.answer).first.kind != EarKind.TAPBACK) play() }
+    LaunchedEffect(run, run.questionNumber) { if (picked == null && Ear.source(drill, question.answer).first.kind != EarKind.TAPBACK) play() }
 
     fun answer(a: String, right: Boolean) {
-        if (picked != null) return
+        if (picked != null || session.complete) return
         picked = a
-        session.asked++
-        if (right) { session.right++; session.streak++; session.best = maxOf(session.best, session.streak); missed.remove(question.answer)?.let { if (it > 1) missed[question.answer] = it - 1 } }
-        else { session.streak = 0; missed[question.answer] = (missed[question.answer] ?: 0) + 1 }
+        session.answer(right)
+        if (right) { missed.remove(question.answer)?.let { if (it > 1) missed[question.answer] = it - 1 } }
+        else { missed[question.answer] = (missed[question.answer] ?: 0) + 1 }
         counts = Triple(session.right, session.asked, session.streak)
+        save()
     }
-    fun next() { question = Ear.question(drill, settings, random, missed, question) }
+    fun next() = run.next(model.learnGuitar.stringCount)
 
     BackHandler { save(); model.earDrill = null }
     Column(Modifier.fillMaxSize()) {
@@ -249,16 +147,34 @@ internal fun EarDrillView(model: AppModel, drill: EarDrill, requestMic: (() -> U
             Sq("‹", { save(); model.earDrill = null })
             Text(drill.name, style = T.title, modifier = Modifier.weight(1f), maxLines = 1)
         }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(if (mode == "TEST") "TEST · ${minOf(counts.second + (if (picked == null) 1 else 0), session.target)} OF ${session.target}" else "PRACTICE", style = T.label, modifier = Modifier.weight(1f))
+            EarLessonLink(model, drill, question.answer, question.root)
+        }
+        if (counts.second > 0 && session.complete) {
+            val scores by model.app.db.earResults().bests().collectAsState(emptyList())
+            val best = scores.firstOrNull { it.drill == drill.id }
+            Kv("TEST COMPLETE") {
+                Text(earPercent(counts.first, counts.second), style = T.hi.copy(color = C.acc, fontSize = 38.sp))
+                Text("${counts.first} right out of ${counts.second} questions", style = T.body)
+                best?.bestTotal?.let { Text("BEST ${earPercent(best.bestCorrect ?: 0, it)} · ${best.bestCorrect}/$it", style = T.label) }
+            }
+            Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Sq("TEST AGAIN", { model.startEar(drill, EarMode.TEST) }, on = true)
+                Sq("BACK TO DRILLS", { model.earDrill = null; model.earRun = null })
+            }
+            return@Column
+        }
         // The streak, large: right answers in a row this session, against the drill's high score.
         val streak = counts.third
         val best = maxOf(stored, session.best)
         val newBest = session.best > stored && session.best > 0
         Row(Modifier.fillMaxWidth().underline().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("STREAK", style = T.label)
-                Text("$streak", style = T.hi.copy(fontSize = 44.sp, color = if (streak > 0) C.acc else C.faint))
+                Text(if (mode == "TEST") "SCORE" else "STREAK", style = T.label)
+                Text(if (mode == "TEST") earPercent(counts.first, counts.second) else "$streak", style = T.hi.copy(fontSize = 44.sp, color = if (streak > 0) C.acc else C.faint))
             }
-            Column(horizontalAlignment = Alignment.End) {
+            if (mode == "PRACTICE") Column(horizontalAlignment = Alignment.End) {
                 Text(if (newBest) "NEW BEST" else "BEST", style = T.label.copy(color = if (newBest) C.acc else C.dim))
                 Text("$best", style = T.hi.copy(fontSize = 26.sp))
             }
@@ -267,15 +183,15 @@ internal fun EarDrillView(model: AppModel, drill: EarDrill, requestMic: (() -> U
             Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Sq(if (mode == "LISTEN") "▶ NEW ROOT" else "▶ PLAY", { if (mode == "LISTEN") next() else play() }, on = true)
                 Box {
-                    Sq("SOUND ▾", { soundMenu = true })
+                    Sq("SOUND ▾", { soundMenu = true }, enabled = mode == "PRACTICE")
                     ConsoleMenu(soundMenu, { soundMenu = false }, "SOUND",
                         listOf(MenuItem("INTERVALS", "", enabled = false) {}) +
-                            EarDirection.entries.map { d -> MenuItem(d.label, if (settings.direction == d) "✓" else "") { model.earSettings = settings.copy(direction = d) } } +
+                            EarDirection.entries.map { d -> MenuItem(d.label, if ((drill.direction ?: settings.direction) == d) "✓" else "", enabled = drill.direction == null) { run.settings = settings.copy(direction = d); model.earSettings = run.settings } } +
                             MenuItem("CHORDS", "", enabled = false) {} +
-                            ChordSound.entries.map { s -> MenuItem(s.label, if (settings.chord == s) "✓" else "") { model.earSettings = settings.copy(chord = s) } } +
+                            ChordSound.entries.map { s -> MenuItem(s.label, if (settings.chord == s) "✓" else "") { run.settings = settings.copy(chord = s); model.earSettings = run.settings } } +
                             MenuItem("SCALE DEGREES", "", enabled = false) {} +
-                            com.betterappmafia.apophenia.core.learn.DegreeContext.entries.map { c -> MenuItem(c.label, if (settings.context == c) "✓" else "") { model.earSettings = settings.copy(context = c) } } +
-                            MenuItem("Random key", if (settings.randomKey) "✓ ON" else "OFF · ON C") { model.earSettings = settings.copy(randomKey = !settings.randomKey) })
+                            com.betterappmafia.apophenia.core.learn.DegreeContext.entries.map { c -> MenuItem(c.label, if (settings.context == c) "✓" else "") { run.settings = settings.copy(context = c); model.earSettings = run.settings } } +
+                            MenuItem("Random key", if (settings.randomKey) "✓ ON" else "OFF · ON C") { run.settings = settings.copy(randomKey = !settings.randomKey); model.earSettings = run.settings })
                 }
                 if (mode != "LISTEN") Box {
                     Sq("ANSWER ▾", { answerMenu = true })
@@ -284,80 +200,82 @@ internal fun EarDrillView(model: AppModel, drill: EarDrill, requestMic: (() -> U
                     })
                 }
             }
-            val sungDrill = Ear.source(drill, question.answer).first.sung
-            val instrumentOk = kind in setOf(EarKind.INTERVAL, EarKind.CHORD, EarKind.NOTE, EarKind.OCTAVE, EarKind.DEGREE)
-            val byName = mode == "LISTEN" || model.earAnswerOn == "NAME" || !instrumentOk
-            if (kind == EarKind.TAPBACK && mode != "LISTEN") {
-                TapBack(model, question, picked == null, { play() }) { ok -> answer(if (ok) question.answer else "", ok) }
-            } else if (kind == EarKind.RHYTHM) {
-                RhythmOptions(model, question, picked, mode) { a -> if (mode == "LISTEN") play(Ear.asAnswer(question, a)) else answer(a, a == question.answer) }
-            } else if ((kind == EarKind.MELODY || kind == EarKind.BASS) && mode != "LISTEN") {
-                SequenceAnswer(model, question, picked == null) { ok -> answer(if (ok) question.answer else "", ok) }
-            } else if (sungDrill && mode != "LISTEN") {
-                SungAnswer(model, question, picked == null, requestMic) { ok, cents -> answer(if (ok) question.answer else "sung:$cents", ok) }
-            } else if (byName) {
-                FlowRow(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val src = Ear.source(drill, question.answer).first
-                    val options = if (drill.id.startsWith("mixed")) src.answers.map { "${src.id}|$it" } else drill.answers
-                    options.forEach { a ->
-                        val isRight = a == question.answer
-                        val colour = when {
-                            picked == null || mode == "LISTEN" -> C.line2
-                            isRight -> C.acc
-                            a == picked -> C.rec
-                            else -> C.line
+            key(run, run.questionNumber) {
+                val sungDrill = Ear.source(drill, question.answer).first.sung
+                val instrumentOk = kind in setOf(EarKind.INTERVAL, EarKind.CHORD, EarKind.NOTE, EarKind.OCTAVE, EarKind.DEGREE)
+                val byName = mode == "LISTEN" || model.earAnswerOn == "NAME" || !instrumentOk
+                if (kind == EarKind.TAPBACK && mode != "LISTEN") {
+                    TapBack(model, question, picked == null, { play() }) { ok -> answer(if (ok) question.answer else "", ok) }
+                } else if (kind == EarKind.RHYTHM) {
+                    RhythmOptions(model, question, picked, mode) { a -> if (mode == "LISTEN") play(Ear.asAnswer(question, a)) else answer(a, a == question.answer) }
+                } else if ((kind == EarKind.MELODY || kind == EarKind.BASS) && mode != "LISTEN") {
+                    SequenceAnswer(model, question, picked == null) { ok -> answer(if (ok) question.answer else "", ok) }
+                } else if (sungDrill && mode != "LISTEN") {
+                    SungAnswer(model, question, picked == null, requestMic) { ok, cents -> answer(if (ok) question.answer else "sung:$cents", ok) }
+                } else if (byName) {
+                    FlowRow(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val src = Ear.source(drill, question.answer).first
+                        val options = if (drill.id.startsWith("mixed")) src.answers.map { "${src.id}|$it" } else drill.answers
+                        options.forEach { a ->
+                            val isRight = a == question.answer
+                            val colour = when {
+                                picked == null || mode == "LISTEN" -> C.line2
+                                isRight -> C.acc
+                                a == picked -> C.rec
+                                else -> C.line
+                            }
+                            Box(
+                                Modifier.widthIn(min = 96.dp).heightIn(min = 54.dp).border(1.5.dp, colour)
+                                    .clickable(role = Role.Button) {
+                                        if (mode == "LISTEN") play(Ear.asAnswer(question, a)) else answer(a, isRight)
+                                    }.padding(horizontal = 10.dp),
+                                contentAlignment = Alignment.Center,
+                            ) { Text(Ear.label(drill, a) { refName(model, it) }, style = T.button.copy(fontSize = 13.sp, color = if (colour == C.line) C.faint else C.hi), textAlign = TextAlign.Center) }
                         }
-                        Box(
-                            Modifier.widthIn(min = 96.dp).heightIn(min = 54.dp).border(1.5.dp, colour)
-                                .clickable(role = Role.Button) {
-                                    if (mode == "LISTEN") play(Ear.asAnswer(question, a)) else answer(a, isRight)
-                                }.padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.Center,
-                        ) { Text(Ear.label(drill, a) { refName(model, it) }, style = T.button.copy(fontSize = 13.sp, color = if (colour == C.line) C.faint else C.hi), textAlign = TextAlign.Center) }
+                    }
+                } else {
+                    val given: Int? = when (kind) { EarKind.INTERVAL, EarKind.CHORD -> question.given(); EarKind.DEGREE -> question.tonic; else -> null }
+                    val single = kind != EarKind.CHORD
+                    Kv(if (given != null) "GIVEN" else "PLAY IT") {
+                        Text(
+                            (given?.let { "${com.betterappmafia.apophenia.core.pitch.PitchClass(it).defaultSpelling().let { n -> refName(model, n) }}${it / 12 - 1} " } ?: "") +
+                                when (kind) {
+                                    EarKind.INTERVAL -> "is the first note: play the other"
+                                    EarKind.DEGREE -> "is the tonic: play the degree you heard"
+                                    EarKind.OCTAVE -> "Play the note you heard in its octave"
+                                    EarKind.NOTE -> "Play the note you heard, any octave"
+                                    else -> "is the bass: play the rest of the chord, any octave"
+                                },
+                            style = T.small,
+                        )
+                    }
+                    val lit = given?.let { tapped + it } ?: tapped
+                    if (model.earAnswerOn == "PIANO") Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                        TapPiano(if (kind == EarKind.OCTAVE) 36 else minOf(43, question.midis.minOrNull()?.minus(3) ?: 43), if (kind == EarKind.OCTAVE) 96 else maxOf(84, question.midis.maxOrNull()?.plus(3) ?: 84), lit) { m -> if (picked == null && (kind != EarKind.CHORD || m != given)) tapped = if (single) setOf(m) else if (m in tapped) tapped - m else tapped + m }
+                    } else Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                        TapNeck(model.learnGuitar.strings.map { it.midi }, frets) { s, f -> if (picked == null) frets = frets.toMutableList().also { it[s] = if (it[s] == f) null else f } }
+                    }
+                    val played = if (model.earAnswerOn == "PIANO") tapped else frets.mapIndexedNotNull { s, f -> f?.let { model.learnGuitar.strings[s].midi + it } }.filter { kind != EarKind.CHORD || it != given }.toSet()
+                    val heard = (given?.let { played + it } ?: played).sorted()
+                    Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Sq("▶ MINE", { if (played.isNotEmpty()) hearNotes(model, "mine-${heard.joinToString("_")}", "Yours", com.betterappmafia.apophenia.core.learn.RefSound.block(heard)) })
+                        Sq("CHECK", {
+                            val ok = Ear.check(question, if (kind == EarKind.CHORD) heard else played)
+                            answer(if (ok) question.answer else "", ok)
+                        }, enabled = picked == null && played.isNotEmpty())
                     }
                 }
-            } else {
-                val given: Int? = when (kind) { EarKind.INTERVAL, EarKind.CHORD -> question.given(); EarKind.DEGREE -> question.tonic; else -> null }
-                val single = kind != EarKind.CHORD
-                Kv(if (given != null) "GIVEN" else "PLAY IT") {
-                    Text(
-                        (given?.let { "${com.betterappmafia.apophenia.core.pitch.PitchClass(it).defaultSpelling().let { n -> refName(model, n) }}${it / 12 - 1} " } ?: "") +
-                            when (kind) {
-                                EarKind.INTERVAL -> "is the first note: play the other"
-                                EarKind.DEGREE -> "is the tonic: play the degree you heard"
-                                EarKind.OCTAVE -> "Play the note you heard in its octave"
-                                EarKind.NOTE -> "Play the note you heard, any octave"
-                                else -> "is the bass: play the rest of the chord, any octave"
-                            },
-                        style = T.small,
-                    )
-                }
-                val lit = given?.let { tapped + it } ?: tapped
-                if (model.earAnswerOn == "PIANO") Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                    TapPiano(if (kind == EarKind.OCTAVE) 36 else 43, if (kind == EarKind.OCTAVE) 96 else 84, lit) { m -> if (picked == null && m != given) tapped = if (single) setOf(m) else if (m in tapped) tapped - m else tapped + m }
-                } else Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                    TapNeck(model.learnGuitar.strings.map { it.midi }, frets) { s, f -> if (picked == null) frets = frets.toMutableList().also { it[s] = if (it[s] == f) null else f } }
-                }
-                val played = if (model.earAnswerOn == "PIANO") tapped else frets.mapIndexedNotNull { s, f -> f?.let { model.learnGuitar.strings[s].midi + it } }.filter { it != given }.toSet()
-                val heard = (given?.let { played + it } ?: played).sorted()
-                Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Sq("▶ MINE", { if (played.isNotEmpty()) hearNotes(model, "mine-${heard.joinToString("_")}", "Yours", com.betterappmafia.apophenia.core.learn.RefSound.block(heard)) })
-                    Sq("CHECK", {
-                        val ok = Ear.check(question, if (kind == EarKind.CHORD) heard else played)
-                        answer(if (ok) question.answer else "", ok)
-                    }, enabled = picked == null && played.isNotEmpty())
-                }
-            }
-            val p = picked
-            if (p != null && mode != "LISTEN") {
-                val right = p == question.answer
-                Kv(if (right) "RIGHT" else "ANSWER") { Text(Ear.explain(question) { refName(model, it) }, style = T.body.copy(lineHeight = 18.sp, color = if (right) C.hi else C.text)) }
-                Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Sq("▶ RIGHT ONE", { play() })
-                    if (!right && p.isNotEmpty() && !p.startsWith("sung:") && mode == "PRACTICE") Sq("▶ YOURS: ${Ear.label(drill, p) { refName(model, it) }}", { play(Ear.asAnswer(question, p)) })
-                    if (p.startsWith("sung:")) Text("YOU WERE ${p.removePrefix("sung:")} ¢ OFF", style = T.label.copy(color = C.rec), modifier = Modifier.align(Alignment.CenterVertically))
-                    Box(Modifier.weight(1f))
-                    Sq("NEXT ›", { next() }, on = true)
+                val p = picked
+                if (p != null && mode != "LISTEN") {
+                    val right = p == question.answer
+                    Kv(if (right) "RIGHT" else "ANSWER") { Text(Ear.explain(question) { refName(model, it) }, style = T.body.copy(lineHeight = 18.sp, color = if (right) C.hi else C.text)) }
+                    Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Sq("▶ RIGHT ONE", { play() })
+                        if (!right && p.isNotEmpty() && !p.startsWith("sung:") && mode == "PRACTICE") Sq("▶ YOURS: ${Ear.label(drill, p) { refName(model, it) }}", { play(Ear.asAnswer(question, p)) })
+                        if (p.startsWith("sung:")) Text("YOU WERE ${p.removePrefix("sung:")} ¢ OFF", style = T.label.copy(color = C.rec), modifier = Modifier.align(Alignment.CenterVertically))
+                        Box(Modifier.weight(1f))
+                        Sq("NEXT ›", { next() }, on = true)
+                    }
                 }
             }
             Kv("SESSION") { Text("${counts.first} right of ${counts.second}", style = T.small) }

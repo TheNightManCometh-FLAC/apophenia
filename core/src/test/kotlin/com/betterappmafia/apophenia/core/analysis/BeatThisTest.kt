@@ -101,9 +101,13 @@ class BeatThisTest {
         assertEquals(listOf("pulse", "half", "double"), t.candidates.map { it.why })
         // A gap where a beat was missed still counts the beats around it.
         assertEquals(96.0, Tempo.fromBeats(even.filterIndexed { i, _ -> i != 10 }).best!!, 0.3)
-        // Scattered beats: free time.
+        // A missed beat still counts as even.
+        assertEquals(1.0, Tempo.fromBeats(even.filterIndexed { i, _ -> i != 10 }).clarity, 0.0)
+        // Scattered beats still get a tempo (as an uncertain key is still named), shown as uneven.
         val scattered = listOf(0.0, 0.4, 1.3, 1.6, 2.9, 3.1, 4.4, 5.6, 5.9, 7.2)
-        assertTrue(Tempo.fromBeats(scattered).free)
+        val s = Tempo.fromBeats(scattered)
+        assertTrue(!s.free && s.best != null && s.clarity < Tempo.MIN_REGULARITY)
+        // Fewer than four beats: too short to tell.
         assertTrue(Tempo.fromBeats(listOf(0.0, 0.5, 1.0)).free)
     }
 

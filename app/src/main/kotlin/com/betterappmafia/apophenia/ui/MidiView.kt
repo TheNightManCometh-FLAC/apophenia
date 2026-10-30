@@ -30,6 +30,7 @@ import com.betterappmafia.apophenia.core.analysis.AnalysisText
 import com.betterappmafia.apophenia.core.analysis.BasicPitch
 import com.betterappmafia.apophenia.core.analysis.MidiFile
 import com.betterappmafia.apophenia.core.analysis.TranscriptionText
+import com.betterappmafia.apophenia.core.analysis.TranscriptionModel
 import com.betterappmafia.apophenia.core.catalog.KeyMode
 import com.betterappmafia.apophenia.core.instrument.Instrument
 import com.betterappmafia.apophenia.core.instrument.Tunings
@@ -49,7 +50,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * A recording's MIDI tab (C4): Basic Pitch's notes for this take as a piano roll (tap it to hear that
+ * A recording's MIDI tab (C4): the selected model's notes for this take as a piano roll (tap it to hear that
  * moment), spelled in the recording's key, saved as a MIDI file on request. The take is never changed.
  */
 @Composable
@@ -59,35 +60,42 @@ fun MidiSection(model: AppModel, s: ScrapEntity, take: TakeEntity, title: String
     val jobs by transcriber.jobs.collectAsState()
     val job = jobs.firstOrNull { it.takeId == take.id }
     val notes = remember(stored?.body) { TranscriptionText.decode(stored?.body) }
+    val savedModel = stored?.model ?: TranscriptionText.model(stored?.body)
+    var selected by remember(take.id, savedModel, job?.model) {
+        mutableStateOf(job?.model ?: TranscriptionModel.fromId(savedModel) ?: TranscriptionModel.BASIC_PITCH)
+    }
 
     when {
         job != null && job.error == null -> {
-            Kv("NOTES → MIDI") { Text("Transcribing on the phone… ${job.percent}%${if (job.total > 0) " · window ${job.done} of ${job.total}" else ""}", style = T.body.copy(color = C.hi)) }
+            Kv("NOTES → MIDI") { Text("${TranscriptionModel.name(job.model.id)} · transcribing on the phone… ${job.percent}%${if (job.total > 0) " · window ${job.done} of ${job.total}" else ""}", style = T.body.copy(color = C.hi)) }
             Hint("It carries on if you leave this screen; the AI mode lists it under JOBS.")
             return
         }
         job?.error != null -> {
-            Kv("NOTES → MIDI") { Text("It didn't finish: ${job!!.error}", style = T.body.copy(color = C.acc)) }
-            Row(Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) { Sq("TRY AGAIN", { transcriber.start(take, title) }) }
+            Kv("NOTES → MIDI") { Text("It didn't finish: ${job.error}", style = T.body.copy(color = C.acc)) }
+            TranscriptionChoice(selected) { selected = it }
+            Row(Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) { Sq("TRY AGAIN", { transcriber.start(take, title, selected) }) }
             return
         }
         notes == null -> {
             Kv("NOTES → MIDI") {
-                Text("Basic Pitch turns this take into notes, chords included, on the phone. The recording itself is never changed.", style = T.small.copy(lineHeight = 16.sp))
+                Text("Turn this take into notes, chords included, on the phone. Choose Guitar for solo guitar, or Basic Pitch for vocals and other instruments.", style = T.small.copy(lineHeight = 16.sp))
             }
-            Row(Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) { Sq("▶ TRANSCRIBE TAKE ${take.letter}", { transcriber.start(take, title) }, on = true) }
+            TranscriptionChoice(selected) { selected = it }
+            Row(Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) { Sq("▶ TRANSCRIBE TAKE ${take.letter}", { transcriber.start(take, title, selected) }, on = true) }
             Limits()
             return
         }
     }
-    val list = notes!!
+    val list = notes
     val grid = remember(stored?.body) { TranscriptionText.grid(stored?.body) }
     val edited = remember(stored?.body) { TranscriptionText.edited(stored?.body) }
     val made = stored?.madeAt?.let { SimpleDateFormat("d MMM HH:mm", Locale.getDefault()).format(Date(it)) } ?: ""
     Kv("NOTES → MIDI") {
-        Text("${list.size} notes · Basic Pitch on the phone${if (edited) ", corrected" else ""} · $made${if (grid != null) " · quantised" else ""}", style = T.body.copy(color = C.hi))
+        Text("${list.size} notes · ${TranscriptionModel.name(savedModel)} on the phone${if (edited) ", corrected" else ""} · $made${if (grid != null) " · quantised" else ""}", style = T.body.copy(color = C.hi))
         if (take.durationFrames > take.sampleRate.toLong() * Transcriber.MAX_SECONDS) Text("The first ${Transcriber.MAX_SECONDS / 60} minutes.", style = T.small)
     }
+    TranscriptionChoice(selected) { selected = it }
     PianoRoll(model, s, take, title, list)
     val speller = remember(s.key) { KeySpeller(KeyMode.parseOrNull(s.key) ?: KeyMode.parseOrNull("C major")!!) }
     if (list.isNotEmpty()) Text(
@@ -101,10 +109,26 @@ fun MidiSection(model: AppModel, s: ScrapEntity, take: TakeEntity, title: String
         }, on = true)
         Sq("CORRECT ›", { model.correcting = take.id }, on = true)
         MakeTab(model, s, take, title, list, grid?.division)
-        Sq(if (edited) "TRANSCRIBE AGAIN (LOSES FIXES)" else "TRANSCRIBE AGAIN", { transcriber.start(take, title) })
+        Sq(if (edited) "TRANSCRIBE AGAIN (LOSES FIXES)" else "TRANSCRIBE AGAIN", { transcriber.start(take, title, selected) })
     }
     Hint(if (s.bpmLow != null) "The MIDI file's tempo is the recording's ${s.bpmLow} BPM, so the notes land where they were played." else "No BPM set, so the MIDI file is at 120 BPM; the notes still land where they were played.")
     Limits()
+}
+
+/** Shared by the recording and Performance check. Choosing alone never replaces saved notes. */
+@Composable
+fun TranscriptionChoice(selected: TranscriptionModel, choose: (TranscriptionModel) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        Kv("MODEL", onClick = { open = true }, mark = false) {
+            Text("${selected.label} ▾", style = T.body.copy(color = C.hi))
+            Text(selected.description, style = T.small)
+        }
+        ConsoleMenu(open, { open = false }, "NOTES → MIDI MODEL", TranscriptionModel.entries.map { m ->
+            MenuItem(m.label, if (m == selected) "✓" else "") { choose(m) }
+        })
+    }
+    if (selected == TranscriptionModel.GUITAR) Hint("For one guitar at a time. Guitar has no pitch-bend output; bends and slides may split into notes.")
 }
 
 /**
@@ -122,14 +146,18 @@ private fun MakeTab(model: AppModel, s: ScrapEntity, take: TakeEntity, title: St
         ConsoleMenu(menu, { menu = false }, if (bpm == null) "SET THE RECORDING'S BPM FIRST" else "SHEET MUSIC, OR TAB FOR WHICH TUNING", (listOf<com.betterappmafia.apophenia.core.instrument.Tuning?>(null) + Tunings.all).map { t ->
             MenuItem(t?.name ?: "Sheet music, no tab", t?.strings?.joinToString(" ") { KeyMode.displayName(it.name) } ?: "NOTATION ONLY", enabled = bpm != null) {
                 model.app.io.launch {
-                    val track = AnalysisText.decode(analysis?.body)?.chords
+                    val result = AnalysisText.decode(analysis?.body)
+                    val track = result?.chords
                     val meter = track?.meter ?: TimeSignature.of(4, 4)
                     val beat = FromNotes.beatLength(meter)
                     // [Claude] Without a quantise setting: sixteenths (a quarter beat in four, a dotted beat in six).
                     val div = division?.takeIf { (beat * TICKS_PER_WHOLE).num % it == 0L } ?: if (meter.isCompound) 6 else (beat * 16).num.toInt().coerceAtLeast(1)
                     val instrument = t?.let { Instrument(it, frets = if (it.id.startsWith("ukulele")) 18 else if (it.id.startsWith("bass")) 24 else 22, writtenAboveSounding = if (it.id.startsWith("ukulele")) null else Interval(8, 12)) }
+                    // 0.9.21: on the beats found (not the click's, which are steady already), so a take that drifts stays on the grid.
+                    val placed = if (result?.tempo?.from == "beats" && take.metronomeGrid == null && track != null && !track.free)
+                        FromNotes.onBeats(notes, track.beats.map { it.time }, bpm!!) else notes
                     val score = FromNotes.build(
-                        notes, FromNotes.Settings(bpm!!, meter, div, track?.beats?.firstOrNull()?.time ?: 0.0, KeyMode.parseOrNull(s.key)),
+                        placed, FromNotes.Settings(bpm!!, meter, div, track?.beats?.firstOrNull()?.time ?: 0.0, KeyMode.parseOrNull(s.key)),
                         when { t == null -> "Notes"; t.id.startsWith("bass") -> "Bass"; t.id.startsWith("ukulele") -> "Ukulele"; else -> "Guitar" }, instrument, "$title · ${take.letter}",
                     )
                     val now = System.currentTimeMillis()

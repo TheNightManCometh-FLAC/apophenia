@@ -167,9 +167,33 @@ class AppModel(val app: ApopheniaApp) {
 
     /** The Ear drill open (plan §9), the sound settings and how answers are given. */
     var earDrill by mutableStateOf<String?>(null)
-    /** Ear's home: PRACTICE or HIGH SCORES, and the drill type open in PRACTICE; kept here so leaving a drill returns to them. */
+    /** Ear's home: PRACTICE, TEST or HIGH SCORES; family/presentation survive a related-lesson visit. */
     var earSection by mutableStateOf("PRACTICE")
     var earFamily by mutableStateOf<String?>(null)
+    var earDirectionGroup by mutableStateOf<com.betterappmafia.apophenia.core.learn.EarDirection?>(null)
+    var earMode by mutableStateOf(com.betterappmafia.apophenia.core.learn.EarMode.PRACTICE)
+    var earRun by mutableStateOf<EarRun?>(null)
+    var earTestQuestionsText by mutableStateOf(com.betterappmafia.apophenia.core.learn.Ear.TEST_LENGTH.toString())
+    private var earTestCountEdited = false
+    fun editEarTestQuestions(text: String) { earTestCountEdited = true; earTestQuestionsText = text.filter(Char::isDigit) }
+    var earStudyReturn by mutableStateOf(false)
+
+    fun startEar(drill: com.betterappmafia.apophenia.core.learn.EarDrill, mode: com.betterappmafia.apophenia.core.learn.EarMode = com.betterappmafia.apophenia.core.learn.EarMode.PRACTICE) {
+        val target = earTestQuestionsText.toIntOrNull()?.takeIf { it > 0 } ?: com.betterappmafia.apophenia.core.learn.Ear.TEST_LENGTH
+        earRun?.save(this)
+        earMode = mode
+        earRun = EarRun(drill, mode, target, earSettings, learnGuitar.stringCount)
+        earDrill = drill.id
+        if (mode == com.betterappmafia.apophenia.core.learn.EarMode.TEST) app.io.launch { app.db.settings().put(AppSettingEntity("ear.test-questions", target.toString())) }
+    }
+
+    fun openEarLearning(page: String, root: com.betterappmafia.apophenia.core.pitch.PitchName? = null) {
+        earRun?.save(this)
+        earStudyReturn = true; coursePage = page; courseRoot = root; refPage = null
+        show(Mode.COURSE)
+    }
+
+    fun returnToEar() { earStudyReturn = false; refPage = null; show(Mode.EAR) }
     var earSettings by mutableStateOf(com.betterappmafia.apophenia.core.learn.EarSettings())
     /** NAME, PIANO or GUITAR. */
     var earAnswerOn by mutableStateOf("NAME")
@@ -202,6 +226,7 @@ class AppModel(val app: ApopheniaApp) {
         app.io.launch {
             val s = app.db.settings()
             s.get(LEARN_SHOW)?.let { learnShow = it }
+            s.get("ear.test-questions")?.toIntOrNull()?.takeIf { it > 0 }?.let { if (!earTestCountEdited) earTestQuestionsText = it.toString() }
             fun tuning(id: String?) = com.betterappmafia.apophenia.core.instrument.Tunings.all.firstOrNull { it.id == id } ?: com.betterappmafia.apophenia.core.learn.TuningReference.byId(id ?: "")?.tuning
             tuning(s.get(LEARN_GUITAR))?.let { learnGuitar = it }
             tuning(s.get(LEARN_BASS))?.let { learnBass = it }
@@ -215,6 +240,7 @@ class AppModel(val app: ApopheniaApp) {
 
     fun chooseLearnTuning(t: com.betterappmafia.apophenia.core.instrument.Tuning, bass: Boolean) {
         if (bass) learnBass = t else learnGuitar = t
+        if (!bass) earRun?.frets = List(t.stringCount) { null }
         app.io.launch { app.db.settings().put(AppSettingEntity(if (bass) LEARN_BASS else LEARN_GUITAR, t.id)) }
     }
 
@@ -381,6 +407,7 @@ class AppModel(val app: ApopheniaApp) {
         learnList = null
         refPage = null
         earDrill = null
+        earStudyReturn = false
         coursePage = null
         courseCat = null
     }

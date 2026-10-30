@@ -479,7 +479,7 @@ internal fun ShowOn(model: AppModel, midis: List<Int>, notes: List<PitchName>, l
     val tuning = if (bass) model.learnBass else model.learnGuitar
     Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Box {
-            Sq("SHOW ON: $show ▾", { menu = true })
+            Sq("VIEW FIRST: $show ▾", { menu = true })
             ConsoleMenu(menu, { menu = false }, "SHOW ON", listOf("GUITAR" to model.learnGuitar.name, "BASS" to model.learnBass.name, "PIANO" to "", "STAFF" to "").map { (k, note) ->
                 MenuItem(k.lowercase().replaceFirstChar(Char::uppercase), if (show == k) "✓ ${note.uppercase()}" else note.uppercase()) { model.chooseLearnShow(k) }
             })
@@ -505,11 +505,23 @@ internal fun ShowOn(model: AppModel, midis: List<Int>, notes: List<PitchName>, l
     val pcs = notes.map { it.pitchClass }
     val names = notes.associate { it.pitchClass to it }
     when (show) {
-        "PIANO" -> PianoView(model, midis, names)
-        "STAFF" -> StaffView(model, notes, staff)
+        "PIANO" -> {
+            PianoView(model, midis, names)
+            Text("FRETBOARD · ${tuning.name}", style = T.label, modifier = Modifier.padding(12.dp))
+            NeckView(model, tuning, pcs.zip(labels).toMap(), pcs.firstOrNull(), names)
+        }
+        "STAFF" -> {
+            StaffView(model, notes, staff)
+            Text("PIANO", style = T.label, modifier = Modifier.padding(12.dp))
+            PianoView(model, midis, names)
+            Text("FRETBOARD · ${tuning.name}", style = T.label, modifier = Modifier.padding(12.dp))
+            NeckView(model, tuning, pcs.zip(labels).toMap(), pcs.firstOrNull(), names)
+        }
         else -> {
             if (voicing != null && !bass) ShapeView(model, tuning, voicing, names)
             NeckView(model, tuning, pcs.zip(labels).toMap(), pcs.firstOrNull(), names)
+            Text("PIANO", style = T.label, modifier = Modifier.padding(12.dp))
+            PianoView(model, midis, names)
         }
     }
 }

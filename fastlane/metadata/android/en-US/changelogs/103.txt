@@ -1,0 +1,1 @@
+Rhythmic guitar no longer loses its tempo and chord chart to the speech detector. Chord charts use the notes already found by Notes → MIDI alongside the recording, with steadier chord changes. No notes are added or changed to fit a chord. Existing recordings are analysed again after updating.

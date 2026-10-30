@@ -1,0 +1,1 @@
+Chord charts retain quiet notes already detected by Notes → MIDI, improving thirds and sevenths. Bass evidence now combines the recording with the lowest sounding detected notes and allows chord inversions. No transcription notes are added or changed. Existing recordings are analysed again after updating.

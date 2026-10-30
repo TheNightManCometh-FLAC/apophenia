@@ -1,0 +1,1 @@
+Chord analysis now fits harmonic spectra before naming chords, reducing confusion between upper partials and played chord tones. It improves the first analysis before Notes → MIDI and the chart after transcription. Existing recordings reanalyse automatically. MIDI notes and recording audio are unchanged.

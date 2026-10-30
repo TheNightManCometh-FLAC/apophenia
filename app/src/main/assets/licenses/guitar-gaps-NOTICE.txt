@@ -1,0 +1,40 @@
+Guitar GAPS checkpoint and reference inference
+
+Checkpoint publisher: Xavier Riley and contributors.
+https://huggingface.co/xavriley/midi-transcription-models
+Revision b7bec65a2b860aca72856b0feef58b5df407b777, guitar-gaps.pth.
+The publisher's model card declares MIT. See also GAPS: A Large and Diverse
+Classical Guitar Dataset and Benchmark Transcription Model, Riley, Guo,
+Edwards and Dixon, ISMIR 2024, https://arxiv.org/abs/2408.08653.
+
+Reference code: Xavier Riley, hf_midi_transcription (README declares MIT),
+and Qiuqiang Kong, piano-transcription-inference (PyPI MIT classifier).
+https://github.com/xavriley/hf_midi_transcription
+https://github.com/xavriley/piano_transcription_inference
+https://pypi.org/project/piano-transcription-inference/
+
+Apophenia modifications: exported the neural backend to ONNX, quantised
+MatMul/Gemm weights to int8 and stored GRU weights as FP16 with explicit
+FP32 computation. A separate mel matrix and Kotlin frontend, window joining
+and regression decoder implement the published inference algorithm.
+No automatic instrument selection. Models and processing run offline.
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

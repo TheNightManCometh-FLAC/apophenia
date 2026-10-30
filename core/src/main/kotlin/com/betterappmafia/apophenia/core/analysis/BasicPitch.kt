@@ -29,10 +29,17 @@ object BasicPitch {
     const val MAX_FREQ_IDX = 87
     const val MAGIC_ALIGNMENT_OFFSET = 0.0018
 
-    const val ONSET_THRESHOLD = 0.5
-    const val FRAME_THRESHOLD = 0.3
-    /** 127.7 ms in frames, rounded as the reference does: 11. */
-    val MIN_NOTE_LEN: Int = (127.7 / 1000 * (SAMPLE_RATE.toDouble() / FFT_HOP)).roundToInt()
+    /**
+     * 0.9.21: tuned on GuitarSet (NYU, CC BY 4.0; 360 acoustic-guitar takes with every note annotated, mono mic),
+     * against the reference's 0.5 / 0.3 / 11 frames (127.7 ms). Note F-measure (mir_eval, onsets within 50 ms),
+     * tuned on a third, checked on the other 240: strummed 0.722 → 0.744 (precision 0.745 → 0.783, recall 0.726 →
+     * 0.729), single lines 0.828 → 0.864. A 6-frame minimum found more strummed notes (recall 0.754) but cut a sung
+     * vibrato line into 74 notes instead of 59, so 8 [measured, guitar only].
+     */
+    const val ONSET_THRESHOLD = 0.6
+    const val FRAME_THRESHOLD = 0.35
+    /** About 93 ms (the reference's default is 11 frames, 127.7 ms). */
+    const val MIN_NOTE_LEN: Int = 8
     const val ENERGY_TOL = 11
 
     /** A note as the reference returns it: frames, MIDI number, mean frame activation, and bends in thirds of a semitone. */

@@ -1,0 +1,1 @@
+Chord charts balance repeated and louder pitch classes against quieter detected thirds and sevenths. This improves chord labels without adding, changing or deleting MIDI notes. The existing audio/note balance and chord vocabulary stay the same. Saved recordings are analysed again automatically.

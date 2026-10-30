@@ -1,0 +1,19 @@
+{
+  "source": "xavriley/midi-transcription-models",
+  "revision": "b7bec65a2b860aca72856b0feef58b5df407b777",
+  "checkpoint": "guitar-gaps.pth",
+  "files": {
+    "guitar-gaps.pth": {
+      "bytes": 99178877,
+      "sha256": "65483e7c0e340a90415b15b520687587698c8c728f5fa470a205f13ee45c6513"
+    },
+    "guitar-mel-compact.onnx": {
+      "bytes": 38690655,
+      "sha256": "b99b493093ecb5cad85726f5e27473d1dcff89cf329193059f823fdecc936e4d"
+    },
+    "mel-filter.f32": {
+      "bytes": 938900,
+      "sha256": "2e029dd852ad5d4eda7930f3bd59d6d7e390b3f4b40923693ab927a6f18bd329"
+    }
+  }
+}

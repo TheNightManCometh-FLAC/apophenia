@@ -37,6 +37,32 @@ object FromNotes {
     )
 
     /** Length of the counted beat (the metronome's: the denominator, or the dotted beat in compound meters). */
+    /**
+     * The notes moved onto steady beats at [bpm] (0.9.21): [beats] are the beats found in the take (seconds, from its
+     * first downbeat), and a note between two of them keeps its place between them, so a take that speeds up or drags
+     * still lands on the grid. Each found beat is one, two or half a beat at [bpm] (whichever fits, within 4%); if
+     * none fits, or there are fewer than two beats, the notes come back as they were. Before the first beat and after
+     * the last, the nearest gap's spacing carries on. [Claude]
+     */
+    fun onBeats(notes: List<BasicPitch.TimedNote>, beats: List<Double>, bpm: Double): List<BasicPitch.TimedNote> {
+        if (beats.size < 2 || bpm <= 0) return notes
+        val gaps = beats.zipWithNext { a, b -> b - a }.sorted()
+        val found = gaps[gaps.size / 2]
+        val period = 60.0 / bpm
+        val per = listOf(1.0, 2.0, 0.5).firstOrNull { kotlin.math.abs(found / (period * it) - 1) < 0.04 } ?: return notes
+        val step = period * per
+        val b0 = beats[0]
+        fun map(t: Double): Double {
+            if (t <= beats[0]) return b0 + (t - beats[0]) * step / (beats[1] - beats[0])
+            val last = beats.size - 1
+            if (t >= beats[last]) return b0 + last * step + (t - beats[last]) * step / (beats[last] - beats[last - 1])
+            var i = java.util.Collections.binarySearch(beats, t).let { if (it >= 0) it else -it - 2 }
+            i = i.coerceIn(0, last - 1)
+            return b0 + (i + (t - beats[i]) / (beats[i + 1] - beats[i])) * step
+        }
+        return notes.map { it.copy(start = map(it.start), end = maxOf(map(it.start), map(it.end))) }
+    }
+
     fun beatLength(meter: TimeSignature): Rational = if (meter.isCompound) Rational.of(3, meter.denominator) else Rational.of(1, meter.denominator)
 
     fun build(notes: List<BasicPitch.TimedNote>, settings: Settings, partName: String, instrument: Instrument?, title: String = ""): Score {

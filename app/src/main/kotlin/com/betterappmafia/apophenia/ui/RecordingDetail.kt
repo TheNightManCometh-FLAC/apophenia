@@ -98,7 +98,6 @@ fun RecordingDetail(model: AppModel, scrapId: Long, requestMic: (() -> Unit) -> 
                 Sq("AI ▾", { aiMenu = true }, on = true)
                 ConsoleMenu(aiMenu, { aiMenu = false }, "AI ON THIS RECORDING · TAKE ${take.letter}", listOf(
                     MenuItem("Notes → MIDI", when { job?.error != null -> "FAILED ›"; job != null -> "${job.percent}%"; transcribed != null -> "✓ DONE"; else -> "RUN" }) {
-                        if (job == null && transcribed == null) model.app.transcriber.start(take, title)
                         tab = "midi"
                     },
                     MenuItem("Tempo and key", "✓ AUTOMATIC") { tab = "info" },

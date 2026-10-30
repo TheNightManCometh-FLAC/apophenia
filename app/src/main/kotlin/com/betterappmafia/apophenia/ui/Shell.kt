@@ -111,8 +111,9 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
             model.mode.learn && model.learnGroove != null -> model.learnGroove = null
             model.mode.learn && model.learnRudiment != null -> model.learnRudiment = null
             // Back goes up one level, as each screen's ‹ does (it left the app from any Reference or Course page).
-            model.mode == Mode.REFERENCE && model.refPage != null -> model.refPage = null
+            model.mode.learn && model.refPage != null -> model.refPage = null
             model.mode == Mode.REFERENCE && model.learnList != null -> model.learnList = model.learnList!!.let { if (":" in it) it.substringBefore(":") else null }
+            model.mode == Mode.COURSE && model.earStudyReturn -> model.returnToEar()
             model.mode == Mode.COURSE && model.coursePage != null -> { model.courseCat = com.betterappmafia.apophenia.core.learn.Course.categoryOf(model.coursePage!!)?.id; model.coursePage = null }
             model.mode == Mode.COURSE && model.courseCat != null -> model.courseCat = null
             else -> model.showTrash = false

@@ -1,0 +1,1 @@
+Ear now separates ascending melodic, descending melodic, harmonic and mixed intervals, with smaller focused comparisons. Test mode defaults to 25 questions with an adjustable count and percentage records; Practice keeps your best streak. Every drill links to related learning, with your question retained on return. Pitched learning examples show piano and fretboard together.

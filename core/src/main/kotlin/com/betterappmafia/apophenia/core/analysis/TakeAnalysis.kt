@@ -18,15 +18,20 @@ import kotlin.math.sqrt
 
 /**
  * Take analysis (plan §10.2): tempo candidates from onsets, a single-line note track, and key and mode
- * candidates with the evidence for each. No ML; everything here is signal processing that runs on a
- * worker after a take is saved. Results are suggestions: the user's entry always wins (plan §3.4).
+ * candidates with the evidence for each. Runs on a worker after a take is saved, using model beats
+ * and transcribed notes when supplied. The user's entry always wins (plan §3.4).
  *
  * Input is mono float audio at any rate; it is reduced to [RATE] first.
  */
 object TakeAnalysis {
     /** 2 added the chords (0.4.2). 3 (0.9.17): speech gets no key or chords, vibrato is one note, chords and keys from the bass; every take is analysed again.
-     *  4 (0.9.19): tempo and the chords' beats from Beat This!, and speech gets no tempo; every take is analysed again. */
-    const val VERSION = 4
+     *  4 (0.9.19): tempo and the chords' beats from Beat This!, and speech gets no tempo; every take is analysed again.
+     *  5 (0.9.20): beats always give a tempo (uneven ones say so), as the key always does; every take is analysed again.
+     *  6 (0.9.22): rhythmic guitar survives speech detection; chords combine sound with transcribed notes.
+     *  7 (0.9.23): retain quiet detected chord tones; combine bass evidence and allow inversions.
+     *  8 (0.9.24): compress pitch-class evidence so repeated/louder roots do not bury detected chord tones.
+     *  9 (0.9.25): harmonic spectral fitting for chord evidence, with or without a transcription. */
+    const val VERSION = 9
     const val RATE = 24000
     /** [Claude] Notes are tracked over the first two minutes; longer files (imported songs) get tempo and key only. */
     const val NOTE_SECONDS = 120
@@ -34,6 +39,8 @@ object TakeAnalysis {
     const val SPEECH_HELD = 0.35
     /** [Claude] Speech is pitched only part of the time (TTS speech 0.34–0.62); notes ringing into each other (a piano arpeggio, 0.83) hold little too. */
     const val SPEECH_VOICED = 0.7
+    /** [Claude] Bypass the pitch-only speech heuristic with this many steady model beats; eleven speech probes had at most 5. */
+    const val MUSIC_MIN_BEATS = 8
 
     /** [oneAtATime]: what the take's Notes → MIDI said (true: one note at a time), or null when it hasn't been transcribed. */
     data class Result(val seconds: Double, val tempo: Tempo, val notes: List<Note>, val voiced: Double, val key: KeyResult, val chords: ChordFinder.Track, val oneAtATime: Boolean? = null)
@@ -64,7 +71,7 @@ object TakeAnalysis {
      * [found] is what [BeatThis] found in the take (the app runs the model); then the tempo comes from its beats and the
      * chords sit on them from its first downbeat, and the onset estimate is only the fallback without it.
      */
-    fun analyse(x: FloatArray, rate: Int, minHz: Double = 30.0, maxHz: Double = 1000.0, clickBeats: List<Double>? = null, meter: TimeSignature = TimeSignature.of(4, 4), oneAtATime: Boolean? = null, found: BeatThis.Track? = null): Result {
+    fun analyse(x: FloatArray, rate: Int, minHz: Double = 30.0, maxHz: Double = 1000.0, clickBeats: List<Double>? = null, meter: TimeSignature = TimeSignature.of(4, 4), oneAtATime: Boolean? = null, found: BeatThis.Track? = null, heard: List<BasicPitch.TimedNote>? = null): Result {
         val y = Resample.to(x, rate, RATE)
         val env = Onsets.envelope(y, RATE)
         val onsets = Onsets.pick(env)
@@ -76,8 +83,12 @@ object TakeAnalysis {
         // Chords also look like a line (the pitch tracker finds one pitch in them), but their notes name no key: when the
         // notes leave it open and the sound as a whole names one, that one is taken. Measured 27 Oct 2026 on ten piano
         // progressions (Iowa samples): the notes named none of the ten. [Claude]
+        // A steady beat exempts a take from this speech heuristic (0.9.22): strummed chords confuse the pitch tracker, and 63 of GuitarSet's 180
+        // strummed takes looked like speech by held pitch alone. Measured 28 Oct 2026: speech (eleven takes, Windows TTS
+        // voices and the memo) had at most 5 beats, at most 50% evenly spaced; those 63 guitar takes at least 61%.
+        val steady = found != null && found.beats.size >= MUSIC_MIN_BEATS && pulse.clarity >= Tempo.MIN_REGULARITY
         val key = when {
-            line && held < SPEECH_HELD && voiced < SPEECH_VOICED -> KeyResult(emptyList(), true, "speech")
+            line && held < SPEECH_HELD && voiced < SPEECH_VOICED && !steady -> KeyResult(emptyList(), true, "speech")
             // A known single line never takes the sound-as-a-whole key: that one is read from its overtones.
             oneAtATime == true -> KeyEvidence.rank(KeyEvidence.fromNotes(notes))
             line -> KeyEvidence.rank(KeyEvidence.fromNotes(notes)).let { byNotes ->
@@ -93,7 +104,7 @@ object TakeAnalysis {
         val beats = clickBeats ?: foundBeats ?: tempo.best?.let { bpm -> onsets.firstOrNull()?.let { first -> generateSequence(first) { it + 60.0 / bpm }.takeWhile { it < seconds }.toList() } }
         // Speech has no chords either (Christopher, 27 Oct 2026: "No chart"): nothing for the chart, In yours or Ear to read.
         val chords = if (key.from == "speech" || oneAtATime == true) ChordFinder.Track(emptyList(), meter, beats == null)
-            else ChordFinder.find(y, RATE, beats, meter, key.best ?: key.candidates.firstOrNull()?.key)
+            else ChordFinder.find(y, RATE, beats, meter, key.best ?: key.candidates.firstOrNull()?.key, heard)
         return Result(seconds, tempo, notes, voiced, key, chords, oneAtATime)
     }
 }
@@ -247,22 +258,24 @@ data class Tempo(val candidates: List<Candidate>, val clarity: Double, val free:
         }
 
         /**
-         * Below this share of beat intervals within 10% of their median, the beats don't hold a tempo. Measured 28 Oct
-         * 2026 on 42 MUSDB18 excerpts (7 s) with the drums taken out: of the tempos under 0.55, 5 of 6 were wrong; above
-         * it, 33 of 36 were right (or half or double).
+         * Below this share of evenly spaced beats the tempo is shown as uneven (check it). It is still given, as the key
+         * is when it is uncertain (Christopher, 28 Oct 2026: "It runs that for key immediately, it should also for the
+         * tempo"). Measured 28 Oct 2026 on 42 MUSDB18 excerpts (7 s) with the drums taken out: of the tempos under 0.55,
+         * 5 of 6 were wrong; above it, 33 of 36 were right (or half or double).
          */
         const val MIN_REGULARITY = 0.55
 
         /**
          * The tempo of beats found by [BeatThis] ("beats"): the beat period by least squares over the beats, each
          * numbered by counting every gap in whole median intervals [Claude]; half and double as alternatives.
-         * [clarity] is the share of intervals within 10% of the median.
+         * [clarity] is the share of gaps within 10% of a whole number of median intervals (a missed beat is still
+         * even). Free time only with fewer than four beats.
          */
         fun fromBeats(beats: List<Double>): Tempo {
             if (beats.size < 4) return Tempo(emptyList(), 0.0, true, "beats")
             val gaps = beats.zipWithNext { a, b -> b - a }.sorted()
             val median = gaps[gaps.size / 2]
-            val regularity = gaps.count { abs(it / median - 1) < 0.1 }.toDouble() / gaps.size
+            val regularity = gaps.count { g -> val k = maxOf(1, (g / median).roundToInt()); abs(g / (k * median) - 1) < 0.1 }.toDouble() / gaps.size
             // Each gap counts as a whole number of beats (a missed beat is two), so the count can't drift over a long take.
             val n = DoubleArray(beats.size)
             for (i in 1 until beats.size) n[i] = n[i - 1] + maxOf(1, ((beats[i] - beats[i - 1]) / median).roundToInt())
@@ -276,7 +289,7 @@ data class Tempo(val candidates: List<Candidate>, val clarity: Double, val free:
                 if (bpm / 2 >= MIN_BPM / 2) add(Candidate(bpm / 2, "half"))
                 if (bpm * 2 <= MAX_BPM * 1.25) add(Candidate(bpm * 2, "double"))
             }
-            return Tempo(list, regularity, regularity < MIN_REGULARITY, "beats")
+            return Tempo(list, regularity, false, "beats")
         }
 
         /** Mean onset strength on even pulses over odd ones, from the onset times; 1 when there's no pattern. */

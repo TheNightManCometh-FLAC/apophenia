@@ -36,7 +36,31 @@ class BasicPitchTest {
         assertEquals(171 * 256.0 / 22050, BasicPitch.frameTime(171), 1e-12)
         val offset = 256.0 / 22050 * (172 - 43844.0 / 256) + 0.0018
         assertEquals(172 * 256.0 / 22050 - offset, BasicPitch.frameTime(172), 1e-12)
-        assertEquals(11, BasicPitch.MIN_NOTE_LEN)
+        assertEquals(8, BasicPitch.MIN_NOTE_LEN)
+    }
+
+    /** basic-pitch's own `model_output_to_notes` on real model output (a GuitarSet strum; resources/basicpitch/README.md). */
+    @Test fun `notes from real guitar output match basic-pitch at its settings and at ours`() {
+        fun read(name: String, cols: Int): Array<FloatArray> {
+            val b = java.nio.ByteBuffer.wrap(javaClass.getResource("/basicpitch/$name.f32")!!.readBytes()).order(java.nio.ByteOrder.LITTLE_ENDIAN).asFloatBuffer()
+            return Array(b.remaining() / cols) { FloatArray(cols).also { b.get(it) } }
+        }
+        val note = read("note", 88); val onset = read("onset", 88); val contour = read("contour", 264)
+        val json = javaClass.getResource("/basicpitch/expected.json")!!.readText()
+        fun expected(tag: String): List<Triple<Double, Double, Int>> {
+            val body = json.substringAfter("\"$tag\": [").substringBefore("]]") + "]"
+            return Regex("""\[([-0-9.e]+), ([-0-9.e]+), ([0-9]+)\]""").findAll(body).map { Triple(it.groupValues[1].toDouble(), it.groupValues[2].toDouble(), it.groupValues[3].toInt()) }.toList()
+        }
+        for ((tag, settings) in listOf("reference" to Triple(0.5, 0.3, 11), "tuned" to Triple(BasicPitch.ONSET_THRESHOLD, BasicPitch.FRAME_THRESHOLD, BasicPitch.MIN_NOTE_LEN))) {
+            val ours = BasicPitch.timed(BasicPitch.withBends(contour, BasicPitch.notes(note, onset, settings.first, settings.second, settings.third)))
+                .map { Triple(it.start, it.end, it.midi) }.sortedWith(compareBy({ it.first }, { it.second }, { it.third }))
+            val want = expected(tag).sortedWith(compareBy({ it.first }, { it.second }, { it.third }))
+            assertEquals("$tag: how many", want.size, ours.size)
+            for ((a, b) in ours.zip(want)) {
+                assertEquals(b.third, a.third)
+                assertEquals(b.first, a.first, 1e-3); assertEquals(b.second, a.second, 1e-3)
+            }
+        }
     }
 
     @Test fun `a held note with an onset comes back with its start, end and pitch`() {

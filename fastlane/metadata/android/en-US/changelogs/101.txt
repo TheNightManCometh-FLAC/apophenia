@@ -1,0 +1,1 @@
+Every take with a beat now gets a tempo, as every take gets a key: uneven beats still give a BPM and say it's uncertain. If the beat finder fails, the recording says why. Plus 0.9.19: tempo from Beat This!, stems computed in full precision with a Wiener filter, and you pick which stems to make.

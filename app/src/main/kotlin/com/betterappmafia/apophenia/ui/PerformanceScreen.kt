@@ -43,6 +43,7 @@ import com.betterappmafia.apophenia.core.analysis.PerformanceCheck
 import com.betterappmafia.apophenia.core.analysis.PerformanceCheck.RefNote
 import com.betterappmafia.apophenia.core.analysis.TakeAnalysis
 import com.betterappmafia.apophenia.core.analysis.TranscriptionText
+import com.betterappmafia.apophenia.core.analysis.TranscriptionModel
 import com.betterappmafia.apophenia.core.catalog.KeyMode
 import com.betterappmafia.apophenia.core.learn.RefSound
 import com.betterappmafia.apophenia.core.pitch.PitchClass
@@ -93,6 +94,7 @@ fun PerformanceScreen(model: AppModel) {
     var played by remember { mutableStateOf(Played.LINE) }
     var playedMenu by remember { mutableStateOf(false) }
     var needsMidi by remember { mutableStateOf<TakeChoice?>(null) }
+    var midiModel by remember { mutableStateOf(TranscriptionModel.BASIC_PITCH) }
     // [Claude] A reference with notes sounding together starts on Chords, otherwise One line; either can be changed.
     LaunchedEffect(ref) {
         val r = ref ?: return@LaunchedEffect
@@ -196,8 +198,9 @@ fun PerformanceScreen(model: AppModel) {
             Row { BigButton(if (busy) "CHECKING…" else "CHECK", { run() }, primary = true, enabled = !busy && ref != null && take != null) }
             problem?.let { Text(it, style = T.body.copy(color = C.rec), modifier = Modifier.padding(14.dp)) }
             needsMidi?.let { c ->
+                TranscriptionChoice(midiModel) { midiModel = it }
                 Row(Modifier.padding(horizontal = 14.dp)) {
-                    Sq("▶ TRANSCRIBE TAKE ${c.take.letter}", { model.app.transcriber.start(c.take, c.title); needsMidi = null; problem = "Transcribing take ${c.take.letter}: it's in AI › JOBS. Check again when it's done." }, on = true)
+                    Sq("▶ TRANSCRIBE TAKE ${c.take.letter}", { model.app.transcriber.start(c.take, c.title, midiModel); needsMidi = null; problem = "Transcribing take ${c.take.letter}: it's in AI › JOBS. Check again when it's done." }, on = true)
                 }
             }
             val res = result

@@ -30,9 +30,12 @@ F-Droid installs can't update each other (different signatures): expected.
 
 ## Size
 0.7.7: AAB 170 MB, release APK 208 MB, arm64-v8a only. Most of it is the models (140 MB: Spleeter 4-stems, Moonshine base,
-Basic Pitch) and ONNX Runtime's native library (34 MB). Play's limit is 200 MB for the compressed base download
-(**measured 25 Oct 2026 on 0.8.8:** `bundletool get-size total` says 156.5 MB on every arm64-v8a phone, Android 10 through 16, so 43 MB under; bundletool 1.18.3 runs from the Gradle cache with the SDK's aapt2, see below). Past it, the models move to an
-install-time asset pack (Play Asset Delivery). [Claude] R8 is off: the code is a small part of the size, and the JNI
+Basic Pitch) and ONNX Runtime's native library (34 MB). **Policy rechecked 29 Oct 2026:**
+[Play Console help](https://support.google.com/googleplay/android-developer/answer/9859372?hl=en)
+lists a **500 MB compressed base-module cap**, superseding this doc's old 200 MB cap;
+above 200 MB it describes a non-blocking mobile-data download dialog. Bundletool is
+an estimate; the Console's upload calculation is authoritative. Historical measurement
+on 0.8.8 (25 Oct): 156.5 MB on arm64, Android 10–16. R8 is off: the code is a small part of the size, and the JNI
 bridge, Room and the ONNX/LiteRT runtimes would each need keep rules checked on the phone.
 
 ## What the dependencies bring (checked 24 Oct 2026)
@@ -73,3 +76,9 @@ java -cp "<classpath>" com.android.tools.build.bundletool.BundleToolMain get-siz
 ```
 0.8.8: 156,532,363–156,536,559 bytes. 0.9.15 (27 Oct 2026): 156,646,836–156,651,026. The largest pieces: Moonshine base 60 MB, Spleeter 4×18.8 MB, ONNX Runtime 32.6 MB,
 dex 24.6 MB (R8 off).
+
+0.9.26 (29 Oct 2026), with bundled Guitar GAPS compact model and mel matrix:
+200,055,103–200,059,291 bytes (190.79 MiB), arm64 Android 10 onward.
+Signed APK 252,511,195 bytes; signed AAB 214,621,291 bytes. Model remains fully
+offline/bundled on all channels; no asset-delivery dependency added. Signature,
+certificate, manifest and bundle validation passed. Device runtime/RAM is unverified.

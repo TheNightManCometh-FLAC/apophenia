@@ -138,12 +138,12 @@ internal fun LessonView(model: AppModel, page: CoursePage) {
     fun open(p: CoursePage) { model.courseRoot = null; model.coursePage = p.id }
     fun go(t: CourseTarget) = when (t) {
         is CourseTarget.Ref -> Reference.item(t.kind, t.id)?.let { model.refPage = RefHit(it, PitchName.parse(t.root)) }
-        is CourseTarget.Ear -> { model.show(Mode.EAR); model.earDrill = t.drill }
+        is CourseTarget.Ear -> { model.show(Mode.EAR); com.betterappmafia.apophenia.core.learn.Ear.drill(t.drill)?.let { model.startEar(it) } }
         is CourseTarget.Page -> Course.page(t.id)?.let { open(it) }
     }
     Column(Modifier.fillMaxSize()) {
         TitleBar {
-            Sq("‹", { model.coursePage = null; model.courseCat = cat.id })
+            Sq(if (model.earStudyReturn) "‹ EAR" else "‹", { if (model.earStudyReturn) model.returnToEar() else { model.coursePage = null; model.courseCat = cat.id } })
             Text(page.title.uppercase(), style = T.title, modifier = Modifier.weight(1f), maxLines = 1)
             Text(Course.gauge(page.level), style = T.label.copy(color = C.acc))
             Box {
@@ -257,6 +257,14 @@ private fun See(model: AppModel, page: CoursePage, see: CourseSee, root: PitchNa
             see.labels.getOrNull(i)?.takeIf { it.isNotEmpty() }?.let { Text(it, style = T.label, modifier = Modifier.padding(start = 14.dp, top = 6.dp)) }
             NotationCanvas(see.score, part, null, null, emptySet(), 0, model.chordDialect, model.chordStyle) { _, _, _, _, _ -> }
             if (part.fretted) TabPreview(see.score, part)
+            if (page.tryIt == null && part.clef != com.betterappmafia.apophenia.core.score.Clef.PERCUSSION) {
+                val pitches = part.bars.flatMap { it.voices.flatten() }.flatMap { it.notes }.map { it.pitch }
+                if (pitches.isNotEmpty()) {
+                    Text("NOTES USED IN THIS EXAMPLE", style = T.label, modifier = Modifier.padding(12.dp))
+                    val names = pitches.map { it.name }.distinctBy { it.pitchClass }
+                    ShowOn(model, pitches.map { it.midi }.distinct().sorted(), names, names.map { refName(model, it) }, null, pitches.map { listOf(it.midi) })
+                }
+            }
         }
     }
     CourseSee.Circle -> {

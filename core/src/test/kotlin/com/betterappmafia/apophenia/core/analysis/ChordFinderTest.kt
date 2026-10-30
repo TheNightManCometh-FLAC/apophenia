@@ -41,9 +41,13 @@ class ChordFinderTest {
     }
 
     @Test fun `a chord over its third in the bass is an inversion, a power chord is a 5, minor and seventh are named`() {
-        val x = play(listOf(40, 60, 64, 67), listOf(40, 47, 52, 59), listOf(45, 57, 60, 64), listOf(43, 59, 62, 65, 67))
+        val voicings = listOf(listOf(40, 60, 64, 67), listOf(40, 47, 52, 59), listOf(45, 57, 60, 64), listOf(43, 59, 62, 65, 67))
+        val x = play(*voicings.toTypedArray())
         val labels = ChordFinder.find(x, rate, beats, four, KeyMode.parseOrNull("C major")).beats.map { it.label }.filterIndexed { i, _ -> i % 2 == 0 }
         assertEquals(listOf("C/E", "E5", "Am", "G7"), labels)
+        val heard = voicings.flatMapIndexed { i, pitches -> pitches.map { BasicPitch.TimedNote(i.toDouble(), i + 1.0, it, 0.8, null) } }
+        val combined = ChordFinder.find(x, rate, beats, four, KeyMode.parseOrNull("C major"), heard).beats.filterIndexed { i, _ -> i % 2 == 0 }.map { it.label }
+        assertEquals(listOf("C/E", "E5", "Am", "G7"), combined)
     }
 
     @Test fun `roots are spelled in the key and silence is no chord`() {
@@ -53,6 +57,14 @@ class ChordFinderTest {
         val all = ChordFinder.find(x, rate, (0 until 6).map { it * 0.5 }, four, KeyMode.parseOrNull("D major")).beats.map { it.label }
         assertEquals("N.C.", all[2])
         assertEquals("F#m", all[4])
+    }
+
+    @Test fun `transcribed power suspended diminished and seventh chords retain their qualities`() {
+        val voicings = listOf(listOf(40, 47, 52, 59), listOf(48, 53, 55), listOf(48, 51, 54), listOf(43, 59, 62, 65, 67))
+        val notes = voicings.flatMapIndexed { i, pitches -> pitches.map { p -> BasicPitch.TimedNote(i.toDouble(), i + 1.0, p, 0.8, null) } }
+        val labels = ChordFinder.find(play(*voicings.toTypedArray()), rate, beats, four, KeyMode.parseOrNull("C major"), notes)
+            .beats.filterIndexed { i, _ -> i % 2 == 0 }.map { it.label }
+        assertEquals(listOf("E5", "Csus4", "Cdim", "G7"), labels)
     }
 
     @Test fun `with no beat the chart is one bar per chord, in order`() {

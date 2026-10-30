@@ -31,7 +31,7 @@ private data class AiTool(val name: String, val note: String, val model: String,
 
 private val AI_TOOLS = listOf(
     AiTool("Separate stems", "vocals, drums, bass, other in stereo · a recording's AI ▾ › Separate stems", "SPLEETER", "READY"),
-    AiTool("Notes → MIDI", "polyphonic transcription of a take · a recording's AI ▾ › Notes → MIDI", "BASIC PITCH", "READY"),
+    AiTool("Notes → MIDI", "choose Basic Pitch for vocals/other instruments, or Guitar · a recording's AI ▾ › Notes → MIDI", "BASIC PITCH · GAPS", "READY"),
     AiTool("Sheet music and tab", "from the MIDI, spelled in the key, in your tuning · a recording's MIDI tab › MAKE TAB · SHEET ▾", "CORE", "READY"),
     AiTool("Find the chords", "per beat → a chord chart · automatic on every take", "ANALYSIS", "READY"),
     AiTool("Tempo and key", "ranked guesses with the reason shown · automatic on every take", "ANALYSIS", "READY"),
@@ -78,7 +78,7 @@ fun AiScreen(model: AppModel) {
             Text("JOBS", style = T.label, modifier = Modifier.padding(start = 14.dp, top = 16.dp, bottom = 4.dp))
             if (jobs.isEmpty() && done.isEmpty() && stemJobs.isEmpty() && stemsDone.isEmpty() && speechJobs.isEmpty() && spokenDone.isEmpty()) Text("Nothing yet. Open a recording and use AI ▾.", style = T.small, modifier = Modifier.padding(horizontal = 14.dp))
             jobs.forEach { j ->
-                JobRow("MIDI · ${j.title}", if (j.error != null) "didn't finish: ${j.error}" else "transcribing · window ${j.done} of ${j.total}", if (j.error != null) "FAILED" else "${j.percent}%") {
+                JobRow("MIDI · ${j.title}", if (j.error != null) "${j.model.label} · didn't finish: ${j.error}" else "${j.model.label} · transcribing · window ${j.done} of ${j.total}", if (j.error != null) "FAILED" else "${j.percent}%") {
                     model.open(j.scrapId, null)
                 }
             }

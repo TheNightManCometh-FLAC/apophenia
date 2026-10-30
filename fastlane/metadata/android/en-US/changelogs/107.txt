@@ -1,0 +1,1 @@
+Notes → MIDI now offers Guitar (GAPS) for solo guitar, alongside Basic Pitch for vocals and other instruments. Choose the model before transcribing; saved notes show which model made them. Existing transcriptions and corrections stay until you explicitly transcribe again. Both models run entirely offline.

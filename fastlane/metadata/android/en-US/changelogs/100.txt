@@ -1,0 +1,1 @@
+Tempo is found from the beats (Beat This!), so takes without drums get a BPM. Speech gets no key, chords or tempo. Chord takes get a key from the bass; vibrato is one note; a single line from Notes to MIDI gets no chord chart. Stems: pick which to make, a Wiener filter cuts bleed, and the models compute in full precision on the phone. Back button, Stand mode and Reference fixes.

@@ -7,6 +7,7 @@ import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -35,6 +36,8 @@ data class EarStreak(val drill: String, val best: Int, val sessions: Int, @Colum
 @Dao
 interface EarResultDao {
     @Insert suspend fun insertRaw(r: EarResultEntity): Long
+    /** Practice updates the same session as answers arrive, so a new best survives leaving the screen. */
+    @Update suspend fun update(r: EarResultEntity)
 
     /** Keeps a session with at least one answer; returns its id or null. */
     suspend fun add(r: EarResultEntity): Long? = if (r.total <= 0) null else insertRaw(r)
@@ -49,7 +52,7 @@ interface EarResultDao {
 
     @Query("SELECT * FROM ear_result ORDER BY finished_at DESC LIMIT :limit") suspend fun recent(limit: Int = 50): List<EarResultEntity>
 
-    /** Per drill, the high score (the longest run of right answers in any session), sessions played, and when last. */
-    @Query("SELECT drill, MAX(best_streak) AS best, COUNT(*) AS sessions, MAX(finished_at) AS last_at FROM ear_result GROUP BY drill")
+    /** Practice's longest run, practice session count and last practice; tests have their own percentage records. */
+    @Query("SELECT drill, MAX(best_streak) AS best, COUNT(*) AS sessions, MAX(finished_at) AS last_at FROM ear_result WHERE mode = 'practice' GROUP BY drill")
     fun streaks(): Flow<List<EarStreak>>
 }

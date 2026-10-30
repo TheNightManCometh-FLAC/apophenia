@@ -70,9 +70,11 @@ fun AnalysisSection(model: AppModel, s: ScrapEntity, take: TakeEntity) {
             Sq("FREE TIME", { setBpm(null, free = true) }, on = s.freeTime)
         }
         Text(
+            (if (r.tempo.from.startsWith("onsets: ")) r.tempo.from.removePrefix("onsets: ").replaceFirstChar { it.uppercase() } + ". " else "") +
             if (r.key.from == "speech") "Speech: no tempo."
             else if (r.tempo.free) "No steady pulse found (regularity ${(r.tempo.clarity * 100).roundToInt()}%): free time, or too short to tell."
-            else (if (r.tempo.from == "beats") "From the beats found (Beat This!): ${(r.tempo.clarity * 100).roundToInt()}% of them evenly spaced. "
+            else (if (r.tempo.from == "beats") "From the beats found (Beat This!): ${(r.tempo.clarity * 100).roundToInt()}% of them evenly spaced" +
+                    (if (r.tempo.clarity < com.betterappmafia.apophenia.core.analysis.Tempo.MIN_REGULARITY) ", so the tempo is uncertain: check it. " else ". ")
                 else "From the attacks: regularity ${(r.tempo.clarity * 100).roundToInt()}%. ") + "Half and double are the same pulse counted differently.",
             style = T.small, modifier = Modifier.padding(top = 4.dp),
         )

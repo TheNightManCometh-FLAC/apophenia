@@ -258,6 +258,15 @@ All musical text uses plain ASCII tokens (`b # bb x`) in storage; the real symbo
 
 ## 9. Pitch Trainer — full scope
 
+*Christopher, 29 Oct 2026:* Ear needs focused sections to build up to mixed questions.
+Intervals have separate melodic ascending, melodic descending, harmonic and mixed
+choices, with small interval comparisons and custom picks. **Practice** is open-ended
+and tracks most correct in a row. **Test** defaults to **25 questions**, configurable
+higher or lower; high scores show the best percentage and the count it was out of.
+Incomplete tests do not create percentage records. Every drill links to its related
+learning page, with a way back to the drill; pitched learning examples show both
+**piano and fretboard**, rather than making the reader choose one.
+
 On real piano sound; hear-again, compare and replay-answer everywhere; mixed practice by default; answer on your own fretboard or the piano as well as by name.
 
 - **Pitch:** note naming with/without reference; octave placement; pitch matching by voice or instrument (graded by the tuner); fine pitch discrimination in cents.
@@ -293,6 +302,7 @@ Audio is written to disk as it records (crash-safe; partial takes recovered on n
 
 ### 10.3 Transcription: recordings into MIDI, tab and sheet music
 - **Polyphonic notes:** Spotify **Basic Pitch** (Apache-2.0, 0.84 MB TFLite model; MIDI notes 21–108) via TensorFlow Lite on the phone.
+- *Christopher, 29 Oct 2026:* Notes → MIDI offers an explicit **Guitar (GAPS)** choice for solo guitar, while **Basic Pitch remains the default for vocals and other instruments**. No automatic instrument detection. Changing the choice alone keeps saved notes/corrections; TRANSCRIBE AGAIN explicitly replaces them. The compact guitar model is bundled and runs offline on ONNX Runtime; speed and accuracy on the phone are **[measure]**.
 - **Single lines:** pitch tracking + onset detection in the app's own code (fast first pass and fallback).
 - **Chord names:** per-beat chord recognition → chord chart.
 - **Outputs from the same notes:** MIDI; tab in the take's tuning (string/fret chosen by the fingering chooser, every position changeable); sheet music spelled in the take's key at the instrument's written pitch; chord chart. **Tab is for fretted parts only:** a sung line gets MIDI, sheet music and a chord chart, not tab (*Christopher, 22 Oct 2026: "singing isn't really expressed by tabs"*).

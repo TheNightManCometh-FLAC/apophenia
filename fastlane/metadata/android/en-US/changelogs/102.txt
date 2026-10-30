@@ -1,0 +1,1 @@
+Notes to MIDI is tuned on 360 annotated acoustic-guitar takes (GuitarSet): fewer wrong notes in strummed chords and better single lines. Tab from a recording now follows the beats found, so a take that drifts stays on the grid. Use TRANSCRIBE AGAIN on older takes. Every take with a beat gets a tempo, uncertain ones say so.

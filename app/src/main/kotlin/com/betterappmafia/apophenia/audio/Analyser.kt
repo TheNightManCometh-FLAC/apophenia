@@ -66,13 +66,16 @@ class Analyser(private val db: ApopheniaDatabase, private val audioDir: File, pr
         val meter = grid?.meter?.let { runCatching { com.betterappmafia.apophenia.core.rhythm.TimeSignature.parse(it) }.getOrNull() } ?: com.betterappmafia.apophenia.core.rhythm.TimeSignature.of(4, 4)
         val (x, rate) = Wav.readMono(file, TakeAnalysis.RATE, MAX_SECONDS) ?: error("can't read ${file.name}")
         // Once the take has Notes → MIDI, it says whether this is one note at a time (no chord chart then).
-        val oneAtATime = com.betterappmafia.apophenia.core.analysis.TranscriptionText.decode(db.transcriptions().get(takeId)?.body)
-            ?.let { notes -> TakeAnalysis.overlap(notes.map { it.start to it.end }) < TakeAnalysis.SINGLE_LINE }
+        val heard = com.betterappmafia.apophenia.core.analysis.TranscriptionText.decode(db.transcriptions().get(takeId)?.body)
+        val oneAtATime = heard?.let { notes -> TakeAnalysis.overlap(notes.map { it.start to it.end }) < TakeAnalysis.SINGLE_LINE }
         // The beats (0.9.19): a take with the click has its beats already. If the model fails, the onset estimate stands in.
+        var failed: String? = null
         val found = if (clicked) null else beatTracker?.let { bt ->
-            runCatching { bt.track(x, rate) }.onFailure { Breadcrumbs.add("beat tracking failed take $takeId: $it") }.getOrNull()
+            runCatching { bt.track(x, rate) }.onFailure { failed = it.message ?: it.javaClass.simpleName; Breadcrumbs.add("beat tracking failed take $takeId: $it") }.getOrNull()
         }
-        val r = TakeAnalysis.analyse(x, rate, clickBeats = clickBeats, meter = meter, oneAtATime = oneAtATime, found = found)
+        // There's no logcat on the phone: the recording says why the beats are missing.
+        val r = TakeAnalysis.analyse(x, rate, clickBeats = clickBeats, meter = meter, oneAtATime = oneAtATime, found = found, heard = heard)
+            .let { res -> failed?.let { res.copy(tempo = res.tempo.copy(from = "onsets: the beat finder failed ($it)")) } ?: res }
         db.analysis().put(TakeAnalysisEntity(takeId, TakeAnalysis.VERSION, System.currentTimeMillis(), AnalysisText.encode(r)))
         val s = db.scraps().get(scrapId) ?: return
         // A take recorded with the click already has its tempo from the metronome. A newer analysis replaces the tempo an

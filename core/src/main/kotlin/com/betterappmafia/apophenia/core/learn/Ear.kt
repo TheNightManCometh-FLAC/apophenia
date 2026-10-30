@@ -15,7 +15,7 @@ import kotlin.random.Random
 
 /*
  * Ear (plan §9; C4 'ear' screen): drills grouped in chapters, each played in Listen (hear any answer, no score),
- * Practice (answer, hear the right one and yours, keep going) or Test (twenty questions, scored and kept). Questions
+ * Practice (answer, hear the right one and yours, keep going) or Test (25 questions by default, configurable). Questions
  * are on the piano, in a random key unless that's turned off. Commonly confused intervals (m6/M6, m7/M7, the tritone)
  * come up twice as often, and anything missed in a session comes up more until it's answered right. Drills you sing or
  * play into the mic (pitch matching, sung intervals) are graded by the tuner and open the mic only when you tap to.
@@ -80,6 +80,8 @@ data class EarDrill(
     val reference: Boolean = false, val cents: Int = 0, val minor: Boolean = false,
     /** Your-music drills: the material they draw from. */
     val pool: YourPool? = null,
+    /** Focused interval exercises fix their presentation independently of the general sound menu. */
+    val direction: EarDirection? = null,
 ) {
     /** Drills answered into the mic. */
     val sung: Boolean get() = kind == EarKind.MATCH || kind == EarKind.SING
@@ -126,19 +128,25 @@ data class EarAudio(val piano: List<PlayNote>, val tones: List<Tone> = emptyList
 }
 
 object Ear {
-    const val TEST_LENGTH = 20
+    const val TEST_LENGTH = 25
     /** How far a sung note may be from its target and still count, in cents. [Claude] */
     const val SUNG_TOLERANCE = 30.0
     private val CONFUSED = setOf("m6", "M6", "m7", "M7", "A4")
     private val PCS = (0..11).map { it.toString() }
-    private val SIMPLE = listOf("m2", "M2", "m3", "M3", "P4", "A4", "P5", "m6", "M6", "m7", "M7", "P8")
+    private val SIMPLE = listOf("P1", "m2", "M2", "m3", "M3", "P4", "A4", "P5", "m6", "M6", "m7", "M7", "P8")
 
     val drills: List<EarDrill> = listOf(
+        EarDrill("iv-seconds", "Intervals", "Minor vs major second", EarKind.INTERVAL, listOf("m2", "M2")),
+        EarDrill("iv-thirds", "Intervals", "Minor vs major third", EarKind.INTERVAL, listOf("m3", "M3")),
+        EarDrill("iv-perfect", "Intervals", "Perfect fourth vs fifth", EarKind.INTERVAL, listOf("P4", "P5")),
+        EarDrill("iv-sixths", "Intervals", "Minor vs major sixth", EarKind.INTERVAL, listOf("m6", "M6")),
+        EarDrill("iv-sevenths", "Intervals", "Minor vs major seventh", EarKind.INTERVAL, listOf("m7", "M7")),
+        EarDrill("iv-unison-octave", "Intervals", "Unison vs octave", EarKind.INTERVAL, listOf("P1", "P8")),
         EarDrill("iv-2-3", "Intervals", "Seconds and thirds", EarKind.INTERVAL, listOf("m2", "M2", "m3", "M3")),
         EarDrill("iv-4-5", "Intervals", "Fourths, fifths, tritone", EarKind.INTERVAL, listOf("P4", "A4", "P5")),
         EarDrill("iv-6-7", "Intervals", "Sixths and sevenths", EarKind.INTERVAL, listOf("m6", "M6", "m7", "M7"), "THE PAIRS MOST OFTEN CONFUSED"),
         EarDrill("iv-simple", "Intervals", "Every simple interval", EarKind.INTERVAL, SIMPLE),
-        EarDrill("iv-compound", "Intervals", "Compound intervals", EarKind.INTERVAL, listOf("m9", "M9", "m10", "M10", "P11", "A11", "P12", "m13", "M13")),
+        EarDrill("iv-compound", "Intervals", "Compound intervals", EarKind.INTERVAL, listOf("m9", "M9", "m10", "M10", "P11", "A11", "P12", "m13", "M13", "m14", "M14", "P15")),
         EarDrill("iv-sing", "Intervals", "Sing the interval", EarKind.SING, SIMPLE, "HEAR A NOTE, SING THE INTERVAL ABOVE · MIC"),
         EarDrill("ch-triads", "Chords", "Major · minor · dim · aug", EarKind.CHORD, listOf("maj", "m", "dim", "aug")),
         EarDrill("ch-sus", "Chords", "Major · sus2 · sus4", EarKind.CHORD, listOf("maj", "sus2", "sus4")),
@@ -177,7 +185,7 @@ object Ear {
         return EarDrill("mixed-${chapter?.lowercase()?.replace(' ', '-') ?: "all"}", chapter ?: "Mixed", "Mixed: ${chapter?.lowercase() ?: "everything"}", pool.first().kind, pool.flatMap { d -> d.answers.map { "${d.id}|$it" } }, "EVERY DRILL IN THE CHAPTER")
     }
 
-    fun drill(id: String): EarDrill? = drills.firstOrNull { it.id == id } ?: when {
+    fun drill(id: String): EarDrill? = drills.firstOrNull { it.id == id } ?: EarPractice.focused(id) ?: when {
         id == "mixed-all" -> mixed(null)
         id.startsWith(PICK) -> runCatching { pick(id.removePrefix(PICK).split(',')) }.getOrNull()
         else -> chapters.firstOrNull { "mixed-${it.lowercase().replace(' ', '-')}" == id }?.let(::mixed)
@@ -191,9 +199,10 @@ object Ear {
      * An answer that sounds the same in two drills (m3 in "Seconds and thirds" and "Every simple interval") is listed
      * once. Mic drills and tap-back are left out, as in mixed practice.
      */
-    fun pickable(chapter: String): List<Pair<EarDrill, List<String>>> {
+    fun pickable(chapter: String, direction: EarDirection? = null): List<Pair<EarDrill, List<String>>> {
         val seen = HashSet<String>()
-        return drills.filter { it.chapter == chapter && !it.sung && it.kind != EarKind.TAPBACK }.map { d ->
+        return drills.filter { it.chapter == chapter && !it.sung && it.kind != EarKind.TAPBACK }.map { base ->
+            val d = if (direction != null && base.kind == EarKind.INTERVAL) EarPractice.withDirection(base, direction) else base
             d to d.answers.filter { a -> seen.add("${d.kind}|${d.minor}|${d.reference}|${d.cents}|$a") }.map { "${d.id}|$it" }
         }.filter { it.second.isNotEmpty() }
     }
@@ -204,12 +213,14 @@ object Ear {
         val sources = answers.map { a -> source(EarDrill("", "", "", EarKind.INTERVAL, emptyList()), a) }
         val first = sources.first().first
         val name = sources.joinToString(" · ") { (d, a) -> label(d, a) }
-        return EarDrill(PICK + answers.joinToString(","), first.chapter, "Your pick: $name", first.kind, answers, "PICKED ONE BY ONE")
+        val direction = sources.map { it.first.direction }.distinct().singleOrNull()
+        val presentation = direction?.let { " · ${EarPractice.title(it)}" }.orEmpty()
+        return EarDrill(PICK + answers.joinToString(","), first.chapter, "Your pick: $name$presentation", first.kind, answers, "PICKED ONE BY ONE", direction = direction)
     }
 
     /** A mixed drill's answer "drillId|answer" resolved to the drill it comes from. */
     fun source(drill: EarDrill, answer: String): Pair<EarDrill, String> =
-        if ('|' in answer) answer.split('|', limit = 2).let { (d, a) -> drills.first { it.id == d } to a } else drill to answer
+        if ('|' in answer) answer.split('|', limit = 2).let { (d, a) -> requireNotNull(Ear.drill(d)) to a } else drill to answer
 
     /** How often [answer] should come up: confused intervals ×2, each miss this session +1 until answered right. */
     fun weight(answer: String, missed: Map<String, Int>): Double = (if (answer.substringAfter('|') in CONFUSED) 2.0 else 1.0) + (missed[answer] ?: 0)
@@ -223,12 +234,15 @@ object Ear {
         val (src, answer) = source(drill, full)
         val rootPc = if (settings.randomKey) random.nextInt(12) else 0
         val root = PitchClass(rootPc).defaultSpelling()
-        val direction = if (settings.direction == EarDirection.MIXED) listOf(EarDirection.UP, EarDirection.DOWN, EarDirection.TOGETHER)[random.nextInt(3)] else settings.direction
+        val chosenDirection = src.direction ?: settings.direction
+        val direction = if (chosenDirection == EarDirection.MIXED) listOf(EarDirection.UP, EarDirection.DOWN, EarDirection.TOGETHER)[random.nextInt(3)] else chosenDirection
         fun at(pc: Int, low: Int) = RefSound.midis(pc, listOf(0), low).first()
         return when (src.kind) {
             EarKind.INTERVAL, EarKind.SING -> {
-                val lo = at(rootPc, 55)
-                EarQuestion(drill, full, listOf(lo, lo + Interval.parse(answer).semitones), root, if (src.kind == EarKind.SING) EarDirection.UP else direction)
+                val semitones = Interval.parse(answer).semitones
+                // Keep interval targets within a standard guitar's first twelve frets (E2–E5).
+                val lo = at(rootPc, if (src.kind == EarKind.SING) 55 else if (semitones > 12) 40 else 48)
+                EarQuestion(drill, full, listOf(lo, lo + semitones), root, if (src.kind == EarKind.SING) EarDirection.UP else direction)
             }
             EarKind.CHORD -> EarQuestion(drill, full, RefSound.midis(rootPc, Chords.byId(answer).semitones, 48), root, direction)
             EarKind.VOICING -> EarQuestion(drill, full, voicing(RefSound.midis(rootPc, Chords.byId(listOf("maj7", "7", "m7")[random.nextInt(3)]).semitones, 48), answer), root, direction)

@@ -376,16 +376,41 @@ class StacksTest {
         assertEquals(3, best.sessions)
     }
 
-    @Test fun `a drill's high score is its longest streak in any session`() = runBlocking<Unit> {
+    @Test fun `a drill's practice record is its longest streak and excludes tests`() = runBlocking<Unit> {
         val ear = db.earResults()
         ear.add(EarResultEntity(drill = "iv-simple", mode = "practice", correct = 12, total = 20, bestStreak = 7, finishedAt = now))
         ear.add(EarResultEntity(drill = "iv-simple", mode = "practice", correct = 25, total = 26, bestStreak = 19, finishedAt = now + 5))
         ear.add(EarResultEntity(drill = "iv-simple", mode = "practice", correct = 3, total = 9, bestStreak = 2, finishedAt = now + 9))
         ear.add(EarResultEntity(drill = "ch-triads", mode = "practice", correct = 4, total = 4, bestStreak = 4, finishedAt = now + 1))
+        ear.add(EarResultEntity(drill = "iv-simple", mode = "test", correct = 25, total = 25, bestStreak = 25, finishedAt = now + 20))
         val s = ear.streaks().first().associateBy { it.drill }
         assertEquals(19, s.getValue("iv-simple").best, "the best run, not the last session's")
         assertEquals(3, s.getValue("iv-simple").sessions)
         assertEquals(now + 9, s.getValue("iv-simple").last)
         assertEquals(4, s.getValue("ch-triads").best)
+    }
+
+    @Test fun `test records compare percentages and retain the question count of the same attempt`() = runBlocking<Unit> {
+        val ear = db.earResults()
+        assertTrue(ear.bests().first().isEmpty())
+        ear.add(EarResultEntity(drill = "iv-thirds", mode = "test", correct = 24, total = 25, bestStreak = 20, finishedAt = now))
+        ear.add(EarResultEntity(drill = "iv-thirds", mode = "test", correct = 45, total = 50, bestStreak = 30, finishedAt = now + 1))
+        ear.add(EarResultEntity(drill = "iv-thirds", mode = "practice", correct = 100, total = 100, bestStreak = 100, finishedAt = now + 2))
+        var best = ear.bests().first().single()
+        assertEquals(24 to 25, best.bestCorrect to best.bestTotal)
+        ear.add(EarResultEntity(drill = "iv-thirds", mode = "test", correct = 48, total = 50, bestStreak = 30, finishedAt = now + 3))
+        best = ear.bests().first().single()
+        assertEquals(48 to 50, best.bestCorrect to best.bestTotal, "equal percentages prefer the longer test")
+    }
+
+    @Test fun `practice updates one session instead of adding an attempt for every answer`() = runBlocking<Unit> {
+        val ear = db.earResults()
+        val first = EarResultEntity(drill = "focus:UP:iv-thirds", mode = "practice", correct = 1, total = 1, bestStreak = 1, finishedAt = now)
+        val id = ear.add(first)!!
+        ear.update(first.copy(id = id, correct = 4, total = 5, bestStreak = 3, finishedAt = now + 1))
+        assertEquals(1, ear.recent().size)
+        assertEquals(3, ear.streaks().first().single().best)
+        assertEquals(1, ear.streaks().first().single().sessions)
+        assertEquals(4, ear.recent().single().correct)
     }
 }
