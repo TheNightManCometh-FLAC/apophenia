@@ -33,3 +33,10 @@ tasks.test {
     doFirst { tmp.deleteRecursively(); tmp.mkdirs() }
     systemProperty("java.io.tmpdir", tmp.absolutePath)
 }
+
+// DemucsModelTest: the user-supplied HT-Demucs file and its reference run, only when given (-PdemucsModel, -PdemucsRef).
+tasks.test {
+    providers.gradleProperty("demucsModel").orNull?.let { systemProperty("demucs.model", it) }
+    providers.gradleProperty("demucsRef").orNull?.let { systemProperty("demucs.ref", it) }
+    testLogging { showStandardStreams = providers.gradleProperty("demucsModel").isPresent }
+}

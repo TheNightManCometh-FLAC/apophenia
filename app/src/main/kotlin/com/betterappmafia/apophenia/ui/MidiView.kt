@@ -4,7 +4,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -96,20 +98,27 @@ fun MidiSection(model: AppModel, s: ScrapEntity, take: TakeEntity, title: String
         if (take.durationFrames > take.sampleRate.toLong() * Transcriber.MAX_SECONDS) Text("The first ${Transcriber.MAX_SECONDS / 60} minutes.", style = T.small)
     }
     TranscriptionChoice(selected) { selected = it }
+    // Its own row, under the model it uses (0.9.28: fourth in the row below, it ran off the side of the phone's screen).
+    Row(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
+        val other = TranscriptionModel.fromId(savedModel) != selected
+        Sq(
+            "TRANSCRIBE AGAIN" + (if (other) " WITH ${TranscriptionModel.name(selected.id).uppercase()}" else "") + if (edited) " (LOSES FIXES)" else "",
+            { transcriber.start(take, title, selected) }, on = other,
+        )
+    }
     PianoRoll(model, s, take, title, list)
     val speller = remember(s.key) { KeySpeller(KeyMode.parseOrNull(s.key) ?: KeyMode.parseOrNull("C major")!!) }
     if (list.isNotEmpty()) Text(
         list.take(64).joinToString("  ") { n -> speller.spell(n.midi).let { KeyMode.displayName(it.name) + it.octave } } + if (list.size > 64) "  …" else "",
         style = T.body.copy(color = C.hi, lineHeight = 20.sp), modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
     )
-    Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Sq("SAVE AS MIDI ▸", {
             val bpm = s.bpmLow ?: 120.0
             model.exportMidi(MidiFile.write(grid?.apply(list) ?: list, bpm, "$title · ${take.letter}"), "${title.replace(Regex("[^A-Za-z0-9 ._-]"), "").trim().ifEmpty { "Apophenia" }} ${take.letter}.mid")
         }, on = true)
         Sq("CORRECT ›", { model.correcting = take.id }, on = true)
         MakeTab(model, s, take, title, list, grid?.division)
-        Sq(if (edited) "TRANSCRIBE AGAIN (LOSES FIXES)" else "TRANSCRIBE AGAIN", { transcriber.start(take, title, selected) })
     }
     Hint(if (s.bpmLow != null) "The MIDI file's tempo is the recording's ${s.bpmLow} BPM, so the notes land where they were played." else "No BPM set, so the MIDI file is at 120 BPM; the notes still land where they were played.")
     Limits()

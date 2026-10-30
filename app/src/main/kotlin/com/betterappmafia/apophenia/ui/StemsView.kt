@@ -18,9 +18,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.betterappmafia.apophenia.audio.DemucsModel
 import com.betterappmafia.apophenia.audio.Separator
 import com.betterappmafia.apophenia.audio.Wav
 import com.betterappmafia.apophenia.core.analysis.Spleeter
@@ -33,7 +35,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 /**
- * A recording's STEMS tab (C4): Spleeter's four stems of this take, each its own recording in the Library,
+ * A recording's STEMS tab (C4): the four stems of this take (Spleeter, or Demucs once the user adds it), each its own recording in the Library,
  * with mute and solo (M · S ▾) for hearing them together. The take is never changed.
  */
 @Composable
@@ -51,19 +53,19 @@ fun StemsSection(model: AppModel, s: ScrapEntity, take: TakeEntity, title: Strin
         }
         job?.error != null -> {
             Kv("STEMS") { Text("It didn't finish: ${job!!.error}", style = T.body.copy(color = C.acc)) }
-            Row(Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) { Sq("TRY AGAIN", { separator.start(take, title, job.stems) }) }
+            Row(Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) { Sq("TRY AGAIN", { separator.start(take, title, job.stems, job.model) }) }
             return
         }
         stems.isEmpty() -> {
             Kv("STEMS") {
-                Text("Spleeter splits this take into vocals, drums, bass and other, in stereo, on the phone. Pick the stems you want; each becomes its own recording in the Library, linked here. The take itself is never changed.", style = T.small.copy(lineHeight = 16.sp))
+                Text("Splits this take into vocals, drums, bass and other, in stereo, on the phone. Pick the stems you want; each becomes its own recording in the Library, linked here. The take itself is never changed.", style = T.small.copy(lineHeight = 16.sp))
             }
-            Pick(take) { separator.start(take, title, it) }
-            Limits()
+            Pick(model, take) { picked, which -> separator.start(take, title, picked, which) }
             return
         }
     }
-    val ordered = Spleeter.STEMS.mapNotNull { name -> stems.firstOrNull { it.stem == name } }
+    // The latest of each stem, when a take was separated more than once (say Spleeter, then Demucs).
+    val ordered = Spleeter.STEMS.mapNotNull { name -> stems.filter { it.stem == name }.maxByOrNull { it.madeAt } }
     var muted by remember(take.id) { mutableStateOf(setOf<String>()) }
     var soloed by remember(take.id) { mutableStateOf(setOf<String>()) }
     val audible = ordered.filter { if (soloed.isNotEmpty()) it.stem in soloed else it.stem !in muted }
@@ -75,7 +77,7 @@ fun StemsSection(model: AppModel, s: ScrapEntity, take: TakeEntity, title: Strin
         Row(Modifier.fillMaxWidth().height(58.dp).underline().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(st.stem.uppercase(), style = T.body.copy(color = if (st in audible) C.hi else C.dim, fontWeight = FontWeight.Bold))
-                Line1("${clock(st.durationFrames, st.sampleRate)} · its own recording${if (state.isNotEmpty()) " · $state" else ""}", T.small)
+                Line1("${clock(st.durationFrames, st.sampleRate)} · ${modelName(st.model)} · its own recording${if (state.isNotEmpty()) " · $state" else ""}", T.small)
             }
             Box {
                 Sq("M · S ▾", { menu = true }, on = state.isNotEmpty())
@@ -121,33 +123,75 @@ fun StemsSection(model: AppModel, s: ScrapEntity, take: TakeEntity, title: Strin
         if (player != null && ordered.any { it.takeId == player!!.takeId }) Sq("■ STOP", { model.app.audio.togglePlay() })
     }
     var again by remember(take.id) { mutableStateOf(false) }
-    if (again) Pick(take) { again = false; separator.start(take, title, it) }
+    if (again) Pick(model, take) { picked, which -> again = false; separator.start(take, title, picked, which) }
     else Row(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) { Sq("SEPARATE AGAIN ▾", { again = true }) }
-    Hint(if (ordered.size == Spleeter.STEMS.size) "Played together with nothing muted, the stems add back up to the take. Separating again makes new recordings of the stems you pick; these stay until you delete them."
-        else "Separating again makes new recordings of the stems you pick (the ones not made yet, or new copies); these stay until you delete them.")
-    Limits()
+    Hint(if (ordered.size == Spleeter.STEMS.size && ordered.all { it.model == Separator.MODEL_ID }) "Played together with nothing muted, the stems add back up to the take. Separating again makes new recordings of the stems you pick; these stay until you delete them."
+        else "Separating again makes new recordings of the stems you pick (the ones not made yet, new copies, or with the other model); these stay until you delete them.")
+    if (!again) Limits(ordered.lastOrNull()?.model ?: Separator.MODEL_ID)
 }
 
-/** Which stems to make (Christopher, 28 Oct 2026: pick before separating). [Claude] All four start picked. */
+private fun modelName(id: String) = if (id == Separator.DEMUCS_ID) "DEMUCS" else "SPLEETER"
+
+/**
+ * Which stems to make (Christopher, 28 Oct 2026: pick before separating) and with which model. [Claude] All four start
+ * picked; Demucs starts chosen once it's added (it was added to be used). Demucs isn't part of the app: choosing it before
+ * it's added shows the two steps, a link that downloads the file in the browser and a picker for the download
+ * (Christopher, 30 Oct 2026: "a link to it when you see the option so it can be as easy as possible").
+ */
 @Composable
-private fun Pick(take: TakeEntity, go: (Set<String>) -> Unit) {
+private fun Pick(model: AppModel, take: TakeEntity, go: (Set<String>, String) -> Unit) {
+    val demucs by model.app.demucs.state.collectAsState()
+    val added = demucs is DemucsModel.State.Added
     var picked by remember(take.id) { mutableStateOf(Spleeter.STEMS.toSet()) }
+    var which by remember(take.id, added) { mutableStateOf(if (added) Separator.DEMUCS_ID else Separator.MODEL_ID) }
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("MODEL", style = T.label)
+        Sq((if (which == Separator.MODEL_ID) "✓ " else "") + "SPLEETER", { which = Separator.MODEL_ID }, on = which == Separator.MODEL_ID)
+        Sq((if (which == Separator.DEMUCS_ID) "✓ " else "") + if (added) "DEMUCS" else "DEMUCS · ADD ›", { which = Separator.DEMUCS_ID }, on = which == Separator.DEMUCS_ID)
+    }
+    if (which == Separator.DEMUCS_ID && !added) {
+        AddDemucs(model, demucs)
+        return
+    }
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Spleeter.STEMS.forEach { name ->
             Sq((if (name in picked) "✓ " else "") + name.uppercase(), { picked = if (name in picked) picked - name else picked + name }, on = name in picked)
         }
     }
     Row(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
-        Sq(if (picked.isEmpty()) "PICK A STEM" else "▶ SEPARATE TAKE ${take.letter}", { if (picked.isNotEmpty()) go(picked) }, on = picked.isNotEmpty())
+        Sq(if (picked.isEmpty()) "PICK A STEM" else "▶ SEPARATE TAKE ${take.letter}", { if (picked.isNotEmpty()) go(picked, which) }, on = picked.isNotEmpty())
+    }
+    Limits(which)
+}
+
+/** The two steps for adding Demucs: download the file in the browser, then pick it. Also in Settings › AI MODELS. */
+@Composable
+fun AddDemucs(model: AppModel, state: DemucsModel.State) {
+    val ctx = LocalContext.current
+    Hint(
+        "Demucs (Meta's HT-Demucs) separates more cleanly than Spleeter, over the full band, but takes longer. Its model isn't part of " +
+            "Apophenia: download the file (${DemucsModel.MB} MB) in your browser, then pick it here. The app checks it's the right file " +
+            "and keeps a copy; you can delete the download after.",
+    )
+    if (state is DemucsModel.State.Adding) {
+        Kv("DEMUCS") { Text("Adding it… ${state.percent}%", style = T.body.copy(color = C.hi)) }
+        return
+    }
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Sq("1 · DOWNLOAD IT ›", { model.openLink(ctx, DemucsModel.DOWNLOAD_URL) })
+        Sq("2 · PICK THE DOWNLOAD ›", { model.pickDemucs() })
     }
 }
 
 private fun stemTitle(st: StemRow) = st.title?.takeIf { it.isNotBlank() } ?: st.stem
 
-/** Plan §10.6: the honest limits, in the app. */
+/** Plan §10.6: the honest limits, in the app, for the model chosen. */
 @Composable
-private fun Limits() = Hint(
-    "Spleeter separates up to about 11 kHz and carries the band above along with each stem. Expect some bleed between stems, " +
+private fun Limits(which: String) = Hint(
+    if (which == Separator.DEMUCS_ID)
+        "Demucs predicts each stem over the full band; played together they come close to the take but don't add back exactly. " +
+            "It is slower than Spleeter and needs about 1 GB of memory while it runs. The first ${Separator.MAX_SECONDS / 60} minutes of a file."
+    else "Spleeter separates up to about 11 kHz and carries the band above along with each stem. Expect some bleed between stems, " +
         "most of all on a dense mix; a solo instrument or voice usually lands in one stem with traces in the others. The first ${Separator.MAX_SECONDS / 60} minutes of a file.",
 )
 

@@ -1,0 +1,1 @@
+Stems: optional Demucs (Meta's HT-Demucs), clearly cleaner than Spleeter. It isn't part of the app: in a recording's STEMS tab (or Settings > AI MODELS) tap DOWNLOAD IT to get the file in your browser, then PICK THE DOWNLOAD. The app checks it's the right file. Then choose MODEL: DEMUCS when separating.

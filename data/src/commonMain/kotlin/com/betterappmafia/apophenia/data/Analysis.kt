@@ -121,6 +121,8 @@ data class StemRow(
     @ColumnInfo(name = "sample_rate") val sampleRate: Int,
     val title: String?,
     @ColumnInfo(name = "made_at") val madeAt: Long,
+    /** Which model made it ("spleeter-4stems" or "htdemucs"). */
+    val model: String,
 )
 
 @Dao
@@ -129,7 +131,7 @@ interface StemDao {
 
     /** The stems of a take still in the Library (a stem item in the trash is left out). */
     @Query(
-        "SELECT st.source_take_id, st.stem, st.take_id, k.scrap_id, k.audio_path, k.duration_frames, k.sample_rate, s.title, st.made_at " +
+        "SELECT st.source_take_id, st.stem, st.take_id, k.scrap_id, k.audio_path, k.duration_frames, k.sample_rate, s.title, st.made_at, st.model " +
             "FROM take_stem st JOIN take k ON k.id = st.take_id JOIN scrap s ON s.id = k.scrap_id " +
             "WHERE st.source_take_id = :sourceTakeId AND k.deleted_at IS NULL AND s.deleted_at IS NULL",
     )
@@ -139,7 +141,7 @@ interface StemDao {
     @Query("SELECT * FROM take_stem WHERE take_id = :takeId") suspend fun sourceOf(takeId: Long): TakeStemEntity?
 
     @Query(
-        "SELECT st.source_take_id, st.stem, st.take_id, k.scrap_id, k.audio_path, k.duration_frames, k.sample_rate, s.title, st.made_at " +
+        "SELECT st.source_take_id, st.stem, st.take_id, k.scrap_id, k.audio_path, k.duration_frames, k.sample_rate, s.title, st.made_at, st.model " +
             "FROM take_stem st JOIN take k ON k.id = st.take_id JOIN scrap s ON s.id = k.scrap_id " +
             "WHERE k.deleted_at IS NULL AND s.deleted_at IS NULL ORDER BY st.made_at DESC LIMIT :limit",
     )

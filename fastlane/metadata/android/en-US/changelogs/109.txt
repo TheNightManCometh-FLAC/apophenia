@@ -1,0 +1,1 @@
+TRANSCRIBE AGAIN is back on screen: it sat off the right edge of the MIDI tab's button row on the phone. It now has its own row under the model choice and says which model it will use when that differs from the one that made the notes.

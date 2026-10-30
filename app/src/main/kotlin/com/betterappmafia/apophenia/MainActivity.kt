@@ -36,6 +36,7 @@ class MainActivity : ComponentActivity() {
 
     private val pickFolder = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> uri?.let { app.model.folderPicked(it) } }
     private val pickFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { app.model.backupFilePicked(it) } }
+    private val pickDemucs = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { app.model.demucsPicked(it) } }
     private val pickImports = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris -> if (uris.isNotEmpty()) app.model.importFiles(uris) }
     private val pickMidiTarget = registerForActivityResult(ActivityResultContracts.CreateDocument("audio/midi")) { uri -> app.model.midiTargetPicked(uri) }
     private val pickFileTarget = registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri -> app.model.fileTargetPicked(uri) }
@@ -44,6 +45,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         app.model.pickBackupFolder = { pickFolder.launch(null) }
         app.model.pickBackupFile = { pickFile.launch(arrayOf("application/zip", "application/octet-stream")) }
+        app.model.pickDemucs = { pickDemucs.launch(arrayOf("*/*")) }
         app.model.pickImport = { pickImports.launch(arrayOf("audio/*", "text/*", "video/*", "application/octet-stream", "application/xml", "application/vnd.recordare.musicxml+xml", "application/vnd.recordare.musicxml", "application/zip")) }
         app.model.pickMidiTarget = { name -> pickMidiTarget.launch(name) }
         app.model.pickFileTarget = { name -> pickFileTarget.launch(name) }

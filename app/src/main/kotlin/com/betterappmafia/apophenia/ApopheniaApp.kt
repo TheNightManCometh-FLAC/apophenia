@@ -31,6 +31,8 @@ class ApopheniaApp : Application() {
     /** Notes → MIDI with Basic Pitch or the explicitly chosen Guitar model (plan §10.3). */
     val transcriber by lazy { com.betterappmafia.apophenia.audio.Transcriber(this, db, audioDir) }
     val separator by lazy { com.betterappmafia.apophenia.audio.Separator(this, db, audioDir) }
+    /** The optional HT-Demucs stems model the user adds (never shipped or downloaded by the app). */
+    val demucs by lazy { com.betterappmafia.apophenia.audio.DemucsModel(this) }
     val speechReader by lazy { com.betterappmafia.apophenia.audio.SpeechReader(this, db, audioDir) }
     val io = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 

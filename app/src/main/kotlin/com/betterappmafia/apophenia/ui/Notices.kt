@@ -42,6 +42,7 @@ object Notices {
         Licence("Guitar GAPS", "Optional solo-guitar Notes → MIDI model", "MIT (published checkpoint and reference inference)", "Xavier Riley and contributors; Qiuqiang Kong", listOf("guitar-gaps-NOTICE.txt")),
         Licence("Beat This! (small)", "Finds the beats and downbeats for a take's tempo and chord chart", "MIT (code and weights)", "Institute of Computational Perception, JKU Linz", listOf("beat-this-LICENSE.txt")),
         Licence("Spleeter 4 stems", "Separates a song into vocals, drums, bass and other", "MIT (Spleeter); Apache-2.0 (the ONNX conversion)", "Deezer SA", listOf("spleeter-LICENSE.txt", "spleeter-4stems-onnx-README.md")),
+        Licence("Demucs 4.0.1 (how the model is run)", "Runs the optional HT-Demucs stems model the way demucs does. The model file itself isn't part of Apophenia: you download and add it yourself (Settings › AI MODELS)", "MIT", "Meta Platforms, Inc. and affiliates", listOf("demucs-LICENSE.txt")),
         Licence("Moonshine base", "Speech to text for spoken lyric ideas", "MIT", "Moonshine AI", listOf("moonshine-LICENSE.txt")),
         Licence("Bravura", "The music font on the staff", "SIL Open Font License 1.1", "Steinberg Media Technologies GmbH", listOf("Bravura-OFL.txt")),
         Licence("Noto Music", "Music symbols in text", "SIL Open Font License 1.1", "The Noto Project Authors", listOf("NotoMusic-OFL.txt")),
@@ -56,7 +57,8 @@ object Notices {
             "sung or played Ear drill, and the screen always shows when it is on.\n\n" +
             "Your recordings, writing and projects stay in the app's storage on this phone. A backup goes only to the folder you " +
             "pick, and an export only to the file you save. Analysis, transcription, stem separation and speech to text all run " +
-            "on the phone."
+            "on the phone.\n\n" +
+            "Links (Support Apophenia, the optional Demucs download) open in your browser; the app itself still sends nothing."
 }
 
 @Composable

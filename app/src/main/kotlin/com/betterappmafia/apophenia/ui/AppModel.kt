@@ -690,6 +690,22 @@ class AppModel(val app: ApopheniaApp) {
         }
     }
 
+    var pickDemucs: () -> Unit = {}
+
+    /** The optional Demucs model file, picked after the browser downloaded it: copied in only if it's the pinned file. */
+    fun demucsPicked(file: android.net.Uri) {
+        app.io.launch {
+            val why = app.demucs.add(file)
+            notice(why ?: "Demucs is added. Pick DEMUCS in a recording's STEMS tab.")
+        }
+    }
+
+    /** Opens [url] in the browser; the app itself has no internet permission. */
+    fun openLink(context: android.content.Context, url: String) {
+        runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
+            .onFailure { notice("No browser could open $url") }
+    }
+
     fun backupFilePicked(file: android.net.Uri) {
         app.io.launch {
             backupBusy = true

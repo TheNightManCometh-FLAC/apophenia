@@ -16,7 +16,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,7 +46,8 @@ import kotlin.math.abs
 /**
  * Settings, behind the ⚙ in the top bar (Christopher, 25 Oct 2026: "a settings gear somewhere with anything that should
  * be as well as a themes"). [Claude] what's gathered here: the theme, how chord symbols are shown and read, pitch
- * (A4, octave numbers), what Reference pages are drawn on, the mic and overdub latency, backup, the trash, licences.
+ * (A4, octave numbers), what Reference pages are drawn on, the mic and overdub latency, the optional Demucs model,
+ * backup, the trash, licences.
  * The ones that also live next to what they change (CHORDS ▾, the tuner, SHOW ON ▾) are the same setting, not a copy.
  */
 @Composable
@@ -83,6 +88,18 @@ fun SettingsScreen(model: AppModel, requestMic: (() -> Unit) -> Unit) {
             Section("MIC AND OVERDUB")
             ToolsExtras(model, requestMic)
 
+            Section("AI MODELS")
+            val demucs by model.app.demucs.state.collectAsState()
+            if (demucs is com.betterappmafia.apophenia.audio.DemucsModel.State.Added) {
+                var menu by remember { mutableStateOf(false) }
+                Box {
+                    Link("Demucs stems model", "ADDED · ${com.betterappmafia.apophenia.audio.DemucsModel.MB} MB ▾") { menu = true }
+                    ConsoleMenu(menu, { menu = false }, "DEMUCS", listOf(
+                        MenuItem("Remove it", "FREES ${com.betterappmafia.apophenia.audio.DemucsModel.MB} MB") { model.app.demucs.remove() },
+                    ))
+                }
+            } else AddDemucs(model, demucs)
+
             Section("YOUR DATA")
             val last by produceState<Long?>(null, model.backupBusy) { value = model.app.backups.lastBackup() }
             Link("Back up now", last?.let { "LAST " + SimpleDateFormat("d MMM HH:mm", Locale.getDefault()).format(Date(it)) } ?: "PICK A FOLDER ›", enabled = !model.backupBusy) { model.backupNow() }
@@ -92,9 +109,17 @@ fun SettingsScreen(model: AppModel, requestMic: (() -> Unit) -> Unit) {
 
             Section("ABOUT")
             Link("Licences and privacy", "WHAT THE APP IS MADE WITH ›") { model.showSettings = false; model.showNotices = true }
+            // Christopher, 30 Oct 2026: a donate link, in every build (Play included). Opens the browser; the app itself stays offline.
+            val ctx = LocalContext.current
+            Link("Support Apophenia", "KO-FI ›") {
+                runCatching { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(DONATE_URL))) }
+            }
         }
     }
 }
+
+/** Better App Mafia's Ko-fi (as Independent Video). */
+const val DONATE_URL = "https://ko-fi.com/betterappmafia"
 
 @Composable
 private fun Section(name: String) =

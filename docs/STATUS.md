@@ -2,6 +2,35 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.9.30 (30 Oct 2026): optional Demucs stems, added by the user
+Christopher, 30 Oct 2026: "the clean way… a link to it when you see the option so it can be as easy as possible for them."
+- **What it is:** the STEMS tab's pick row now has **MODEL: SPLEETER · DEMUCS**. Until Demucs is added, DEMUCS reads **DEMUCS · ADD ›**, and choosing it shows the two steps: **1 · DOWNLOAD IT ›** opens the browser on the file, and **2 · PICK THE DOWNLOAD ›** opens Android's file picker. The same steps are in Settings › **AI MODELS**, which also offers **Remove it** once it's added. Apophenia never ships or downloads the weights itself (still no internet permission).
+- **The file:** `ferrite-stems/htdemucs-onnx-dml`, pinned at revision 9061a3ab, file `htdemucs-dml.onnx`, 371,576,554 bytes, SHA-256 `9e06fef2…6220ab`. Its card says MIT, Meta's htdemucs. The picked file is copied in only if its size and SHA-256 match; otherwise it says why (wrong file, incomplete download, different hash). [Claude] I chose this export over StemSplitio/htdemucs-onnx (166 MB fp16): that one's graph has 684 ScatterND ops, loads in 40 s, peaks at 4.5 GB with constant folding on, and runs 6 s per segment with it off. This one runs 5.1 s per segment, loads in 4.2 s and peaks at about 1 GB (this PC, 4 threads). Measured.
+- **The code:** `core/analysis/Demucs.kt` ports demucs 4.0.1's own `apply_model` (7.8 s segments, overlap 0.25, triangular transition weight, `TensorChunk.padded` and `center_trim`, no shifts) and `separate.py`'s mean/std normalisation. It streams, holding one segment in memory. The app runs it with ONNX Runtime from the file on disk with the CPU arena off and `optimization.disable_specified_optimizers=ConstantFolding`: folding made loading peak at 2.5–4.5 GB, and turning it off costs about 40% in speed. Stems are labelled SPLEETER or DEMUCS, and the tab shows the latest of each.
+- **Measured on this PC (MUSDB18 7 s previews, 50 tracks, median SDR, museval):**
+
+| Stem | Spleeter + MWF | Demucs |
+|---|---|---|
+| vocals | 7.47 | 8.90 |
+| drums | 7.03 | 9.51 |
+| bass | 5.53 | 9.39 |
+| other | 3.95 | 5.68 |
+
+  Demucs SIR is 8.9–15.6 dB. The previews are shorter than one segment, so these scores cover one chunk only; multi-chunk correctness is covered by the parity test below.
+- **Unit-tested:** `DemucsTest` (8 tests) checks the streamed output against a whole-array port of `apply_model` for takes shorter than, equal to, one past and several segments; an identity model gives the take back; the transition weights; silence gives no NaN; no sink write exceeds 1,024 samples. Three deliberate mutations (trim, the emitted length, the write size) each failed, then were restored. `DemucsModelTest`, given the file (`-PdemucsModel -PdemucsRef`), checks the Kotlin pipeline against demucs's own `apply_model` around the same ONNX file on 40 s of a YuE2 song (7 chunks): drums −123.9, bass −129.5, other −124.9, vocals −120.5 dB error. Without the file it is skipped, never passed.
+- **Emulator (x86_64 Android 13, not the phone):** Settings › AI MODELS showed the steps. A wrong file was refused. The real file was added (progress showed, 371,576,554 bytes landed in `files/models`), and the STEMS tab then offered ✓ DEMUCS. The first separation failed: Demucs wrote 65,536-sample blocks into the separator's 4,096-sample resampling buffer. That is fixed, and the write-size test above was added. **Re-run after the fix (emulator-verified):** a 30 s mono YuE2 take separated with DEMUCS into four 0:29 stems, written about a minute after the tap, with no crash. The stems' levels match demucs `apply_model` run on this PC on the same take to within 0.6 dB (vocals −18.5/−18.5, other −24.9/−24.9, drums −69.7/−69.1, bass −73.0/−72.7 dB RMS). The clip has almost no drums or bass, so those two stems are nearly silent in both runs. Not heard; not on the phone.
+- **Unverified on device:** the download in the S22's browser and picking it from Downloads; speed and memory on the Snapdragon 8 Gen 1 (one segment at a time; this PC takes 5.1 s per 5.85 s of new audio, so about 0.9× real time); how the stems sound (ear-verify on the phone).
+
+## Build 0.9.29 (30 Oct 2026): a donate link
+Christopher: "Have a donate link somewhere", then, on leaving it out of the Play build as Independent Video's notes said: "play is fine with it. kofi get a percentage which is the rule. My other one is 3 days from finishing testing and has the donate button."
+- Settings › ABOUT › **Support Apophenia · KO-FI ›** opens https://ko-fi.com/betterappmafia in the browser (an intent; the app still has no internet permission). In every build, Play included. Also: `.github/FUNDING.yml` (GitHub's Sponsor button), `Donate:` in the F-Droid recipe, and a Ko-fi link in the privacy page's footer (`site/privacy/`).
+- Build-verified (app tests, signed APK/AAB in `dist/release`, no INTERNET permission). Not checked on the phone.
+
+## Build 0.9.28 (30 Oct 2026): TRANSCRIBE AGAIN back on screen
+Christopher, on 0.9.27 on the phone: "you can't rerun it on recordings its run before."
+- TRANSCRIBE AGAIN was the fourth button in the MIDI tab's row (SAVE AS MIDI, CORRECT, MAKE TAB · SHEET); the row neither wrapped nor scrolled, so on the phone it sat past the right edge. It now has its own row under MODEL, and reads "TRANSCRIBE AGAIN WITH GUITAR (GAPS)" (highlighted) when the chosen model differs from the one that made the notes; "(LOSES FIXES)" as before. The remaining row scrolls sideways.
+- Build-verified (app unit tests, signed APK/AAB in `dist/release`, 0.9.27's replaced). Not checked on the phone.
+
 ## Build 0.9.27 (29 Oct 2026): focused Ear practice, tests and learning shortcuts
 Christopher requested more sections to build up to mixed questions, configurable tests (default25), percentage records, practice streaks, links to related learning, and piano alongside fretboard examples.
 - Ear now has **PRACTICE · TEST · HIGH SCORES**. Focused topics come first, with Mixed: everything at the end. Intervals open onto **melodic ascending**, **melodic descending**, **harmonic together**, **mixed presentations**, and singing. Each presentation offers minor/major seconds, thirds, sixths and sevenths, fourth/fifth and unison/octave comparisons before the broader simple/compound sets. Custom interval picks retain their presentation. Each focused presentation has its own drill/score identity. Simple includes unison; compounds include fourteenths/double octave. No locked levels.
