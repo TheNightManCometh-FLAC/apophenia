@@ -2,6 +2,59 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.9.37 (30 Oct 2026): the meter from the downbeats
+Christopher: "focus on that. its important" (takes without the click were always charted in 4/4, "the meter is a guess").
+- **What it does** (`core/analysis/BarMeter.kt`, used by `TakeAnalysis.analyse` when there's no click):
+  - Each downbeat Beat This! found is numbered by the beat it falls on.
+  - A bar of 6, 4, 3 or 2 beats is read when at least 75% of the downbeats fall on the same beat of every bar (90% for 2).
+  - Then each beat is checked for splitting in three or in two (onset strength at 1/3 and 2/3 of the beat against 1/2).
+  - Readings:
+    - 3 beats → 3/4
+    - 4 → 4/4, or 12/8 when the beats split in three
+    - 2 → 2/2 [Claude] (Beat This counting a 4/4 bar in half notes, so the bars and the tab's note lengths match the tempo it gives), or 6/8 when the beats split in three
+    - 6 → 6/8 counted in eighths: every third beat becomes the beat, and the tempo is the dotted quarter's
+  - The bars start on the beat the downbeats agree on, not on the first downbeat.
+  - Otherwise the take stays in 4/4, and the chart says "the meter is a guess: the downbeats found don't settle it".
+  - A reading says why, for example "3 beats a bar, 15 of 19 downbeats agree".
+  - The chord chart and MAKE TAB · SHEET use it.
+  - `TakeAnalysis.VERSION` 10: every take is analysed again.
+- **Measured on this PC** (30 Oct 2026; this Kotlin code on Beat This small0's beats, the PyTorch reference model). Material:
+  - GuitarSet's 360 takes, all 4/4.
+  - The same 360 takes with beat 4 of every bar cut out, giving 3/4 (real guitar, unnaturally edited).
+  - 58 renders of the app's piano: waltz, arpeggio and block chords in 3/4, 4/4 and 6/8, with no drums.
+  - Kept on D: only (`D:\junkdrawer\apo-ref\meter`).
+
+  | Material | Read right | Read wrong | Left as a guess |
+  |---|---|---|---|
+  | GuitarSet 4/4 | 147 (131 as 4/4, 16 as 2/2) | **none as 3/4**; 5 as 12/8* | 208 |
+  | Cut 3/4 | 45 | 29 (as 4/4, 2/2 or 6/8) | 286 |
+  | Piano 3/4 | 19 of 26 | 0 | 7 |
+  | Piano 4/4 | 15 of 24 | 0 | 9 |
+  | Piano 6/8 | 3 of 8 | 1 (as 3/4, half a bar) | 4 |
+
+  \* The five 12/8 reads are slow singer-songwriter takes strummed in triplets: their annotated notes fall on thirds of the beat and almost never on the half. Swung jazz stayed 4/4 (split score 0.60–0.67, under the 0.7 threshold).
+- **Tried and dropped:**
+  - Counting the beats between neighbouring downbeats: fewer right (32 cut 3/4) and more wrong (37 against 29).
+  - Beat This's downbeat strength at every beat (instead of the downbeats it picks): on the first 61 GuitarSet takes, 5–8 real 4/4 takes read as 3/4.
+- **Unit-tested** (`BarMeterTest`, 7 tests):
+  - Synthetic downbeats for 3/4, 4/4, 2/2, 6/8 and 12/8.
+  - Stray downbeats are outvoted.
+  - Too few or disagreeing downbeats give no reading.
+  - The reading survives storage.
+  - The real model on the app's piano: a played waltz reads 3/4; 6/8 counted in eighths reads 6/8 at 60 with a beat every second; block 4/4 stays 4/4.
+  - Four mutations failed the tests and were restored: no reading, no split check, eighths not thinned, reason not stored.
+  - Core 537 tests, 1 skipped (Demucs). App and data tests pass.
+- Build-verified: signed 0.9.37 APK (cert c5509fe4…, no network permission). **Not tried on the phone.**
+- **Known limits:**
+  - About a third of real 4/4 and most hard 3/4 stay a guess.
+  - A 3/4 arpeggio in eighths can read as 6/8 (the same notes fit both).
+  - 9/8 is never read.
+  - 2/2 shows where you'd write 4/4 at double the tempo; the tempo's half/double ambiguity is unchanged.
+  - Takes with the click keep the click's meter, as before.
+
+## Speed on the phone (Christopher, 30 Oct 2026, S22 Ultra)
+- Device-verified (his report, not timed with a clock): every AI job and analysis, Beat This! tempo included, is "almost instant" except the Guitar transcription model. Notes → MIDI with Guitar, and the tab made from it, is "slow but reasonable". Closes 0.9.19's "Beat This on the S22's CPU isn't timed".
+
 ## Build 0.9.36 (30 Oct 2026): more melodic dictation and polyrhythm
 Christopher pasted the reference app's polyrhythm and melodic-dictation lists ("without copying it"). Mine, written from what the generators can do:
 - **Dictation:** Melody · three notes by step (every move to a neighbouring scale note); · three notes with a leap (at least a 3rd); · major or minor (the chord before it says which); · chromatic notes (one note, or two in six, replaced by the note a half step from the next one, outside the key). Existing four, six and minor-key melodies stay.

@@ -113,7 +113,8 @@ fun AnalysisSection(model: AppModel, s: ScrapEntity, take: TakeEntity) {
                 when {
                     c.free -> "No steady beat, so one bar per chord, in order."
                     clicked -> "On the click's beats, in ${c.meter}, from its first downbeat."
-                    r.tempo.from == "beats" -> "On the beats found, from the first downbeat found, in ${c.meter} (the meter is a guess)."
+                    r.tempo.from == "beats" && r.meterWhy != null -> "On the beats found, from the first downbeat found, in ${c.meter}: read from the downbeats (${r.meterWhy})."
+                    r.tempo.from == "beats" -> "On the beats found, from the first downbeat found, in ${c.meter} (the meter is a guess: the downbeats found don't settle it)."
                     else -> "On the analysed pulse from the first attack, in ${c.meter} (the bar line is a guess)."
                 },
                 style = T.small,

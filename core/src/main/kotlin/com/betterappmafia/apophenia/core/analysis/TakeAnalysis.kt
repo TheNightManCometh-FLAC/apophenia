@@ -30,8 +30,9 @@ object TakeAnalysis {
      *  6 (0.9.22): rhythmic guitar survives speech detection; chords combine sound with transcribed notes.
      *  7 (0.9.23): retain quiet detected chord tones; combine bass evidence and allow inversions.
      *  8 (0.9.24): compress pitch-class evidence so repeated/louder roots do not bury detected chord tones.
-     *  9 (0.9.25): harmonic spectral fitting for chord evidence, with or without a transcription. */
-    const val VERSION = 9
+     *  9 (0.9.25): harmonic spectral fitting for chord evidence, with or without a transcription.
+     *  10 (0.9.37): the meter from the downbeats found ([BarMeter]); every take is analysed again. */
+    const val VERSION = 10
     const val RATE = 24000
     /** [Claude] Notes are tracked over the first two minutes; longer files (imported songs) get tempo and key only. */
     const val NOTE_SECONDS = 120
@@ -43,7 +44,8 @@ object TakeAnalysis {
     const val MUSIC_MIN_BEATS = 8
 
     /** [oneAtATime]: what the take's Notes → MIDI said (true: one note at a time), or null when it hasn't been transcribed. */
-    data class Result(val seconds: Double, val tempo: Tempo, val notes: List<Note>, val voiced: Double, val key: KeyResult, val chords: ChordFinder.Track, val oneAtATime: Boolean? = null)
+    /** [meterWhy]: how the meter was read from the downbeats found ([BarMeter.Reading.why]); null when it is the click's or a guess. */
+    data class Result(val seconds: Double, val tempo: Tempo, val notes: List<Note>, val voiced: Double, val key: KeyResult, val chords: ChordFinder.Track, val oneAtATime: Boolean? = null, val meterWhy: String? = null)
 
     /**
      * The share of sounding time with two or more notes at once, from a transcription's notes (start to end, seconds).
@@ -96,16 +98,23 @@ object TakeAnalysis {
             }
             else -> KeyEvidence.rank(KeyEvidence.fromChroma(y, RATE))
         }
-        // Nor a tempo (Christopher, 28 Oct 2026: speech gets no BPM).
-        val tempo = if (key.from == "speech") Tempo(emptyList(), pulse.clarity, true, pulse.from) else pulse
+        // Without the click, the meter comes from the downbeats found when they are clear ([BarMeter]); else [meter] stands.
+        val reading = if (clickBeats == null && key.from != "speech" && pulse.best != null) found?.let { BarMeter.read(it, env) } else null
+        // Nor a tempo (Christopher, 28 Oct 2026: speech gets no BPM). 6/8 counted in eighths: the tempo of its dotted quarters.
+        val tempo = when {
+            key.from == "speech" -> Tempo(emptyList(), pulse.clarity, true, pulse.from)
+            reading != null && reading.step > 1 && found != null -> Tempo.fromBeats(reading.beatsOf(found.beats))
+            else -> pulse
+        }
         val seconds = y.size.toDouble() / RATE
-        // The beats found, from the first downbeat (the bar line), when they hold a tempo.
-        val foundBeats = found?.takeIf { tempo.best != null }?.let { f -> f.beats.filter { it >= (f.downbeats.firstOrNull() ?: f.beats.first()) - 1e-6 } }?.takeIf { it.size >= 2 }
+        // The beats found, from the bar line the meter was read from, else the first downbeat, when they hold a tempo.
+        val foundBeats = found?.takeIf { tempo.best != null }?.let { f -> reading?.beatsOf(f.beats) ?: f.beats.filter { it >= (f.downbeats.firstOrNull() ?: f.beats.first()) - 1e-6 } }?.takeIf { it.size >= 2 }
+        val barMeter = reading?.meter ?: meter
         val beats = clickBeats ?: foundBeats ?: tempo.best?.let { bpm -> onsets.firstOrNull()?.let { first -> generateSequence(first) { it + 60.0 / bpm }.takeWhile { it < seconds }.toList() } }
         // Speech has no chords either (Christopher, 27 Oct 2026: "No chart"): nothing for the chart, In yours or Ear to read.
-        val chords = if (key.from == "speech" || oneAtATime == true) ChordFinder.Track(emptyList(), meter, beats == null)
-            else ChordFinder.find(y, RATE, beats, meter, key.best ?: key.candidates.firstOrNull()?.key, heard)
-        return Result(seconds, tempo, notes, voiced, key, chords, oneAtATime)
+        val chords = if (key.from == "speech" || oneAtATime == true) ChordFinder.Track(emptyList(), barMeter, beats == null)
+            else ChordFinder.find(y, RATE, beats, barMeter, key.best ?: key.candidates.firstOrNull()?.key, heard)
+        return Result(seconds, tempo, notes, voiced, key, chords, oneAtATime, reading?.why)
     }
 }
 
@@ -591,6 +600,7 @@ object AnalysisText {
         line("chords", r.chords.meter, r.chords.free)
         r.chords.beats.forEach { line("chord", it.time, it.label, it.match) }
         r.oneAtATime?.let { line("line", it) }
+        r.meterWhy?.let { line("meter", it) }
     }
 
     fun decode(s: String?): TakeAnalysis.Result? = runCatching {
@@ -614,6 +624,7 @@ object AnalysisText {
                 TimeSignature.parse(chordLine[1]), chordLine[2].toBoolean(),
             ),
             oneAtATime = lines.firstOrNull { it[0] == "line" }?.get(1)?.toBooleanStrictOrNull(),
+            meterWhy = lines.firstOrNull { it[0] == "meter" }?.get(1),
         )
     }.getOrNull()
 }

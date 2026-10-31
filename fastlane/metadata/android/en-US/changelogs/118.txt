@@ -1,0 +1,1 @@
+Recordings made without the click now get their meter from the downbeats: 3/4, 4/4, 2/2, 6/8 or 12/8, for the chord chart and for tab and sheet music made from Notes -> MIDI. When the downbeats don't settle it, the chart stays in 4/4 and says the meter is a guess. Every take is analysed again.
