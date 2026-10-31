@@ -195,3 +195,41 @@ object EarRhythmQuestions {
         }
     }
 }
+
+/**
+ * Ear › Rhythm › polyrhythm (Christopher, 30 Oct 2026: "Put polyrhythms in rhythms"). Two pulses share one cycle: the
+ * cross-stick plays the first number evenly, the kick the second, both on the downbeat. Three cycles, the first
+ * downbeat accented. An answer is "a:b". [Claude] One cycle lasts four beats at [BPM].
+ */
+object EarPoly {
+    const val BPM = 80
+
+    val drills = listOf(
+        EarDrill("rh-poly", "Rhythm", "Polyrhythm · 3:2 or 4:3", EarKind.POLY, listOf("3:2", "4:3"), "TWO PULSES AT ONCE: HIGH AGAINST LOW"),
+        EarDrill("rh-poly-2", "Rhythm", "Polyrhythm · against 2", EarKind.POLY, listOf("3:2", "5:2", "7:2"), "THE LOW PULSE PLAYS 2"),
+        EarDrill("rh-poly-3", "Rhythm", "Polyrhythm · against 3", EarKind.POLY, listOf("2:3", "4:3", "5:3", "7:3"), "THE LOW PULSE PLAYS 3"),
+        EarDrill("rh-poly-4", "Rhythm", "Polyrhythm · against 4", EarKind.POLY, listOf("3:4", "5:4", "7:4"), "THE LOW PULSE PLAYS 4"),
+        EarDrill("rh-poly-next", "Rhythm", "Polyrhythm · one apart", EarKind.POLY, listOf("3:2", "4:3", "5:4", "6:5", "7:6"), "NEIGHBOURING NUMBERS: THE HARDEST TO TELL APART"),
+        EarDrill("rh-poly-more", "Rhythm", "Polyrhythm · all", EarKind.POLY, listOf("3:2", "2:3", "4:3", "3:4", "5:2", "5:3", "5:4", "6:5", "7:2", "7:3", "7:4", "7:6"), "TWO PULSES AT ONCE: HIGH AGAINST LOW"),
+    )
+
+    private fun ratio(answer: String) = answer.split(':').map { it.toInt() }.let { it[0] to it[1] }
+
+    fun audio(answer: String): EarAudio {
+        val (high, low) = ratio(answer)
+        val cycle = 4 * 60.0 / BPM
+        val hits = (0 until 3).flatMap { c ->
+            val t0 = c * cycle
+            (0 until high).map { i -> DrumAt(t0 + i * cycle / high, DrumVoice.CROSS_STICK, if (i == 0) DrumHit.ACCENT else DrumHit.HIT) } +
+                (0 until low).map { i -> DrumAt(t0 + i * cycle / low, DrumVoice.KICK, if (i == 0) DrumHit.ACCENT else DrumHit.HIT) }
+        }
+        return EarAudio(emptyList(), drums = hits)
+    }
+
+    fun label(answer: String) = ratio(answer).let { (a, b) -> "$a against $b" }
+
+    fun explain(answer: String): String {
+        val (a, b) = ratio(answer)
+        return "$a against $b: the high cross-stick played $a evenly in the time the kick played $b; they meet only on the downbeat."
+    }
+}

@@ -23,6 +23,10 @@ import kotlin.random.Random
 
 enum class EarKind {
     INTERVAL, CHORD, INVERSION,
+    /** A triad of any quality, root position or inverted ([EarTriads]). */
+    TRIAD,
+    /** Two pulses at once: name the ratio ([EarPoly]). */
+    POLY,
     /** A seventh chord with its root in the bass: close, drop 2, drop 3 or spread. */
     VOICING,
     /** Name a note, after an A reference when the drill gives one. */
@@ -87,7 +91,8 @@ data class EarDrill(
     val sung: Boolean get() = kind == EarKind.MATCH || kind == EarKind.SING
 }
 
-enum class EarDirection(val label: String) { UP("Up"), DOWN("Down"), TOGETHER("Together"), MIXED("Mixed") }
+/** [MELODIC]: one after the other, up and down at random (Christopher, 30 Oct 2026: "Both mixed"). */
+enum class EarDirection(val label: String) { UP("Up"), DOWN("Down"), MELODIC("Melodic, up and down"), TOGETHER("Together"), MIXED("Mixed") }
 enum class ChordSound(val label: String) { BLOCK("Block chord"), ARPEGGIO("Arpeggio up"), BOTH("Block, then arpeggio") }
 enum class DegreeContext(val label: String) { CADENCE("After a cadence"), DRONE("Over a drone") }
 
@@ -148,13 +153,13 @@ object Ear {
         EarDrill("iv-simple", "Intervals", "Every simple interval", EarKind.INTERVAL, SIMPLE),
         EarDrill("iv-compound", "Intervals", "Compound intervals", EarKind.INTERVAL, listOf("m9", "M9", "m10", "M10", "P11", "A11", "P12", "m13", "M13", "m14", "M14", "P15")),
         EarDrill("iv-sing", "Intervals", "Sing the interval", EarKind.SING, SIMPLE, "HEAR A NOTE, SING THE INTERVAL ABOVE · MIC"),
-        EarDrill("ch-triads", "Chords", "Major · minor · dim · aug", EarKind.CHORD, listOf("maj", "m", "dim", "aug")),
-        EarDrill("ch-sus", "Chords", "Major · sus2 · sus4", EarKind.CHORD, listOf("maj", "sus2", "sus4")),
+        EarDrill("ch-triads", "Triads", "Major · minor · dim · aug", EarKind.CHORD, listOf("maj", "m", "dim", "aug")),
+        EarDrill("ch-sus", "Triads", "Major · sus2 · sus4", EarKind.CHORD, listOf("maj", "sus2", "sus4")),
         EarDrill("ch-7-basic", "Chords", "Maj7 · m7 · 7", EarKind.CHORD, listOf("maj7", "m7", "7")),
         EarDrill("ch-7-all", "Chords", "Every seventh chord", EarKind.CHORD, listOf("maj7", "7", "m7", "mMaj7", "m7b5", "dim7", "7#5", "maj7#5")),
         EarDrill("ch-6-add", "Chords", "Sixths and added notes", EarKind.CHORD, listOf("6", "m6", "add9", "madd9", "69")),
         EarDrill("ch-ext", "Chords", "Ninths and beyond", EarKind.CHORD, listOf("9", "maj9", "m9", "11", "13", "7b9", "7#9", "7alt")),
-        EarDrill("ch-inv", "Chords", "Triad inversions", EarKind.INVERSION, listOf("0", "1", "2"), "MAJOR AND MINOR TRIADS"),
+        EarDrill("ch-inv", "Triads", "Triad inversions", EarKind.INVERSION, listOf("0", "1", "2"), "MAJOR AND MINOR TRIADS"),
         EarDrill("ch-inv7", "Chords", "Seventh-chord inversions", EarKind.INVERSION, listOf("0", "1", "2", "3"), "DOMINANT AND MINOR SEVENTHS"),
         EarDrill("ch-voicing", "Chords", "Voicing spread", EarKind.VOICING, listOf("close", "drop2", "drop3", "spread"), "CLOSE · DROP 2 · DROP 3 · SPREAD, ROOT IN THE BASS"),
         EarDrill("pitch-ref", "Pitch", "Name the note, after an A", EarKind.NOTE, PCS, "A4 FIRST, THEN THE NOTE", reference = true),
@@ -172,7 +177,13 @@ object Ear {
         EarDrill("mode-harmonic", "Scales", "Modes of harmonic minor", EarKind.MODE, Scales.all.filter { it.family == "harmonic-minor" }.map { it.id }, "OVER A DRONE"),
         EarDrill("mode-symmetric", "Scales", "Symmetric scales", EarKind.MODE, listOf("whole-tone", "half-whole", "whole-half", "augmented"), "OVER A DRONE"),
         EarDrill("mode-character", "Scales", "Characteristic notes", EarKind.CHARACTER, listOf("dorian", "phrygian", "lydian", "mixolydian", "aeolian", "locrian"), "THE ONE NOTE THAT MAKES THE MODE"),
-    ) + EarHarmony.drills + EarDictation.drills + EarRhythm.drills
+    ).let { base ->
+        // Triads in teaching order: qualities, inversions, then the sus and modal triads, then everything.
+        val triads = (base + EarTriads.drills).filter { it.chapter == "Triads" }
+        val order = listOf("tr-majmin", "tr-dimaug", "ch-triads", "tr-inv-maj", "tr-inv-min", "ch-inv", "tr-inv-dim", "tr-inv-all", "ch-sus", "tr-sus2-phryg", "tr-sus4-lyd", "tr-sus4b5-locr", "tr-colour", "tr-all")
+        val at = base.indexOfFirst { it.chapter == "Triads" }
+        base.take(at) + triads.sortedBy { order.indexOf(it.id) } + base.drop(at).filter { it.chapter != "Triads" }
+    } + EarHarmony.drills + EarDictation.drills + EarRhythm.drills + EarPoly.drills
 
     /** The note each mode of major is known by: the degree that sets it apart from major or natural minor. */
     val CHARACTERISTIC = mapOf("dorian" to "6", "phrygian" to "b2", "lydian" to "#4", "mixolydian" to "b7", "aeolian" to "b6", "locrian" to "b5")
@@ -226,16 +237,30 @@ object Ear {
     fun weight(answer: String, missed: Map<String, Int>): Double = (if (answer.substringAfter('|') in CONFUSED) 2.0 else 1.0) + (missed[answer] ?: 0)
 
     fun question(drill: EarDrill, settings: EarSettings, random: Random, missed: Map<String, Int> = emptyMap(), previous: EarQuestion? = null): EarQuestion {
-        val weights = drill.answers.map { a -> weight(a, missed) * (if (previous?.answer == a && drill.answers.size > 2) 0.3 else 1.0) }
+        // Never the same notes twice running (Christopher, 30 Oct 2026: "prevent the same question playing twice… It's supposed
+        // to be more random"). The last answer comes up a third as often; when it does come up again it's on another root,
+        // and with the key fixed (one root) it can't come up again at all. [Claude] the 0.3.
+        val fixedRoot = !settings.randomKey && drill.answers.size > 1
+        val weights = drill.answers.map { a -> weight(a, missed) * (if (previous?.answer == a) (if (fixedRoot) 0.0 else 0.3) else 1.0) }
         var pick = random.nextDouble() * weights.sum()
         var index = 0
-        while (index < weights.size - 1 && pick >= weights[index]) { pick -= weights[index]; index++ }
+        while (index < weights.size - 1 && (pick >= weights[index] || weights[index] == 0.0)) { pick -= weights[index]; index++ }
+        if (weights[index] == 0.0) index = weights.indexOfFirst { it > 0.0 }.coerceAtLeast(0)
         val full = drill.answers[index]
         val (src, answer) = source(drill, full)
-        val rootPc = if (settings.randomKey) random.nextInt(12) else 0
+        val lastRoot = previous?.takeIf { it.answer == full }?.root?.pitchClass
+        val rootPc = when {
+            !settings.randomKey -> 0
+            lastRoot != null -> Math.floorMod(lastRoot + 1 + random.nextInt(11), 12)
+            else -> random.nextInt(12)
+        }
         val root = PitchClass(rootPc).defaultSpelling()
         val chosenDirection = src.direction ?: settings.direction
-        val direction = if (chosenDirection == EarDirection.MIXED) listOf(EarDirection.UP, EarDirection.DOWN, EarDirection.TOGETHER)[random.nextInt(3)] else chosenDirection
+        val direction = when (chosenDirection) {
+            EarDirection.MIXED -> listOf(EarDirection.UP, EarDirection.DOWN, EarDirection.TOGETHER)[random.nextInt(3)]
+            EarDirection.MELODIC -> listOf(EarDirection.UP, EarDirection.DOWN)[random.nextInt(2)]
+            else -> chosenDirection
+        }
         fun at(pc: Int, low: Int) = RefSound.midis(pc, listOf(0), low).first()
         return when (src.kind) {
             EarKind.INTERVAL, EarKind.SING -> {
@@ -245,6 +270,8 @@ object Ear {
                 EarQuestion(drill, full, listOf(lo, lo + semitones), root, if (src.kind == EarKind.SING) EarDirection.UP else direction)
             }
             EarKind.CHORD -> EarQuestion(drill, full, RefSound.midis(rootPc, Chords.byId(answer).semitones, 48), root, direction)
+            EarKind.TRIAD -> EarQuestion(drill, full, EarTriads.midis(rootPc, answer), root, direction)
+            EarKind.POLY -> EarQuestion(drill, full, emptyList(), root, EarDirection.UP, bpm = EarPoly.BPM)
             EarKind.VOICING -> EarQuestion(drill, full, voicing(RefSound.midis(rootPc, Chords.byId(listOf("maj7", "7", "m7")[random.nextInt(3)]).semitones, 48), answer), root, direction)
             EarKind.INVERSION -> {
                 val type = if (src.answers.size == 4) listOf("7", "m7")[random.nextInt(2)] else listOf("maj", "m")[random.nextInt(2)]
@@ -339,7 +366,7 @@ object Ear {
                 else -> listOf(note(0.0, 0.9, q.midis[0]), note(1.0, 0.9, q.midis[1]))
             })
             EarKind.SING -> EarAudio(listOf(note(0.0, 1.6, q.midis[0])))
-            EarKind.CHORD, EarKind.INVERSION, EarKind.VOICING -> EarAudio(when (settings.chord) {
+            EarKind.CHORD, EarKind.INVERSION, EarKind.VOICING, EarKind.TRIAD -> EarAudio(when (settings.chord) {
                 ChordSound.BLOCK -> RefSound.block(q.midis)
                 ChordSound.ARPEGGIO -> RefSound.upDown(q.midis, down = false)
                 ChordSound.BOTH -> RefSound.block(q.midis) + RefSound.upDown(q.midis, at = 2.0, down = false)
@@ -358,6 +385,7 @@ object Ear {
             EarKind.MODE -> EarAudio(RefSound.upDown(q.midis).map { it.copy(start = it.start + 1.0, end = it.end + 1.0) }, drone = q.tonic!! - 24)
             EarKind.CHARACTER -> EarAudio(q.midis.mapIndexed { i, m -> note(1.0 + i * 0.45, 0.42, m) }, drone = q.tonic!! - 24)
             EarKind.HARMONY -> EarAudio(EarHarmony.sound(src, q.answer.substringAfter('|'), q.tonic!!))
+            EarKind.POLY -> EarPoly.audio(q.answer.substringAfter('|'))
             EarKind.TUNING, EarKind.BEATS, EarKind.PARTIAL -> EarAudio(emptyList(), EarHarmony.tones(src, q.answer.substringAfter('|'), q.midis[0]))
             EarKind.MELODY, EarKind.BASS, EarKind.CHORDTONE, EarKind.TEMPO -> EarDictation.audio(q, settings)
             EarKind.RHYTHM, EarKind.SWING, EarKind.TAPBACK -> EarRhythmQuestions.audio(q)
@@ -372,6 +400,8 @@ object Ear {
         val midis = when (src.kind) {
             EarKind.INTERVAL, EarKind.SING -> listOf(q.midis[0], q.midis[0] + Interval.parse(a).semitones)
             EarKind.CHORD -> RefSound.midis(rootPc, Chords.byId(a).semitones, 48)
+            EarKind.TRIAD -> EarTriads.midis(rootPc, a)
+            EarKind.POLY -> return q.copy(answer = answer)
             EarKind.VOICING -> voicing(close(q.midis, source(q.drill, q.answer).second), a)
             EarKind.INVERSION -> {
                 val rootPos = q.midis.let { m -> val k = source(q.drill, q.answer).second.toInt(); m.takeLast(k).map { it - 12 } + m.dropLast(k) }
@@ -404,6 +434,8 @@ object Ear {
             EarKind.INTERVAL, EarKind.SING -> a
             EarKind.CHORD -> Chords.byId(a).symbols.first().removePrefix("C").ifEmpty { "Major" }.let { if (it == "m") "Minor" else accidentals(it) }
             EarKind.INVERSION -> listOf("Root position", "1st inversion", "2nd inversion", "3rd inversion")[a.toInt()]
+            EarKind.TRIAD -> EarTriads.label(src, a)
+            EarKind.POLY -> EarPoly.label(a)
             EarKind.VOICING -> VOICINGS.getValue(a).first
             EarKind.NOTE, EarKind.MATCH -> names(PitchClass(a.toInt()).defaultSpelling())
             EarKind.OCTAVE -> "C$a–B$a"
@@ -434,6 +466,8 @@ object Ear {
                 "${page.symbols.first()}: ${page.notes.joinToString(" ") { names(it) }}. ${Reference.CHORD_NAMES[a] ?: ""}."
             }
             EarKind.INVERSION -> "${label(q.drill, q.answer)}: the ${listOf("root", "3rd", "5th", "7th")[a.toInt()]} is in the bass."
+            EarKind.TRIAD -> EarTriads.explain(a, q.root, names)
+            EarKind.POLY -> EarPoly.explain(a)
             EarKind.VOICING -> "${VOICINGS.getValue(a).first}: from the bass up, ${VOICINGS.getValue(a).second}."
             EarKind.NOTE, EarKind.MATCH, EarKind.OCTAVE -> "${names(PitchClass(q.midis[0]).defaultSpelling())}${q.midis[0] / 12 - 1} (MIDI ${q.midis[0]})."
             EarKind.CENTS -> "The second tone was ${abs(q.cents)} cents ${if (q.cents > 0) "higher" else "lower"}."

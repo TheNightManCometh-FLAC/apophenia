@@ -15,6 +15,9 @@ import com.betterappmafia.apophenia.core.pitch.PitchName
 import com.betterappmafia.apophenia.ui.theme.C
 import com.betterappmafia.apophenia.ui.theme.T
 
+/** [AppModel.earIntervalType] for Intervals › Your picks. */
+internal const val EAR_PICKS = "picks"
+
 internal fun earPercent(correct: Int, total: Int): String = if (total <= 0) "—" else String.format(java.util.Locale.getDefault(), "%.1f%%", correct * 100.0 / total)
 
 @Composable
@@ -22,6 +25,7 @@ internal fun EarHome(model: AppModel) {
     var section by model::earSection
     var family by model::earFamily
     var group by model::earDirectionGroup
+    var type by model::earIntervalType
     val streaks by model.app.db.earResults().streaks().collectAsState(emptyList())
     val tests by model.app.db.earResults().bests().collectAsState(emptyList())
     val streakOf = streaks.associateBy { it.drill }
@@ -58,11 +62,11 @@ internal fun EarHome(model: AppModel) {
     if (f == null) {
         (Ear.chapters + YourEar.CHAPTER + "Mixed").forEach { chapter ->
             Row(Modifier.fillMaxWidth().heightIn(min = 60.dp).underline().clickable(role = Role.Button, enabled = !test || validCount) {
-                if (chapter == "Mixed") start(Ear.mixed(null)) else { family = chapter; group = null }
+                if (chapter == "Mixed") start(Ear.mixed(null)) else { family = chapter; group = null; type = null }
             }.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(if (chapter == "Mixed") "Mixed: everything" else chapter, style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
-                    Text(when (chapter) { "Intervals" -> "MELODIC UP · MELODIC DOWN · HARMONIC · MIXED"; "Mixed" -> "EVERY DRILL"; YourEar.CHAPTER -> "YOUR OWN SCRAPS"; else -> "FOCUSED DRILLS AND YOUR OWN PICKS" }, style = T.label)
+                    Text(when (chapter) { "Intervals" -> "SECONDS, THIRDS… EACH MELODIC OR HARMONIC"; "Mixed" -> "EVERY DRILL"; YourEar.CHAPTER -> "YOUR OWN SCRAPS"; else -> "FOCUSED DRILLS AND YOUR OWN PICKS" }, style = T.label)
                 }
                 if (chapter == "Mixed") EarLessonLink(model, Ear.mixed(null))
                 Text("›", style = T.title.copy(color = C.acc))
@@ -70,24 +74,63 @@ internal fun EarHome(model: AppModel) {
         }
         return
     }
-    fun back() { if (f == "Intervals" && group != null) group = null else { family = null; group = null } }
+    fun back() {
+        when {
+            f == "Intervals" && group != null -> group = null
+            f == "Intervals" && type != null -> type = null
+            else -> { family = null; group = null; type = null }
+        }
+    }
     BackHandler { back() }
+    val base = if (f == "Intervals") EarPractice.types.firstOrNull { it.id == type } else null
     TitleBar {
         Sq("‹", { back() })
-        Text(if (f == "Intervals" && group != null) EarPractice.title(group!!) else f, style = T.title, modifier = Modifier.weight(1f), maxLines = 2)
+        Text(
+            when {
+                f != "Intervals" -> f
+                type == EAR_PICKS -> "Your picks" + (group?.let { " · " + EarPractice.title(it) } ?: "")
+                base != null -> base.name
+                else -> f
+            },
+            style = T.title, modifier = Modifier.weight(1f), maxLines = 2,
+        )
     }
-    if (f == "Intervals" && group == null) {
-        EarPractice.directions.forEach { direction ->
-            Row(Modifier.fillMaxWidth().heightIn(min = 66.dp).underline().clickable(role = Role.Button) { group = direction }.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(EarPractice.title(direction), style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
-                    Text("SMALL COMPARISONS → SIMPLE → COMPOUND → YOUR PICKS", style = T.label)
+    // Intervals (Christopher, 30 Oct 2026): the interval type first, then how it's played: melodic (up or down),
+    // harmonic, or one direction, each its own drill and score.
+    if (f == "Intervals") {
+        fun score(d: EarDrill) = if (test) testOf[d.id]?.bestTotal?.let { "BEST ${earPercent(testOf[d.id]?.bestCorrect ?: 0, it)} · ${testOf[d.id]?.bestCorrect}/$it" } ?: "NO COMPLETED TEST" else null
+        when {
+            type == null -> {
+                EarPractice.types.forEach { d ->
+                    Row(Modifier.fillMaxWidth().heightIn(min = 66.dp).underline().clickable(role = Role.Button) { type = d.id; group = null }.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(d.name, style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
+                            Text(d.answers.joinToString(" · ") { Ear.label(d, it) }, style = T.label, maxLines = 2)
+                        }
+                        Text("›", style = T.title.copy(color = C.acc))
+                    }
                 }
-                EarLessonLink(model, EarPractice.withDirection(Ear.drills.first { it.id == "iv-simple" }, direction))
-                Text("›", style = T.title.copy(color = C.acc))
+                Row(Modifier.fillMaxWidth().heightIn(min = 66.dp).underline().clickable(role = Role.Button) { type = EAR_PICKS; group = null }.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Your picks", style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
+                        Text("CHOOSE THE INTERVALS ONE BY ONE", style = T.label)
+                    }
+                    Text("›", style = T.title.copy(color = C.acc))
+                }
+                EarDrillRow(model, Ear.drills.first { it.id == "iv-sing" }, 0, null, !test || validCount, ::start)
+            }
+            type == EAR_PICKS && group == null -> EarPractice.directions.forEach { direction ->
+                Row(Modifier.fillMaxWidth().heightIn(min = 60.dp).underline().clickable(role = Role.Button) { group = direction }.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(EarPractice.title(direction), style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold), modifier = Modifier.weight(1f))
+                    Text("›", style = T.title.copy(color = C.acc))
+                }
+            }
+            type == EAR_PICKS -> PickYourOwn(model, f, group)
+            base != null -> EarPractice.directions.forEach { direction ->
+                val d = EarPractice.withDirection(base, direction)
+                EarDrillRow(model, d, streakOf[d.id]?.best ?: 0, score(d), !test || validCount, ::start, title = EarPractice.title(direction))
             }
         }
-        EarDrillRow(model, Ear.drills.first { it.id == "iv-sing" }, 0, null, !test || validCount, ::start)
         return
     }
     val own = f == YourEar.CHAPTER
@@ -98,7 +141,6 @@ internal fun EarHome(model: AppModel) {
     }
     val rows = when {
         own -> model.earPool?.let { YourEar.drills(it) }.orEmpty()
-        f == "Intervals" -> EarPractice.intervals(group!!)
         else -> listOf(Ear.mixed(f)) + Ear.drills.filter { it.chapter == f }
     }
     rows.forEach { d ->
@@ -106,14 +148,14 @@ internal fun EarHome(model: AppModel) {
         val score = if (test) best?.bestTotal?.let { "BEST ${earPercent(best.bestCorrect ?: 0, it)} · ${best.bestCorrect}/$it" } ?: "NO COMPLETED TEST" else null
         EarDrillRow(model, d, streakOf[d.id]?.best ?: 0, score, !test || validCount, ::start)
     }
-    if (!own) PickYourOwn(model, f, if (f == "Intervals") group else null)
+    if (!own) PickYourOwn(model, f, null)
 }
 
 @Composable
-private fun EarDrillRow(model: AppModel, drill: EarDrill, streak: Int, testScore: String?, enabled: Boolean, start: (EarDrill) -> Unit) {
+private fun EarDrillRow(model: AppModel, drill: EarDrill, streak: Int, testScore: String?, enabled: Boolean, start: (EarDrill) -> Unit, title: String? = null) {
     Row(Modifier.fillMaxWidth().heightIn(min = 66.dp).underline().clickable(role = Role.Button, enabled = enabled) { start(drill) }.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(drill.name.substringBefore(" · Melodic").substringBefore(" · Harmonic").substringBefore(" · Mixed"), style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
+            Text(title ?: drill.name.substringBefore(" · Melodic").substringBefore(" · Harmonic").substringBefore(" · Mixed"), style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
             Text(testScore ?: if (streak > 0) "BEST $streak IN A ROW" else drill.note.ifEmpty { drill.answers.joinToString(" · ") { Ear.label(drill, it) } }, style = T.label, maxLines = 2)
         }
         EarLessonLink(model, drill)

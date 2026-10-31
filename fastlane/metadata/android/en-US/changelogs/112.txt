@@ -1,0 +1,1 @@
+AI › Separate stems: tap it to pick the default stems model, Spleeter or Demucs. Picking Demucs before it's added shows the download link and the picker right there. A recording's STEMS tab still lets you switch for one take.

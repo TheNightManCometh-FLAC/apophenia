@@ -49,6 +49,9 @@ fun sourceLabel(s: ValueSource?) = when (s) {
     null -> ""
 }
 
+/** The tabs a recording opens on: [AppModel.open]'s view can name one. */
+val RECORDING_TABS = setOf("info", "stems", "midi", "text")
+
 /** A recording's full view (plan §4.3): its takes, waveform, and everything about it. */
 @Composable
 fun RecordingDetail(model: AppModel, scrapId: Long, requestMic: (() -> Unit) -> Unit) {
@@ -59,7 +62,8 @@ fun RecordingDetail(model: AppModel, scrapId: Long, requestMic: (() -> Unit) -> 
     var chosen by remember(scrapId) { mutableStateOf<Long?>(null) }
     var takeMenu by remember { mutableStateOf(false) }
     var aiMenu by remember { mutableStateOf(false) }
-    var tab by remember(scrapId) { mutableStateOf("info") }
+    // Opened from AI › a tool, it starts on that tool's tab.
+    var tab by remember(scrapId) { mutableStateOf(model.detailView?.takeIf { it in RECORDING_TABS } ?: "info") }
 
     val r = row ?: return
     val s = r.scrap

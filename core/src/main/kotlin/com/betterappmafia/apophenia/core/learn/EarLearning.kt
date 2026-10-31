@@ -24,6 +24,8 @@ object EarLearning {
                     else -> "extensions"
                 })
                 EarKind.INVERSION -> listOf("inversions")
+                EarKind.TRIAD -> EarTriads.pages(d)
+                EarKind.POLY -> listOf("poly")
                 EarKind.VOICING -> listOf("drop", "spread")
                 EarKind.NOTE -> listOf("names-letters")
                 EarKind.OCTAVE -> listOf("names-octaves")
@@ -44,8 +46,14 @@ object EarLearning {
                     "hm-predominant" -> "neapolitan"
                     "hm-subs" -> "jazz-subs"
                     "hm-modulation" -> "modulation-pivot"
+                    "hm-prog-minor" -> "numerals-minor"
+                    "hm-prog-sevenths" -> "jazz-251"
+                    "hm-modal", "sc-modal-voicing" -> "modes-seven"
+                    "hm-upper" -> "upper"
+                    "hm-polychord" -> "polychords"
+                    "hm-reharm" -> "jazz-subs"
                     else -> "numerals-major"
-                }) + if (id == "hm-predominant") listOf("aug-sixths") else emptyList()
+                }) + when (id) { "hm-predominant" -> listOf("aug-sixths"); "hm-prog-major", "hm-prog-minor", "hm-reharm" -> listOf("function"); "hm-modal" -> listOf("modes-bright"); else -> emptyList() }
                 EarKind.TUNING -> listOf("tuning-equal", "beats-tune")
                 EarKind.BEATS -> listOf("beats-what")
                 EarKind.PARTIAL -> listOf("timbre-harmonics")

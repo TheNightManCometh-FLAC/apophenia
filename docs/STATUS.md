@@ -2,6 +2,47 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.9.36 (30 Oct 2026): more melodic dictation and polyrhythm
+Christopher pasted the reference app's polyrhythm and melodic-dictation lists ("without copying it"). Mine, written from what the generators can do:
+- **Dictation:** Melody · three notes by step (every move to a neighbouring scale note); · three notes with a leap (at least a 3rd); · major or minor (the chord before it says which); · chromatic notes (one note, or two in six, replaced by the note a half step from the next one, outside the key). Existing four, six and minor-key melodies stay.
+- **Rhythm:** Polyrhythm · against 2 (3:2, 5:2, 7:2), · against 3 (2:3, 4:3, 5:3, 7:3), · against 4 (3:4, 5:4, 7:4), · one apart (3:2 … 7:6), · all (twelve ratios).
+- Unit-tested (a new test): step melodies move only by step, leap melodies leap, every chromatic note leads by a half step into the next, a minor answer starts after a minor chord. Writing it caught two bugs before release (a chromatic melody with no outside note; two altered notes side by side). Build-verified; not heard on the phone.
+
+## Build 0.9.35 (30 Oct 2026): no repeated Ear questions
+Christopher: "It needs to be more mixed and prevent the same question playing twice. It went down up and then the same notes up down."
+- Cause: the last answer was only made rarer in drills with more than two answers, and the root was drawn without looking at the last one, so a two-answer drill repeated the answer half the time and the same notes about one time in 24.
+- Now the last answer gets 0.3 of its weight in every drill [Claude], comes back only on another root, and with the key fixed it can't come back at all.
+- Unit-tested: 3000 questions in five drills, never the same answer on the same root twice running, the answer repeats under 25% of the time; fixed key always changes. Both failed on the old selection, then restored. Build-verified; not on the phone.
+
+## Build 0.9.34 (30 Oct 2026): Ear curriculum: triads, progressions, modal, bitonal, reharmonization, polyrhythm
+Christopher, comparing with Beato Ear Training's topic list: "There's a lot more needed on the ear practice… We aren't directly copying the curriculum, but it's all good so we need to have it without copying it." Answers (30 Oct): add tonal progressions, modal harmony + voicings, bitonal + reharmonization, polyrhythm ("Put polyrhythms in rhythms"; "We already have the categories for most of these"); no Listen mode ("Listen is in the link to the page"); intervals are covered; "Yes, full triad set".
+- **Triads** (new chapter after Intervals; Basic triads, Major · sus2 · sus4 and Triad inversions moved in from Chords, ids kept): Major or minor; Diminished or augmented; inversions of major, minor and diminished; Quality and inversion; Sus2 or Phrygian (1 ♭2 5); Sus4 or Lydian (1 ♯4 5); Sus4♭5 or Locrian (1 ♭2 ♭5); Sus and modal triads; Every triad (ten). [Claude] No augmented or sus inversion drills: inverted, they are the same sound on another root.
+- **Harmony:** Progressions in a major key (6), in a minor key (6), Seventh-chord progressions (ii–V–I, turnarounds, minor ii–V–i); Modal harmony (a vamp per mode: its tonic against the chord with its characteristic note); Upper-structure triads over a dominant 7th (II, ♭III, ♭V, VI, ♭VI, ♭II); Polychords (a major triad over another); Reharmonization (I–IV–V7–I, then again with one chord swapped: ii, iv, II7 for IV; ♭II7, ♭VII7 for V7; vi for I).
+- **Scales:** Modal voicings (one chord over the tonic carrying the mode's characteristic note).
+- **Rhythm:** Polyrhythm · 3:2 or 4:3, and · all (3:2, 4:3, 5:4, 5:3, 5:2, 7:4): cross-stick against kick, three cycles.
+- The content (progression lists, voicings, groupings) is mine, written from standard theory; nothing taken from that course. Every drill links to an existing Course page.
+- Unit-tested: 8 new tests (labels distinct in every drill, triad notes and bass, progression length, one chord changed in reharmonization, distinct modal sounds, upper structures stacked above, even polyrhythm pulses); inversions removed and stacking flattened each failed them, then restored. Build-verified; not heard on the phone.
+
+## Build 0.9.33 (30 Oct 2026): intervals by type, melodic or harmonic
+Christopher: "The ear training is only in ascending or descending. It should be melodic seconds major or minor, harmonic seconds major minor, and so on for each type", then "No default is up and down. Both mixed."
+- Ear › Intervals lists the interval types (the existing interval drills); each opens on two drills: **Melodic · up and down** (new `EarDirection.MELODIC`, up or down at random) and **Harmonic**. Your picks: presentation, then the intervals. Sing the interval stays.
+- The separate ascending, descending and mixed presentations are no longer offered; their ids still resolve, so old high scores keep their names.
+- Unit-tested: melodic questions are up and down, never together (failed with MELODIC forced to UP, then restored); the old ascending id resolves. Build-verified; not on the phone.
+
+## Build 0.9.32 (30 Oct 2026): AI tools run from the AI screen
+Christopher: "If you select the ai option there it should let you pick a file after that. So you can click the file and click what to do or click what to do and selext the file. And if there are settings access them there."
+- MAKE › AI: every tool row opens a panel (Performance check keeps its own screen). Settings first: Separate stems' default model (0.9.31), and **Notes → MIDI's model, now kept as a default** (`midi.model`; a take's MIDI tab starts on it and can still switch). Then PICK A RECORDING: the Library's recordings, each with its starred take or its newest.
+- Picking runs and opens: Notes → MIDI and Speech → text start the job and open the MIDI/TEXT tab (a take already done just opens on it: ✓ DONE ›). [Claude] Separate stems opens the STEMS tab, where the stems are picked (28 Oct); Sheet music and tab opens MIDI; Find the chords and Tempo and key open INFO.
+- The other way round, a recording's AI ▾, is unchanged.
+- Build-verified only (app unit tests pass); not on the emulator or phone.
+
+## Build 0.9.31 (30 Oct 2026): default stems model from AI
+Christopher, on 0.9.30 on the phone, looking at MAKE › AI: "Make this screen more functional. Demucs should be choosable as default from here."
+- MAKE › AI › **Separate stems** now opens on a tap: DEFAULT · SPLEETER / DEMUCS (DEMUCS · ADD › until it's added, which shows the download and pick steps in place). The row's right side shows the default. Kept in the settings table (`stems.model`).
+- A recording's STEMS tab starts on that default and can still switch for one take. [Claude] Before anything is picked the default stays as 0.9.30 had it: Demucs once added, else Spleeter; a Demucs default falls back to Spleeter until the file is in.
+- The rest of "more functional" isn't built: what else the AI screen should do is his call (asked).
+- Build-verified only; not on the emulator or phone.
+
 ## Build 0.9.30 (30 Oct 2026): optional Demucs stems, added by the user
 Christopher, 30 Oct 2026: "the clean way… a link to it when you see the option so it can be as easy as possible for them."
 - **What it is:** the STEMS tab's pick row now has **MODEL: SPLEETER · DEMUCS**. Until Demucs is added, DEMUCS reads **DEMUCS · ADD ›**, and choosing it shows the two steps: **1 · DOWNLOAD IT ›** opens the browser on the file, and **2 · PICK THE DOWNLOAD ›** opens Android's file picker. The same steps are in Settings › **AI MODELS**, which also offers **Remove it** once it's added. Apophenia never ships or downloads the weights itself (still no internet permission).

@@ -64,7 +64,7 @@ fun MidiSection(model: AppModel, s: ScrapEntity, take: TakeEntity, title: String
     val notes = remember(stored?.body) { TranscriptionText.decode(stored?.body) }
     val savedModel = stored?.model ?: TranscriptionText.model(stored?.body)
     var selected by remember(take.id, savedModel, job?.model) {
-        mutableStateOf(job?.model ?: TranscriptionModel.fromId(savedModel) ?: TranscriptionModel.BASIC_PITCH)
+        mutableStateOf(job?.model ?: TranscriptionModel.fromId(savedModel) ?: model.midiModel)
     }
 
     when {

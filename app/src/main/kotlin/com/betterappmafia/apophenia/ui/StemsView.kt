@@ -130,11 +130,15 @@ fun StemsSection(model: AppModel, s: ScrapEntity, take: TakeEntity, title: Strin
     if (!again) Limits(ordered.lastOrNull()?.model ?: Separator.MODEL_ID)
 }
 
-private fun modelName(id: String) = if (id == Separator.DEMUCS_ID) "DEMUCS" else "SPLEETER"
+fun modelName(id: String) = if (id == Separator.DEMUCS_ID) "DEMUCS" else "SPLEETER"
+
+/** The model a separation starts on: the one picked in AI › Separate stems, but never Demucs before it's added. */
+fun defaultStemsModel(model: AppModel, added: Boolean) =
+    if (added && model.stemsModel != Separator.MODEL_ID) Separator.DEMUCS_ID else Separator.MODEL_ID
 
 /**
  * Which stems to make (Christopher, 28 Oct 2026: pick before separating) and with which model. [Claude] All four start
- * picked; Demucs starts chosen once it's added (it was added to be used). Demucs isn't part of the app: choosing it before
+ * picked; the model starts on the default from AI › Separate stems ([defaultStemsModel]). Demucs isn't part of the app: choosing it before
  * it's added shows the two steps, a link that downloads the file in the browser and a picker for the download
  * (Christopher, 30 Oct 2026: "a link to it when you see the option so it can be as easy as possible").
  */
@@ -143,7 +147,7 @@ private fun Pick(model: AppModel, take: TakeEntity, go: (Set<String>, String) ->
     val demucs by model.app.demucs.state.collectAsState()
     val added = demucs is DemucsModel.State.Added
     var picked by remember(take.id) { mutableStateOf(Spleeter.STEMS.toSet()) }
-    var which by remember(take.id, added) { mutableStateOf(if (added) Separator.DEMUCS_ID else Separator.MODEL_ID) }
+    var which by remember(take.id, added, model.stemsModel) { mutableStateOf(defaultStemsModel(model, added)) }
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
         Text("MODEL", style = T.label)
         Sq((if (which == Separator.MODEL_ID) "✓ " else "") + "SPLEETER", { which = Separator.MODEL_ID }, on = which == Separator.MODEL_ID)

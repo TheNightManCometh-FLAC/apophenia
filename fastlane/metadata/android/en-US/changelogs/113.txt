@@ -1,0 +1,1 @@
+MAKE › AI: tap a tool to see its settings (stems model, Notes → MIDI model, both kept as defaults) and the Library's recordings; pick one to run the tool on it and open the recording on that tool's tab. A recording's AI ▾ still works the other way round.

@@ -1,0 +1,1 @@
+Ear › Intervals: pick the interval type first (seconds, thirds, fourths and fifths, sixths, sevenths…), then Melodic (up and down mixed) or Harmonic. Each is its own drill with its own scores; scores from the earlier ascending, descending and mixed drills are kept.

@@ -20,6 +20,13 @@ class EarTest {
                 EarKind.INTERVAL -> assertEquals(Interval.parse(a).semitones, q.midis[1] - q.midis[0])
                 EarKind.CHORD -> assertEquals(Chords.byId(a).semitones, q.midis.map { it - q.midis[0] })
                 EarKind.INVERSION -> assertTrue(q.midis.zipWithNext().all { (x, y) -> y > x }, "inversion stays in close position, rising")
+                EarKind.TRIAD -> {
+                    val (t, k) = EarTriads.parse(a)
+                    val rootPc = q.root.pitchClass
+                    assertEquals(t.semitones.map { Math.floorMod(rootPc + it, 12) }.toSet(), q.midis.map { Math.floorMod(it, 12) }.toSet(), "the triad's notes")
+                    assertEquals(Math.floorMod(rootPc + t.semitones[k], 12), Math.floorMod(q.midis.min(), 12), "inversion $k puts that chord tone in the bass")
+                }
+                EarKind.POLY -> assertTrue(q.midis.isEmpty())
                 EarKind.VOICING -> {
                     val c = Ear.close(q.midis, a)
                     assertTrue(c.map { it - c[0] } in listOf("maj7", "7", "m7").map { Chords.byId(it).semitones }, "a root-position seventh underneath")
@@ -36,7 +43,7 @@ class EarTest {
                 EarKind.CHARACTER -> assertTrue(q.midis.toSet().size == (if (a == "locrian") 3 else 4), "Locrian's characteristic b5 is also its 5th")
                 EarKind.HARMONY -> assertTrue(q.midis.isNotEmpty() && q.tonic != null)
                 EarKind.TUNING, EarKind.BEATS, EarKind.PARTIAL -> assertEquals(1, q.midis.size)
-                EarKind.MELODY -> assertEquals(a.toInt(), q.midis.size)
+                EarKind.MELODY -> assertEquals(EarDictation.count(a), q.midis.size)
                 EarKind.BASS -> assertEquals(q.chords.map { it.first() % 12 }, q.midis.map { it % 12 })
                 EarKind.CHORDTONE -> assertFalse(q.midis[a.toInt() - 1] % 12 in q.chords.first().map { it % 12 })
                 EarKind.TEMPO -> assertEquals(a.toInt(), q.bpm)

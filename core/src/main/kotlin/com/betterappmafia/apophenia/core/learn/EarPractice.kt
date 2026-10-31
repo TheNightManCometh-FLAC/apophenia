@@ -2,11 +2,16 @@ package com.betterappmafia.apophenia.core.learn
 
 /** Visible choices before an interval drill starts; each presentation has its own score identity. */
 object EarPractice {
-    val directions = listOf(EarDirection.UP, EarDirection.DOWN, EarDirection.TOGETHER, EarDirection.MIXED)
+    /**
+     * Each interval type is offered melodic or harmonic (Christopher, 30 Oct 2026: "melodic seconds… harmonic seconds";
+     * "No default is up and down. Both mixed."). Melodic plays up and down at random.
+     */
+    val directions = listOf(EarDirection.MELODIC, EarDirection.TOGETHER)
     fun title(direction: EarDirection) = when (direction) {
+        EarDirection.MELODIC -> "Melodic · up and down"
         EarDirection.UP -> "Melodic · ascending"
         EarDirection.DOWN -> "Melodic · descending"
-        EarDirection.TOGETHER -> "Harmonic · together"
+        EarDirection.TOGETHER -> "Harmonic"
         EarDirection.MIXED -> "Mixed · all presentations"
     }
     fun withDirection(base: EarDrill, direction: EarDirection): EarDrill {
@@ -17,10 +22,14 @@ object EarPractice {
         if (!id.startsWith("focus:")) return null
         val parts = id.split(':', limit = 3)
         if (parts.size != 3) return null
-        val direction = directions.firstOrNull { it.name == parts[1] } ?: return null
+        // Any presentation resolves, so scores kept from the earlier up/down/mixed drills still show their names.
+        val direction = EarDirection.entries.firstOrNull { it.name == parts[1] } ?: return null
         val base = Ear.drills.firstOrNull { it.id == parts[2] && it.kind == EarKind.INTERVAL } ?: return null
         return withDirection(base, direction)
     }
+
+    /** The interval types, each a drill offered in every presentation. */
+    val types get() = Ear.drills.filter { it.kind == EarKind.INTERVAL }
 
     /** Focused topics followed by the broader combinations; no locked levels. */
     fun intervals(direction: EarDirection) = Ear.drills.filter { it.kind == EarKind.INTERVAL }.map { withDirection(it, direction) }

@@ -10,12 +10,17 @@ class EarPracticeTest {
             assertTrue(ids.add(drill.id), "distinct score identity")
             assertEquals(drill, Ear.drill(drill.id))
             val questions = (0 until 80).map { Ear.question(drill, EarSettings(direction = EarDirection.MIXED), Random(it)) }
-            if (direction != EarDirection.MIXED) assertEquals(setOf(direction), questions.map { it.direction }.toSet())
-            else assertEquals(setOf(EarDirection.UP, EarDirection.DOWN, EarDirection.TOGETHER), questions.map { it.direction }.toSet())
+            when (direction) {
+                EarDirection.MIXED -> assertEquals(setOf(EarDirection.UP, EarDirection.DOWN, EarDirection.TOGETHER), questions.map { it.direction }.toSet())
+                EarDirection.MELODIC -> assertEquals(setOf(EarDirection.UP, EarDirection.DOWN), questions.map { it.direction }.toSet(), "melodic is up or down, never together")
+                else -> assertEquals(setOf(direction), questions.map { it.direction }.toSet())
+            }
             val intervals = questions.map { Ear.source(drill, it.answer).second }.toSet()
             assertTrue(intervals.all { it in drill.answers })
             if (drill.id.endsWith("iv-thirds")) assertEquals(setOf("m3", "M3"), intervals)
         }
+        assertEquals(listOf(EarDirection.MELODIC, EarDirection.TOGETHER), EarPractice.directions, "each type is offered melodic or harmonic")
+        assertNotNull(Ear.drill("focus:UP:iv-thirds"), "a score kept from the earlier ascending drill still resolves")
         assertNull(Ear.drill("focus:INVALID:iv-thirds"))
         assertNull(Ear.drill("focus:UP:ch-triads"))
     }
@@ -93,5 +98,34 @@ class EarPracticeTest {
         assertEquals(listOf("iv-melodic", "iv-major-minor"), EarLearning.pages(Ear.drill("iv-thirds")!!))
         assertEquals(listOf("cadences"), EarLearning.pages(Ear.drill("hm-cadence")!!))
         assertEquals(listOf("swing"), EarLearning.pages(Ear.drill("rh-swing")!!))
+    }
+}
+
+class EarNoRepeatTest {
+    @Test fun the_same_notes_never_play_twice_running_and_repeats_are_rare() {
+        for (id in listOf("iv-seconds", "focus:MELODIC:iv-thirds", "tr-majmin", "iv-simple", "hm-modal")) {
+            val drill = assertNotNull(Ear.drill(id))
+            val r = Random(11)
+            var q = Ear.question(drill, EarSettings(), r)
+            var sameAnswer = 0
+            repeat(3000) {
+                val next = Ear.question(drill, EarSettings(), r, previous = q)
+                assertFalse(next.answer == q.answer && next.root.pitchClass == q.root.pitchClass, "$id: the same question twice running")
+                if (next.answer == q.answer) sameAnswer++
+                q = next
+            }
+            assertTrue(sameAnswer < 3000 * 0.25, "$id: the last answer came straight back $sameAnswer times in 3000")
+        }
+    }
+
+    @Test fun with_the_key_fixed_the_answer_always_changes() {
+        val drill = assertNotNull(Ear.drill("iv-sixths"))
+        val r = Random(5)
+        var q = Ear.question(drill, EarSettings(randomKey = false), r)
+        repeat(500) {
+            val next = Ear.question(drill, EarSettings(randomKey = false), r, previous = q)
+            assertNotEquals(q.answer, next.answer)
+            q = next
+        }
     }
 }

@@ -85,6 +85,8 @@ private const val LEARN_SHOW = "learn.show"
 private const val LEARN_GUITAR = "learn.guitar"
 private const val LEARN_BASS = "learn.bass"
 private const val THEME = "theme"
+private const val STEMS_MODEL = "stems.model"
+private const val MIDI_MODEL = "midi.model"
 
 /** UI state that outlives the Activity (rotation, returning from the background). */
 class AppModel(val app: ApopheniaApp) {
@@ -171,6 +173,8 @@ class AppModel(val app: ApopheniaApp) {
     var earSection by mutableStateOf("PRACTICE")
     var earFamily by mutableStateOf<String?>(null)
     var earDirectionGroup by mutableStateOf<com.betterappmafia.apophenia.core.learn.EarDirection?>(null)
+    /** The interval type open under Intervals (a drill id, or [EAR_PICKS] for your own picks). */
+    var earIntervalType by mutableStateOf<String?>(null)
     var earMode by mutableStateOf(com.betterappmafia.apophenia.core.learn.EarMode.PRACTICE)
     var earRun by mutableStateOf<EarRun?>(null)
     var earTestQuestionsText by mutableStateOf(com.betterappmafia.apophenia.core.learn.Ear.TEST_LENGTH.toString())
@@ -264,6 +268,35 @@ class AppModel(val app: ApopheniaApp) {
 
     init {
         app.io.launch { com.betterappmafia.apophenia.ui.theme.C.palette = com.betterappmafia.apophenia.ui.theme.Palettes.byId(app.db.settings().get(THEME)) }
+    }
+
+    /**
+     * The stems model a separation starts on (Christopher, 30 Oct 2026: "Demucs should be choosable as default" from AI).
+     * Null until one is picked: Demucs once it's added, Spleeter before.
+     */
+    var stemsModel by mutableStateOf<String?>(null)
+        private set
+
+    init {
+        app.io.launch { stemsModel = app.db.settings().get(STEMS_MODEL)?.takeIf { it.isNotEmpty() } }
+    }
+
+    fun chooseStemsModel(id: String) {
+        stemsModel = id
+        app.io.launch { app.db.settings().put(AppSettingEntity(STEMS_MODEL, id)) }
+    }
+
+    /** The Notes → MIDI model a transcription starts on (AI › Notes → MIDI), kept; a take's MIDI tab can still switch. */
+    var midiModel by mutableStateOf(com.betterappmafia.apophenia.core.analysis.TranscriptionModel.BASIC_PITCH)
+        private set
+
+    init {
+        app.io.launch { com.betterappmafia.apophenia.core.analysis.TranscriptionModel.fromId(app.db.settings().get(MIDI_MODEL))?.let { midiModel = it } }
+    }
+
+    fun chooseMidiModel(m: com.betterappmafia.apophenia.core.analysis.TranscriptionModel) {
+        midiModel = m
+        app.io.launch { app.db.settings().put(AppSettingEntity(MIDI_MODEL, m.id)) }
     }
 
     /** The colour scheme (Settings › THEME), kept. */
