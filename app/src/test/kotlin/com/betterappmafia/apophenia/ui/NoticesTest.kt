@@ -19,6 +19,14 @@ class NoticesTest {
     }
 
     @Test
+    fun theRepoNoticeNamesEveryLicenceFileTheAppShows() {
+        // NOTICE.md fell behind the in-app list once (Beat This!, Guitar GAPS, Demucs and two fonts, found 5 Nov 2026).
+        val notice = File("../NOTICE.md").readText()
+        val missing = Notices.all.flatMap { it.files }.toSet().filter { it !in notice && it != "apophenia-GPL-3.0.txt" }
+        assertEquals("licence files NOTICE.md doesn't name", emptyList<String>(), missing)
+    }
+
+    @Test
     fun theManifestHasNoInternetPermission() {
         val manifest = File("src/main/AndroidManifest.xml").readText()
         // The only mention allowed is the one that strips ONNX Runtime's request from the merged manifest.
