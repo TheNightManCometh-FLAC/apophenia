@@ -104,6 +104,9 @@ data class LayerRow(
     val takeLetter: String?,
     val audioPath: String?,
     val durationFrames: Long?,
+    /** The stem it was separated as (VOCALS, DRUMS…), else null; and the scrap's first tag by name, for the label on its still. */
+    val stem: String? = null,
+    val firstTag: String? = null,
 )
 
 @Dao
@@ -138,6 +141,12 @@ abstract class StackDao {
         return id
     }
 
+    /** Puts a removed layer back as it was, same id and place (undo). */
+    open suspend fun restoreLayer(layer: StackLayerEntity, now: Long) {
+        insertLayer(layer.sanitized())
+        touch(layer.stackId, now)
+    }
+
     open suspend fun updateLayer(layer: StackLayerEntity, now: Long) {
         updateLayerRow(layer.sanitized())
         touch(layer.stackId, now)
@@ -151,7 +160,9 @@ abstract class StackDao {
      */
     @Query(
         "SELECT stack_layer.*, scrap.title AS title, scrap.created_at AS scrapCreatedAt, scrap.bpm_low AS bpmLow, scrap.bpm_high AS bpmHigh, scrap.free_time AS freeTime, scrap.`key` AS `key`, " +
-            "take.letter AS takeLetter, take.audio_path AS audioPath, take.duration_frames AS durationFrames " +
+            "take.letter AS takeLetter, take.audio_path AS audioPath, take.duration_frames AS durationFrames, " +
+            "(SELECT ts.stem FROM take_stem ts WHERE ts.take_id = take.id LIMIT 1) AS stem, " +
+            "(SELECT tag.name FROM tag JOIN scrap_tag ON scrap_tag.tag_id = tag.id WHERE scrap_tag.scrap_id = scrap.id ORDER BY tag.name LIMIT 1) AS firstTag " +
             "FROM stack_layer JOIN scrap ON scrap.id = stack_layer.scrap_id " +
             "LEFT JOIN take ON take.id = COALESCE(" +
             "(SELECT t.id FROM take t WHERE t.id = stack_layer.take_id AND t.deleted_at IS NULL), " +

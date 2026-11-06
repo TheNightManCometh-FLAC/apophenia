@@ -121,7 +121,7 @@ fun ConsoleMenu(expanded: Boolean, onDismiss: () -> Unit, title: String? = null,
         expanded = expanded,
         onDismissRequest = onDismiss,
         shape = RectangleShape,
-        containerColor = C.panel2,
+        containerColor = C.menu,
         border = BorderStroke(1.dp, C.line2),
         modifier = Modifier.widthIn(min = 230.dp),
     ) {
@@ -192,7 +192,7 @@ fun BoxScope.Sheet(onDismiss: () -> Unit, content: @Composable ColumnScope.() ->
     Column(
         Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.statusBars).fillMaxWidth()
             .heightIn(max = 760.dp)
-            .background(C.panel)
+            .background(C.sheet)
             .drawBehindTop(C.acc)
             .clickable(enabled = false) {}
             // Above the gesture bar and the keyboard (edge to edge, the keyboard covered the New project sheet whole).
@@ -244,6 +244,12 @@ fun Gap(h: Dp) = Spacer(Modifier.height(h))
 @Composable
 fun Line1(text: String, style: androidx.compose.ui.text.TextStyle = T.body, modifier: Modifier = Modifier) =
     Text(text, style = style, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = modifier)
+
+/** A title card that never cuts a name short: smaller for a long name, then a second line ("Lights an…" was all that showed). */
+@Composable
+fun DisplayTitle(text: String, modifier: Modifier = Modifier) =
+    Text(text, style = if (text.length > 12) T.display.copy(fontSize = T.display.fontSize * 0.8f, lineHeight = T.display.fontSize * 0.86f) else T.display,
+        maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = modifier)
 
 /**
  * A row that scrolls sideways fades out at the edge it can still scroll to, so it's plain there's more (the tab

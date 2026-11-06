@@ -56,3 +56,25 @@ interface EarResultDao {
     @Query("SELECT drill, MAX(best_streak) AS best, COUNT(*) AS sessions, MAX(finished_at) AS last_at FROM ear_result WHERE mode = 'practice' GROUP BY drill")
     fun streaks(): Flow<List<EarStreak>>
 }
+
+/**
+ * One answer to one Ear question (schema v16): the item asked ("drillId|answer", core.learn.EarMastery.item), whether the
+ * first answer was right, and when. Ear › Weakest and Ear › Quick check are built from these.
+ */
+@Entity(tableName = "ear_answer", indices = [Index("item"), Index("at")])
+data class EarAnswerEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val item: String,
+    val correct: Boolean,
+    val at: Long,
+)
+
+@Dao
+interface EarAnswerDao {
+    @Insert suspend fun add(a: EarAnswerEntity): Long
+
+    /** The latest answers, newest first; [limit] is far more than the per-item window needs. */
+    @Query("SELECT * FROM ear_answer ORDER BY at DESC LIMIT :limit") fun recent(limit: Int = 40_000): Flow<List<EarAnswerEntity>>
+
+    @Query("DELETE FROM ear_answer WHERE item = :item") suspend fun forget(item: String)
+}

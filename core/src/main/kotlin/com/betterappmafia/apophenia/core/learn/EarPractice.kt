@@ -8,7 +8,7 @@ object EarPractice {
      */
     val directions = listOf(EarDirection.MELODIC, EarDirection.TOGETHER)
     fun title(direction: EarDirection) = when (direction) {
-        EarDirection.MELODIC -> "Melodic · up and down"
+        EarDirection.MELODIC -> "Melodic"
         EarDirection.UP -> "Melodic · ascending"
         EarDirection.DOWN -> "Melodic · descending"
         EarDirection.TOGETHER -> "Harmonic"

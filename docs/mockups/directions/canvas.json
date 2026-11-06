@@ -1,0 +1,399 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-31T05:00:00Z"
+  },
+  "title": "Apophenia design directions",
+  "launch": {
+    "view": "canvas",
+    "page": "film"
+  },
+  "pages": [
+    {
+      "id": "practical",
+      "name": "Practical"
+    },
+    {
+      "id": "museum",
+      "name": "Museum"
+    },
+    {
+      "id": "surreal",
+      "name": "Surreal"
+    },
+    {
+      "id": "psych",
+      "name": "White cube + psychedelic"
+    },
+    {
+      "id": "sleeves",
+      "name": "Sleeves (from your covers)"
+    },
+    {
+      "id": "film",
+      "name": "Film still"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1736,
+      "h": 924,
+      "title": "00 · Today (baseline)",
+      "page": "practical"
+    },
+    "Sections.dc.html": {
+      "x": 0,
+      "y": 1044,
+      "w": 1736,
+      "h": 924,
+      "title": "01 · Sections",
+      "page": "practical"
+    },
+    "Cards.dc.html": {
+      "x": 0,
+      "y": 2088,
+      "w": 1736,
+      "h": 924,
+      "title": "02 · Cards",
+      "page": "practical"
+    },
+    "Panel.dc.html": {
+      "x": 0,
+      "y": 3132,
+      "w": 1736,
+      "h": 924,
+      "title": "03 · Instrument panel",
+      "page": "practical"
+    },
+    "Score.dc.html": {
+      "x": 0,
+      "y": 4176,
+      "w": 1736,
+      "h": 924,
+      "title": "04 · Score paper",
+      "page": "practical"
+    },
+    "Signage.dc.html": {
+      "x": 0,
+      "y": 5220,
+      "w": 1736,
+      "h": 924,
+      "title": "05 · Signage",
+      "page": "practical"
+    },
+    "Museum.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1736,
+      "h": 924,
+      "title": "06 · White cube",
+      "page": "museum"
+    },
+    "Kunsthalle.dc.html": {
+      "x": 0,
+      "y": 1044,
+      "w": 1736,
+      "h": 924,
+      "title": "07 · Kunsthalle",
+      "page": "museum"
+    },
+    "Dream.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1736,
+      "h": 924,
+      "title": "08 · Long Light",
+      "page": "surreal"
+    },
+    "Soft.dc.html": {
+      "x": 0,
+      "y": 1044,
+      "w": 1736,
+      "h": 924,
+      "title": "09 · One Line",
+      "page": "surreal"
+    },
+    "Escher.dc.html": {
+      "x": 0,
+      "y": 2088,
+      "w": 1736,
+      "h": 924,
+      "title": "10 · Word Matter",
+      "page": "surreal"
+    },
+    "Collage.dc.html": {
+      "x": 0,
+      "y": 3132,
+      "w": 1736,
+      "h": 924,
+      "title": "11 · Inner Ear",
+      "page": "surreal"
+    },
+    "PsyOil.dc.html": {
+      "x": 0,
+      "y": 1044,
+      "w": 1736,
+      "h": 924,
+      "title": "12 · White cube, oil light",
+      "page": "psych"
+    },
+    "PsyOp.dc.html": {
+      "x": 0,
+      "y": 2088,
+      "w": 1736,
+      "h": 924,
+      "title": "13 · White cube, op field",
+      "page": "psych"
+    },
+    "PsyAfter.dc.html": {
+      "x": 0,
+      "y": 3132,
+      "w": 1736,
+      "h": 924,
+      "title": "14 · White cube, afterimage",
+      "page": "psych"
+    },
+    "Cutout.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1736,
+      "h": 924,
+      "title": "15 · White cube, cut-out",
+      "page": "psych"
+    },
+    "Sleeves.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1736,
+      "h": 924,
+      "title": "16 · White cube, sleeves",
+      "page": "sleeves"
+    },
+    "Film.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1736,
+      "h": 924,
+      "title": "17 · Film still",
+      "page": "film"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Sections.dc.html",
+    "Cards.dc.html",
+    "Panel.dc.html",
+    "Score.dc.html",
+    "Signage.dc.html",
+    "Museum.dc.html",
+    "Kunsthalle.dc.html",
+    "Dream.dc.html",
+    "Soft.dc.html",
+    "Escher.dc.html",
+    "Collage.dc.html",
+    "PsyOil.dc.html",
+    "PsyOp.dc.html",
+    "PsyAfter.dc.html",
+    "Cutout.dc.html",
+    "Sleeves.dc.html",
+    "Film.dc.html"
+  ],
+  "notes": {
+    "t-practical": {
+      "x": 0,
+      "y": -300,
+      "text": "Practical directions: same four screens in each",
+      "kind": "title1",
+      "maxW": 1736,
+      "page": "practical"
+    },
+    "t-museum": {
+      "x": 0,
+      "y": -300,
+      "text": "Modern art museum",
+      "kind": "title1",
+      "maxW": 1736,
+      "page": "museum"
+    },
+    "t-surreal": {
+      "x": 0,
+      "y": -300,
+      "text": "Surreal: invented styles. The data display is the artwork",
+      "kind": "title1",
+      "maxW": 1736,
+      "page": "surreal"
+    },
+    "n-main": {
+      "x": 1816,
+      "y": 0,
+      "w": 440,
+      "fill": "gray",
+      "page": "practical",
+      "text": "00 TODAY, for comparison.\nOne copper accent does every job; background and panels 2-3% apart; JetBrains Mono 9-14 sp everywhere; hairlines do all the grouping. MAKE, PRACTICE and STUDY look the same."
+    },
+    "n-sections": {
+      "x": 1816,
+      "y": 1044,
+      "w": 440,
+      "fill": "orange",
+      "page": "practical",
+      "text": "01 SECTIONS: the smallest change.\nColour: graphite, with a hue per section (MAKE amber, PRACTICE teal, STUDY violet) on the tab, the band under the strip, the sub-tab mark and that section's main button. Red only for REC.\nType: Inter for words, JetBrains Mono for values (BPM, key, tab, chords).\nLayout: today's, on four real surface levels; groups in panels instead of hairlines.\nFor you: you always know where you are; the main action is the one coloured button."
+    },
+    "n-cards": {
+      "x": 1816,
+      "y": 2088,
+      "w": 440,
+      "fill": "blue",
+      "page": "practical",
+      "text": "02 CARDS: content first.\nColour: deep slate; section hue fills the active tab pill and card headers.\nType: IBM Plex Sans + Plex Mono, bigger sizes (title 22).\nLayout: everything grouped into raised rounded cards; the waveform, the question and the chord are big 'hero' cards; controls step back.\nFor you: the eye lands on the music first; easy one-thumb targets. Costs: less on screen at once."
+    },
+    "n-panel": {
+      "x": 1816,
+      "y": 3132,
+      "w": 440,
+      "fill": "gray",
+      "page": "practical",
+      "text": "03 INSTRUMENT PANEL: like hardware.\nColour: light warm grey panel, black ink, section colour as a printed band and LED dots; red LED for REC.\nType: Space Grotesk labels, Space Mono values, printed-panel uppercase.\nLayout: dense modules with printed labels and outlines, like a synth's front panel; values in segment-style readouts.\nFor you: the densest option, every value visible; reads in daylight."
+    },
+    "n-score": {
+      "x": 1816,
+      "y": 4176,
+      "w": 440,
+      "fill": "green",
+      "page": "practical",
+      "text": "04 SCORE PAPER: printed music.\nColour: warm ivory paper, ink black, section colour as a pencil-mark underline (MAKE red-brown, PRACTICE blue-green, STUDY indigo).\nType: Source Serif 4 for titles and words, IBM Plex Mono for values; small caps labels like a published score.\nLayout: margins, staff-line rules, rehearsal-mark boxes for section names.\nFor you: calm, readable, light theme; looks like the material you work with."
+    },
+    "n-signage": {
+      "x": 1816,
+      "y": 5220,
+      "w": 440,
+      "fill": "red",
+      "page": "practical",
+      "text": "05 SIGNAGE: Swiss wayfinding.\nColour: the section IS the colour: MAKE screens on a saturated yellow field, PRACTICE blue, STUDY red, with black/white type for contrast.\nType: Archivo (condensed, bold) huge section names, Archivo for text, JetBrains Mono values.\nLayout: big type, strict grid, arrows; one idea per block.\nFor you: impossible to get lost; strongest section identity. Costs: loud, less dense."
+    },
+    "n-museum": {
+      "x": 1816,
+      "y": 0,
+      "w": 440,
+      "fill": "gray",
+      "page": "museum",
+      "text": "06 WHITE CUBE: a modern art museum.\nColour: gallery white walls, black type, almost no colour; the section colour is a single small dot by the room name (like a room number). A red dot marks the starred take, like a sold work.\nType: Inter Tight for wall text; captions in the wall-label format: title, date, medium, details.\nLayout: one work per wall with lots of air; fragments hang as framed works with labels beside them.\nFor you: total calm; each fragment gets attention. Costs: sparse; more scrolling."
+    },
+    "n-kunsthalle": {
+      "x": 1816,
+      "y": 1044,
+      "w": 440,
+      "fill": "purple",
+      "page": "museum",
+      "text": "07 KUNSTHALLE: the contemporary museum.\nColour: concrete grey and charcoal; each section has its own room colour as a full wall (MAKE oxide red, PRACTICE moss, STUDY ultramarine) at the top of the screen.\nType: Archivo Black for room titles (huge, cropped), Inter for text, Mono values.\nLayout: big room headers, numbered rooms (01 BOARD), exhibition-plan grid.\nFor you: strong orientation with a gallery calm below."
+    },
+    "n-dream": {
+      "x": 1816,
+      "y": 0,
+      "w": 440,
+      "fill": "blue",
+      "page": "surreal",
+      "text": "08 LONG LIGHT: shadows carry the data.\nColour: low golden sun on sand, a hue per section in the light (MAKE amber, PRACTICE rose, STUDY cyan); every object casts a long hard shadow.\nType: Instrument Serif titles, Inter text, JetBrains Mono values.\nThe information: a take is a sundial; the gnomon's shadow is the playhead and the chords stand round the rim at their bars. In Ear, 1 and 5 are pillars; the missing middle note is only a shadow with a ?. On the Board, shadow length is a fragment's age. Cmaj7's keys are raised and throw shadows.\nFor you: age and position read at a glance. Risk: shadows need room."
+    },
+    "n-soft": {
+      "x": 1816,
+      "y": 1044,
+      "w": 440,
+      "fill": "orange",
+      "page": "surreal",
+      "text": "09 ONE LINE: the whole screen is one unbroken pen stroke.\nColour: paper, one ink per section (MAKE ultramarine, PRACTICE vermilion, STUDY green); nothing else.\nType: Fraunces titles, Space Grotesk text, Space Mono values.\nThe information: buttons, cards, tab strings, keys and fretboard are all the same line. A recording's card has the take as its bottom edge. The pen is the playhead: where it hasn't reached yet is still a dotted pencil guide, and in Ear the line has drawn 7 of 25 arches. The missing third is the line circling twice, unable to settle.\nFor you: calm and handmade; progress is literal. Risk: dense screens get busy."
+    },
+    "n-escher": {
+      "x": 1816,
+      "y": 2088,
+      "w": 440,
+      "fill": "teal",
+      "page": "surreal",
+      "text": "10 WORD MATTER: information built from its own letters.\nColour: newsprint, black, one hot colour per section (MAKE red-orange, PRACTICE violet, STUDY green).\nType: Archivo at every width and weight, forced to fill its space; IBM Plex Mono for data.\nThe information: the lyric is the card; a take's waveform is its name, letter heights following the loudness, grey where unplayed. The chosen take is the biggest letter. The meter is ONE two three four with the heard downbeat heavy. In Ear, C and G stand with a hole cut through the page where the third was. Cmaj7 is stacked as it sounds, C E G B with the thirds between.\nFor you: nothing decorative; the type is the data. Risk: loud."
+    },
+    "n-collage": {
+      "x": 1816,
+      "y": 3132,
+      "w": 440,
+      "fill": "pink",
+      "page": "surreal",
+      "text": "11 INNER EAR: everything sits on a cochlea spiral.\nColour: night violet-black, bone lines, one glow per section (MAKE coral, PRACTICE aqua, STUDY gold).\nType: Syne titles, DM Sans text, DM Mono values.\nThe information: the Board winds out from today at the centre, a turn per week, each fragment pinned to its day. A take winds out from 0:00 with the waveform along the coil and chords on the turns. Ear is a pitch spiral, as the cochlea is: 1 and 5 lit, the third's place empty at the top, and each answer sits where its middle note sounds (they fall into the drill's pairs). Cmaj7 is four lit points on the 12-pitch spiral.\nFor you: time and pitch become places. Risk: spirals cost space."
+    },
+    "t-psych": {
+      "x": 0,
+      "y": -300,
+      "text": "White cube mixed with psychedelic, hardcore, jazz and murals (15 is the new one; 12-14 were too tame)",
+      "kind": "title1",
+      "maxW": 1736,
+      "page": "psych"
+    },
+    "n-psyoil": {
+      "x": 1816,
+      "y": 1044,
+      "w": 440,
+      "fill": "orange",
+      "page": "psych",
+      "text": "12 OIL LIGHT: the gallery hangs liquid-light paintings.\nWalls, type and layout are White cube unchanged. The colour lives only in the mats and inside the works: oil-and-dye swirls like a 60s light show, one palette per section (MAKE magenta-orange-yellow, PRACTICE cyan-violet-mint, STUDY lime-amber-pink).\nThe information: the take's waveform runs through the palette; what hasn't played yet is washed out. Chord names, the Ear play button, the score number and Cmaj7's notes carry the section's colours. The room dot is a small drop of the palette.\nFor you: the warmest of the three; the colour tells you the section. Risk: the most colour, so the quietest screens get the loudest frames."
+    },
+    "n-psyop": {
+      "x": 1816,
+      "y": 2088,
+      "w": 440,
+      "fill": "gray",
+      "page": "psych",
+      "text": "13 OP FIELD: black-and-white optical patterns that shimmer.\nWhite cube, with fine line patterns in the mats and one hot colour per section (MAKE red-orange, PRACTICE blue, STUDY green).\nThe information: a fragment's kind is its pattern (lyrics horizontal lines, recording rings, chords diagonals, tab verticals), with a swatch by each label as the key. A take is drawn as lines pushed apart by loudness; the heard part is in colour. Ear progress is 25 rings round the play button, 7 inked. Chord tones are ring targets.\nFor you: the most functional: kind and progress read at a glance. Risk: moiré vibrates at some screen scales (that's the point, but it can tire)."
+    },
+    "n-psyafter": {
+      "x": 1816,
+      "y": 3132,
+      "w": 440,
+      "fill": "pink",
+      "page": "psych",
+      "text": "14 AFTERIMAGE: things drift out of register like an afterimage.\nWhite cube, with a cyan-magenta colour split and a spectrum hairline under the top strip. Section colours MAKE hot pink, PRACTICE teal, STUDY violet, shown as two overlapping inks.\nThe information: registered black means settled. On the Board, older fragments drift further out of register (9 days > 4 days > today, which is crisp). In a take, the heard part is sharp and the rest is still split; chords not yet reached are fringed. In Ear, the unanswered chord is three misregistered rings and the question is fringed until you answer.\nFor you: the subtlest; age and progress without extra marks. Risk: fringed text is harder to read, so it must stay on secondary text only."
+    },
+    "n-cutout": {
+      "x": 1816,
+      "y": 0,
+      "w": 440,
+      "fill": "blue",
+      "page": "psych",
+      "text": "15 CUT-OUT: the gallery wall gets a mural.\nJazz + mural: huge cut-paper shapes in flat colour, painted at wall scale and cropped by the screen, like Matisse's Jazz cut-outs blown up. One pair of colours per section (MAKE ultramarine and vermilion, PRACTICE emerald and magenta, STUDY cadmium yellow and cobalt). One shape on each screen is filled with fine two-colour stripes so it vibrates.\nPsychedelic: the data vibrates too. The heard part of a take is pairs of blue and vermilion lines that shimmer; the unheard part is plain black hairlines. In Ear the missing third is a vibrating field between a giant 1 and 5.\nHardcore: brute condensed black type at extreme size, solid black bars top and bottom, thick rules, no decoration. White cube keeps the wall labels and the calm.\nProgress and chord tones are small cut-out stars."
+    },
+    "t-sleeves": {
+      "x": 0,
+      "y": -300,
+      "text": "Sleeves: White cube walls, every fragment hung as a record sleeve made from its own data",
+      "kind": "title1",
+      "maxW": 1736,
+      "page": "sleeves"
+    },
+    "n-sleeves": {
+      "x": 1816,
+      "y": 0,
+      "w": 440,
+      "fill": "gray",
+      "page": "sleeves",
+      "text": "16 SLEEVES: built from the 16 covers you sent.\nWhat they share: the image is a real material (grain, blurred light, photocopy, dither, duotone, foil) and the type is small and quiet, like credits.\nEach fragment's sleeve is generated from its own content:\n- Recording: its loudness as a long-exposure light trail with film grain (Garlands, Love Streams). On the take screen the unplayed part is a dim ghost.\n- Lyrics: the words run through a photocopier (Kwasy i zasady).\n- Chords: each chord a star cloud (Between Nothingness & Eternity).\n- Tab: a 1-bit dithered bitmap (Grzyby).\n- Ear: the 1 and 5 as two blurred lights, dark where the third should be (Love Streams).\n- Reference: Cmaj7's notes cut from different typefaces on foil (Shards).\nType: EB Garamond titles, Inter Tight light text, spaced caps for kind tags (kind first), Plex Mono values. White walls; red only for REC and the starred take.\nOpen: which material each kind gets is my pick; and whether sleeves should be generated per fragment (unique) or per kind (consistent)."
+    },
+    "t-film": {
+      "x": 0,
+      "y": -300,
+      "text": "Film still: every screen a painted frame, text set like film titles and credits",
+      "kind": "title1",
+      "maxW": 1736,
+      "page": "film"
+    },
+    "n-film": {
+      "x": 1816,
+      "y": 0,
+      "w": 440,
+      "fill": "purple",
+      "page": "film",
+      "text": "17 FILM STILL: style taken from your covers, none of them used.\nBackgrounds are unique per project and abstract, painted from its own data (your choice): the Board takes its palette from the key (A minor: deep indigo), faint light strata spaced by the tempo (92 BPM), and one light trail per take from its loudness, the starred take brightest. A take is a long exposure of its loudness, burning up to the playhead and a dim smear after. Ear: two soft columns of light for the 1 and the 5, dark where the third goes. Reference: piano keys out of focus in sepia. All with haze, halation, film grain, dust and vignette.\nText is set like film: title cards (spaced caps over an italic Cormorant Garamond title), a two-column credit block for a take's facts, chords as a subtitle line, Ear answers as an end-credits roll, takes and links in spaced caps.\nBattery/CPU: every effect is baked into a still image once (painted off the main thread and cached per screen or per fragment; fixed screens can ship as assets). Drawing it is a plain bitmap draw. No live blur, shaders or animated grain; only the playhead and text change. Mostly dark, which saves power on the S22 Ultra's OLED."
+    }
+  },
+  "designSystems": []
+}

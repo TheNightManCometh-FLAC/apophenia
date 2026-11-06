@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import com.betterappmafia.apophenia.ApopheniaApp
 import com.betterappmafia.apophenia.Breadcrumbs
 import com.betterappmafia.apophenia.backup.BackupArchive
+import com.betterappmafia.apophenia.data.PracticeEntity
 import com.betterappmafia.apophenia.data.AppSettingEntity
 import com.betterappmafia.apophenia.data.GroupRow
 import com.betterappmafia.apophenia.data.ProjectEntity
@@ -25,13 +26,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** The three bottom tabs, by what you are doing (Christopher, 25 Oct 2026: navigation option B). */
-enum class Tab(val label: String) { MAKE("MAKE"), PRACTICE("PRACTICE"), STUDY("STUDY") }
+enum class Tab(val label: String) { MAKE("PLAN"), PRACTICE("PRACTICE"), STUDY("STUDY") }
 
 /** The screens, each a sub-tab of one [Tab]. AI is under MAKE (Christopher, 25 Oct 2026: "ai is not study It's make"). */
 enum class Mode(val label: String, val tab: Tab) {
     BOARD("BOARD", Tab.MAKE), LIBRARY("LIBRARY", Tab.MAKE), AI("AI", Tab.MAKE),
     TOOLS("TOOLS", Tab.PRACTICE), EAR("EAR", Tab.PRACTICE), EXERCISES("EXERCISES", Tab.PRACTICE),
-    COURSE("COURSE", Tab.STUDY), REFERENCE("REFERENCE", Tab.STUDY);
+    COURSE("THEORY BASICS", Tab.STUDY), REFERENCE("REFERENCE", Tab.STUDY);
 
     /** The screens that were Learn: Course, Ear and Reference share its screen code. */
     val learn get() = this == EAR || this == COURSE || this == REFERENCE
@@ -85,6 +86,7 @@ private const val LEARN_SHOW = "learn.show"
 private const val LEARN_GUITAR = "learn.guitar"
 private const val LEARN_BASS = "learn.bass"
 private const val THEME = "theme"
+private const val FILM_INTRODUCED = "film_introduced"
 private const val STEMS_MODEL = "stems.model"
 private const val MIDI_MODEL = "midi.model"
 
@@ -113,6 +115,10 @@ class AppModel(val app: ApopheniaApp) {
 
     /** The exercise open in PRACTICE › EXERCISES, by id. */
     var exerciseOpen by mutableStateOf<Long?>(null)
+    /** The curated exercise open (its catalogue id), the instrument picked, and the key each in-keys exercise is in. */
+    var curatedOpen by mutableStateOf<String?>(null)
+    var exerciseFor by mutableStateOf<String?>(null)
+    var exerciseRoots by mutableStateOf(mapOf<String, com.betterappmafia.apophenia.core.pitch.PitchName>())
 
     /** Settings (the ⚙ in the top bar) over the current screen. */
     var showSettings by mutableStateOf(false)
@@ -169,8 +175,10 @@ class AppModel(val app: ApopheniaApp) {
 
     /** The Ear drill open (plan §9), the sound settings and how answers are given. */
     var earDrill by mutableStateOf<String?>(null)
-    /** Ear's home: PRACTICE, TEST or HIGH SCORES; family/presentation survive a related-lesson visit. */
-    var earSection by mutableStateOf("PRACTICE")
+    /** Ear's mode: PATH, WEAKEST, QUICK, TEST or SCORES; family/presentation survive a related-lesson visit. */
+    var earSection by mutableStateOf("PATH")
+    /** The drill whose map Ear › Weakest shows. */
+    var earMapDrill by mutableStateOf<String?>(null)
     var earFamily by mutableStateOf<String?>(null)
     var earDirectionGroup by mutableStateOf<com.betterappmafia.apophenia.core.learn.EarDirection?>(null)
     /** The interval type open under Intervals (a drill id, or [EAR_PICKS] for your own picks). */
@@ -182,13 +190,17 @@ class AppModel(val app: ApopheniaApp) {
     fun editEarTestQuestions(text: String) { earTestCountEdited = true; earTestQuestionsText = text.filter(Char::isDigit) }
     var earStudyReturn by mutableStateOf(false)
 
-    fun startEar(drill: com.betterappmafia.apophenia.core.learn.EarDrill, mode: com.betterappmafia.apophenia.core.learn.EarMode = com.betterappmafia.apophenia.core.learn.EarMode.PRACTICE) {
-        val target = earTestQuestionsText.toIntOrNull()?.takeIf { it > 0 } ?: com.betterappmafia.apophenia.core.learn.Ear.TEST_LENGTH
+    /**
+     * Opens [drill]. [questions] fixes a test's length (a quick check); [record] false keeps the session out of the high
+     * scores (weakest-item and quick-check sessions: their answers still count per item).
+     */
+    fun startEar(drill: com.betterappmafia.apophenia.core.learn.EarDrill, mode: com.betterappmafia.apophenia.core.learn.EarMode = com.betterappmafia.apophenia.core.learn.EarMode.PRACTICE, questions: Int? = null, record: Boolean = true) {
+        val target = questions ?: earTestQuestionsText.toIntOrNull()?.takeIf { it > 0 } ?: com.betterappmafia.apophenia.core.learn.Ear.TEST_LENGTH
         earRun?.save(this)
         earMode = mode
-        earRun = EarRun(drill, mode, target, earSettings, learnGuitar.stringCount)
+        earRun = EarRun(drill, mode, target, earSettings, learnGuitar.stringCount, record)
         earDrill = drill.id
-        if (mode == com.betterappmafia.apophenia.core.learn.EarMode.TEST) app.io.launch { app.db.settings().put(AppSettingEntity("ear.test-questions", target.toString())) }
+        if (mode == com.betterappmafia.apophenia.core.learn.EarMode.TEST && questions == null) app.io.launch { app.db.settings().put(AppSettingEntity("ear.test-questions", target.toString())) }
     }
 
     fun openEarLearning(page: String, root: com.betterappmafia.apophenia.core.pitch.PitchName? = null) {
@@ -217,6 +229,11 @@ class AppModel(val app: ApopheniaApp) {
     var learnList by mutableStateOf<String?>(null)
     /** The Reference page open, on its root. */
     var refPage by mutableStateOf<com.betterappmafia.apophenia.core.learn.RefHit?>(null)
+    /** The Reference index: the root everything is shown on, and the item its card shows and plays (null: Cm7). */
+    var refRoot by mutableStateOf(com.betterappmafia.apophenia.core.pitch.PitchName(com.betterappmafia.apophenia.core.pitch.Letter.C))
+    var refPick by mutableStateOf<com.betterappmafia.apophenia.core.learn.RefItem?>(null)
+    /** An arpeggio picked in the Reference index (its exercise id); it takes the card while set. */
+    var refArp by mutableStateOf<String?>(null)
     /** What Reference pages are drawn on: GUITAR, BASS, PIANO or STAFF. Remembered. */
     var learnShow by mutableStateOf("GUITAR")
         private set
@@ -267,7 +284,19 @@ class AppModel(val app: ApopheniaApp) {
     }
 
     init {
-        app.io.launch { com.betterappmafia.apophenia.ui.theme.C.palette = com.betterappmafia.apophenia.ui.theme.Palettes.byId(app.db.settings().get(THEME)) }
+        app.io.launch {
+            val settings = app.db.settings()
+            // Film arrives once as the look (Christopher chose it, 31 Oct 2026), even over a theme picked before;
+            // Settings › THEME switches back, and that choice is kept from then on.
+            if (settings.get(FILM_INTRODUCED) == null) {
+                val before = settings.get(THEME)
+                settings.put(AppSettingEntity(FILM_INTRODUCED, "1"))
+                settings.put(AppSettingEntity(THEME, com.betterappmafia.apophenia.ui.theme.Palettes.FILM.id))
+                if (before != null && before != com.betterappmafia.apophenia.ui.theme.Palettes.FILM.id)
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) { notice("New look: Film. Settings › Theme switches back.", "OK") {} }
+            }
+            com.betterappmafia.apophenia.ui.theme.C.palette = com.betterappmafia.apophenia.ui.theme.Palettes.byId(settings.get(THEME))
+        }
     }
 
     /**
@@ -565,7 +594,8 @@ class AppModel(val app: ApopheniaApp) {
         }
     }
 
-    fun stopRecording(why: String? = null) {
+    /** ■ STOP, or ✕ DELETE in the recorder ([discard]: saved, then moved to the trash with UNDO, no save sheet). */
+    fun stopRecording(why: String? = null, discard: Boolean = false) {
         app.io.launch {
             val r = app.audio.stopRecording() ?: return@launch
             val target = recordTarget
@@ -577,6 +607,14 @@ class AppModel(val app: ApopheniaApp) {
                 is RecordTarget.StackLayer -> stacks.saveLayerTake(target.stackId, r) to "A"
                 RecordTarget.Library -> app.captures.saveNew(r) to "A"
             }
+            // Every take counts as practice time (Christopher, 2 Nov 2026), also one deleted afterwards: the time was spent.
+            // Overlap with a running practice timer is counted once (PracticeStats merges overlapping stretches).
+            val seconds = r.frames / r.rate
+            app.db.practice().add(PracticeEntity(
+                startedAt = r.startedAt.takeIf { it > 0 } ?: (System.currentTimeMillis() - seconds * 1000), seconds = seconds,
+                scrapId = id, projectId = (target as? RecordTarget.Project)?.id, exercise = "Recording",
+            ))
+            if (discard) { trashSaved(id, letter); return@launch }
             if (r.lostFrames > 0) notice("The disk fell behind: ${"%.1f".format(r.lostFrames / r.rate.toDouble())} s missing from this take.")
             if (r.diskError) notice("The phone reported a write error while recording. Check free storage.")
             if (why != null) notice(why)
@@ -782,6 +820,26 @@ class AppModel(val app: ApopheniaApp) {
             app.db.scraps().moveToTrash(id, System.currentTimeMillis())
             if (detail == id) detail = null
             notice("$title moved to the trash.") { app.io.launch { app.db.scraps().restore(id) } }
+        }
+    }
+
+    /** Deletes a take just recorded (recorder ✕ DELETE, or the save sheet): a new recording goes to the trash whole, a
+     *  further take of one only that take. UNDO brings it back. */
+    fun trashSaved(scrapId: Long, letter: String) {
+        sheet = Sheet.None
+        app.io.launch {
+            val takes = app.db.takes().takesOf(scrapId)
+            val take = takes.firstOrNull { it.letter == letter }
+            if (take == null || takes.size <= 1) {
+                if (app.audio.player.value?.scrapId == scrapId) app.audio.unload()
+                app.db.scraps().moveToTrash(scrapId, System.currentTimeMillis())
+                if (detail == scrapId) detail = null
+                notice("Take deleted (in the trash).") { app.io.launch { app.db.scraps().restore(scrapId) } }
+            } else {
+                if (app.audio.player.value?.takeId == take.id) app.audio.unload()
+                app.db.takes().moveToTrash(take.id, System.currentTimeMillis())
+                notice("Take $letter deleted (in the trash).") { app.io.launch { app.db.takes().restore(take.id) } }
+            }
         }
     }
 

@@ -10,6 +10,33 @@ import kotlin.test.assertTrue
 
 /** The drills added 30 Oct 2026: triads, progressions, modal harmony and voicings, bitonal, reharmonization, polyrhythm. */
 class EarCurriculumTest {
+    @Test
+    fun `every drill says what it is and how to listen`() {
+        val generic = EarAbout.of(EarDrill("nothing", "", "", EarKind.INTERVAL, emptyList()))
+        for (d in Ear.drills + EarPractice.types.flatMap { b -> EarDirection.entries.map { EarPractice.withDirection(b, it) } } + Ear.chapters.mapNotNull { Ear.drill("mixed-" + it.lowercase().replace(' ', '-')) }) {
+            val a = EarAbout.of(d)
+            kotlin.test.assertTrue(a.what.length > 40 && a.listen.length > 40, "${d.id} is described")
+            if (!d.id.startsWith("mixed")) kotlin.test.assertTrue(a != generic, "${d.id} has its own description")
+        }
+    }
+
+    @Test
+    fun `a harmony chord is voiced in the key it's asked for, not in C`() {
+        fun rel(tokens: String, tonic: Int) = EarHarmony.voice(EarHarmony.HChord(com.betterappmafia.apophenia.core.degree.DegreeToken.list(tokens)), tonic).map { Math.floorMod(it - tonic, 12) }
+        for (tonic in 48..71) {
+            kotlin.test.assertEquals(0, rel("1 1 3 5", tonic).first(), "I's bass on $tonic")
+            kotlin.test.assertEquals(setOf(0, 4, 7), rel("1 1 3 5", tonic).drop(1).toSet(), "I on $tonic")
+            kotlin.test.assertEquals(setOf(7, 11, 2, 5), rel("5 5 7 2 4", tonic).drop(1).toSet(), "V7 on $tonic")
+            kotlin.test.assertEquals(7, rel("5 5 7 2 4", tonic).first(), "V7's bass on $tonic")
+        }
+        // A stacked upper chord (II over a C7) also follows the key.
+        val d = Ear.drill("hm-upper")!!
+        for (tonic in listOf(60, 62, 67)) {
+            val notes = EarHarmony.sound(d, "II", tonic).filter { it.start == 0.0 }.map { Math.floorMod(it.midi - tonic, 12) }.toSet()
+            kotlin.test.assertEquals(setOf(0, 4, 10, 2, 6, 9), notes, "II over 7 on $tonic")
+        }
+    }
+
     private val c = PitchName.parse("C")
     private fun d(id: String) = Ear.drill(id)!!
 

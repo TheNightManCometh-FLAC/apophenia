@@ -137,6 +137,7 @@ class StackModel(private val model: AppModel) {
     }
 
     private suspend fun load(s: StackEntity) {
+        if (loaded?.id != s.id) { undos.clear(); redos.clear(); refreshHistory() }
         loaded = s
         loadedId.value = s.id
         Breadcrumbs.add("stack load ${s.id}")
@@ -184,17 +185,48 @@ class StackModel(private val model: AppModel) {
         }
     }
 
+    /*
+     * UNDO and REDO on the stack screen (his stacks pick, 2 Nov 2026): every layer edit is kept as the layer before
+     * and after it (after = null for a removal), for the loaded stack only, newest last, at most 50.
+     */
+    private val undos = ArrayDeque<Pair<StackLayerEntity, StackLayerEntity?>>()
+    private val redos = ArrayDeque<Pair<StackLayerEntity, StackLayerEntity?>>()
+    var canUndo by mutableStateOf(false)
+        private set
+    var canRedo by mutableStateOf(false)
+        private set
+    private fun refreshHistory() { canUndo = undos.isNotEmpty(); canRedo = redos.isNotEmpty() }
+    private fun record(edit: Pair<StackLayerEntity, StackLayerEntity?>) {
+        undos.addLast(edit)
+        if (undos.size > 50) undos.removeFirst()
+        redos.clear()
+        refreshHistory()
+    }
+
     fun update(layer: StackLayerEntity) {
+        val before = layers.value.firstOrNull { it.layer.id == layer.id }?.layer
+        if (before != null && before != layer) record(before to layer)
         app.io.launch { db.stacks().updateLayer(layer, System.currentTimeMillis()) }
     }
 
     fun delete(row: LayerRow) {
-        app.io.launch {
-            db.stacks().deleteLayer(row.layer.id)
-            model.notice("Layer ${row.title ?: "untitled"} removed. The recording stays in the Library.") {
-                app.io.launch { db.stacks().addLayer(row.layer.copy(id = 0), System.currentTimeMillis()) }
-            }
-        }
+        record(row.layer to null)
+        app.io.launch { db.stacks().deleteLayer(row.layer.id) }
+        model.notice("Layer ${row.title ?: "untitled"} removed. The recording stays in the Library.") { undo() }
+    }
+
+    fun undo() {
+        val (before, after) = undos.removeLastOrNull() ?: return
+        redos.addLast(before to after)
+        refreshHistory()
+        app.io.launch { if (after == null) db.stacks().restoreLayer(before, System.currentTimeMillis()) else db.stacks().updateLayer(before, System.currentTimeMillis()) }
+    }
+
+    fun redo() {
+        val (before, after) = redos.removeLastOrNull() ?: return
+        undos.addLast(before to after)
+        refreshHistory()
+        app.io.launch { if (after == null) db.stacks().deleteLayer(before.id) else db.stacks().updateLayer(after, System.currentTimeMillis()) }
     }
 
     /** Stack ⋯ → Add a layer: the Library in pick mode, showing recordings only (plan §5.2: by filtering, no suggestions). */

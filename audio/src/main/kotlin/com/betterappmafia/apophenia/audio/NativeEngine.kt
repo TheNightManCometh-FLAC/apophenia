@@ -112,6 +112,10 @@ object NativeEngine {
         return if (nativeRecordingState(s)) RecordingState.of(s) else null
     }
 
+    /** Pauses or resumes the take being recorded: the paused stretch is left out of the file, or written as silence with
+     *  [fillSilence] (a take over a stack, so it stays lined up). False if nothing changed. */
+    fun pauseRecording(pause: Boolean, fillSilence: Boolean = false): Boolean = nativePauseRecording(pause, fillSilence)
+
     /** Blocks until the file is finalized and renamed. */
     fun stopRecording(): RecordingState? {
         val s = LongArray(5)
@@ -191,6 +195,7 @@ object NativeEngine {
     private external fun nativeStartRecording(partPath: String, finalPath: String): Long
     private external fun nativeRecordingState(out: LongArray): Boolean
     private external fun nativeStopRecording(out: LongArray): Boolean
+    private external fun nativePauseRecording(pause: Boolean, fillSilence: Boolean): Boolean
     private external fun nativeIdle()
     private external fun nativeOutputLost(): Boolean
     private external fun nativeInputLost(): Boolean

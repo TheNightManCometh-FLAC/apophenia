@@ -14,7 +14,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -30,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
@@ -65,26 +69,111 @@ fun ToolsMode(model: AppModel, requestMic: (() -> Unit) -> Unit, rest: @Composab
         ToolScreen.DRONE -> DroneScreen(model)
         ToolScreen.SPEED -> PlaybackSpeedScreen(model)
         ToolScreen.ISOLATOR -> IsolatorScreen(model)
-        ToolScreen.PRACTICE -> PracticeScreen(model)
         null -> ToolList(model, requestMic, rest)
     }
 }
 
+/**
+ * TOOLS as a rack (Christopher, 2 Nov 2026: "Tools as live strips"): you run tools while you play, often two at once, so
+ * each one sits here live with its main control (start, the value, nudge). Tap a strip's name or value for its full
+ * screen. What's running is outlined and keeps running when you leave. The practice timer lives in Exercises.
+ */
 @Composable
 private fun ToolList(model: AppModel, requestMic: (() -> Unit) -> Unit, rest: @Composable () -> Unit) {
     val tm = model.tools
-    val click by model.app.audio.click.collectAsState()
-    val drone by model.app.audio.drone.collectAsState()
+    val audio = model.app.audio
+    val click by audio.click.collectAsState()
+    val drone by audio.drone.collectAsState()
+    val listening by audio.tuner.collectAsState()
+    val player by audio.player.collectAsState()
+    // The tuner holds the mic, so it stops when you leave Tools: the mic is open only while you use it.
+    DisposableEffect(Unit) { onDispose { if (audio.tuner.value) tm.stopTuner() } }
+    val s = tm.metronome
+    val upright = T.display.copy(fontSize = 38.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Normal)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        TitleBar { Text("TOOLS", style = T.title, modifier = Modifier.weight(1f)); Text("PIN TWO IN THE TOP BAR", style = T.label) }
-        ToolRow("Metronome", "${tm.metronome.meter} · accents, subdivision, swing, polyrhythm, trainer", "${click.bpm.roundToInt()}") { tm.screen = ToolScreen.METRONOME }
-        ToolRow("Tuner", "${tm.tunerRange.label.lowercase()} · A4 ${fmtHz(tm.tuner.a4)} · ${tm.tuner.temperament.label.lowercase()}", "›") { tm.screen = ToolScreen.TUNER }
-        ToolRow("Drone", "any root, fifth, third", "${tm.drone.short}${if (drone) " · ON" else ""}") { tm.screen = ToolScreen.DRONE }
-        val player by model.app.audio.player.collectAsState()
-        ToolRow("Playback speed", "the take in the player · 0.25–2× · pitch ±24 st · A/B loop, step-up, count-in, marks", player?.takeIf { it.takeId > 0 }?.playback?.let { "%.2f×".format(java.util.Locale.ROOT, it.speed) } ?: "›") { tm.screen = ToolScreen.SPEED }
-        ToolRow("Isolator", "pan, tone ⇄ hit, band · note finder", if (player?.playback?.isolate == true) "ON" else "›") { tm.screen = ToolScreen.ISOLATOR }
-        ToolRow("Practice timer", "attach to a recording, project or exercise · note · history", if (tm.timer.running) "RUNNING" else "›") { tm.screen = ToolScreen.PRACTICE }
-        ToolRow("Recorder", "same as ● REC at the top · markers, clipping warning", "●") { requestMic { model.startRecording() } }
+        TitleBar {
+            Text("TOOLS", style = T.title, modifier = Modifier.weight(1f))
+            Text("RUNNING · ${listOf(click.on, drone, listening).count { it }}", style = T.label.copy(color = if (click.on || drone || listening) C.acc else C.dim))
+        }
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Strip(
+                "METRONOME · ${s.meter}", click.on, { tm.screen = ToolScreen.METRONOME },
+                value = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(fmtHz(if (click.on) click.bpmNow else s.clampedBpm), style = upright)
+                        Row(Modifier.padding(start = 12.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            for (i in 0 until minOf(s.meter.beatsPerBar, 8)) {
+                                val lit = click.on && click.beat == i
+                                Box(Modifier.size(9.dp).background(if (lit) C.acc else Color.Transparent, CircleShape).border(1.5.dp, C.acc, CircleShape))
+                            }
+                        }
+                    }
+                },
+                controls = {
+                    StripKey("−") { audio.setClick(click.on, (click.bpm - 1).coerceIn(20.0, 400.0)) }
+                    StripKey("+") { audio.setClick(click.on, (click.bpm + 1).coerceIn(20.0, 400.0)) }
+                    StripKey("TAP") { model.tap() }
+                },
+                onToggle = { audio.setClick(!click.on) },
+            )
+            val d = tm.drone
+            Strip(
+                "DRONE", drone, { tm.screen = ToolScreen.DRONE },
+                value = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(KeyMode.displayName(d.root), style = upright)
+                        Text(
+                            listOfNotNull(if (d.fifth) "+ 5TH" else null, when (d.third) { DroneThird.MAJOR -> "+ M3"; DroneThird.MINOR -> "+ m3"; DroneThird.OFF -> null }, if (d.addOctave) "+ 8VE" else null)
+                                .joinToString(" ").ifEmpty { "ROOT ONLY" },
+                            style = T.label, modifier = Modifier.padding(start = 10.dp),
+                        )
+                    }
+                },
+                controls = {
+                    val tonics = KeyMode.TONICS
+                    StripKey("‹") { tm.changeDrone(d.copy(root = tonics[Math.floorMod(tonics.indexOf(d.root) - 1, tonics.size)])) }
+                    StripKey("›") { tm.changeDrone(d.copy(root = tonics[Math.floorMod(tonics.indexOf(d.root) + 1, tonics.size)])) }
+                    StripKey("5TH", on = d.fifth) { tm.changeDrone(d.copy(fifth = !d.fifth)) }
+                    StripKey(when (d.third) { DroneThird.OFF -> "3RD"; DroneThird.MAJOR -> "M3"; DroneThird.MINOR -> "m3" }, on = d.third != DroneThird.OFF) {
+                        tm.changeDrone(d.copy(third = DroneThird.entries[(d.third.ordinal + 1) % DroneThird.entries.size]))
+                    }
+                },
+                onToggle = { tm.toggleDrone() },
+            )
+            val r = tm.reading
+            val inTune = listening && r != null && abs(r.cents) < 3
+            Strip(
+                "TUNER · ${tm.tunerRange.label.uppercase()}", listening, { tm.screen = ToolScreen.TUNER },
+                value = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            if (!listening) "—" else r?.let { KeyMode.displayName(it.pitch.name) + tm.tuner.label(it.pitch).removePrefix(it.pitch.name.toString()) } ?: "…",
+                            style = upright.copy(color = if (inTune) C.listening else C.hi),
+                        )
+                        Text(
+                            if (!listening) "MIC OFF UNTIL YOU START" else r?.let { "${if (it.cents >= 0) "+" else "−"}%02d ¢".format(abs(it.cents).roundToInt()) } ?: "PLAY A NOTE",
+                            style = T.label.copy(color = if (inTune) C.listening else C.dim), modifier = Modifier.padding(start = 10.dp),
+                        )
+                    }
+                },
+                controls = { if (listening) Box(Modifier.width(110.dp)) { CentsLed(r?.cents, compact = true) } },
+                onToggle = { if (listening) tm.stopTuner() else requestMic { tm.startTuner() } },
+            )
+            Text("ON THE TAKE IN THE PLAYER", style = T.label, modifier = Modifier.padding(top = 8.dp))
+            val pb = player?.takeIf { it.takeId > 0 }?.playback
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                StripKey("SPEED ${pb?.let { "%.2f×".format(java.util.Locale.ROOT, it.speed) } ?: "1.00×"}", Modifier.weight(1f)) { tm.screen = ToolScreen.SPEED }
+                StripKey("ISOLATOR ${if (pb?.isolate == true) "ON" else "OFF"}", Modifier.weight(1f), on = pb?.isolate == true) { tm.screen = ToolScreen.ISOLATOR }
+                StripKey("● REC", Modifier.weight(0.7f), color = C.rec) { requestMic { model.startRecording() } }
+            }
+            Row(
+                Modifier.fillMaxWidth().padding(top = 4.dp).clickable(role = Role.Button) { model.go(Mode.EXERCISES) }.padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("PRACTICE TIMER, STREAK AND LOG ARE IN EXERCISES", style = T.label, modifier = Modifier.weight(1f))
+                Text(if (tm.timer.running) "RUNNING ›" else "›", style = T.label.copy(color = C.acc))
+            }
+        }
         repeat(2) { slot ->
             var open by remember { mutableStateOf(false) }
             Box {
@@ -94,6 +183,35 @@ private fun ToolList(model: AppModel, requestMic: (() -> Unit) -> Unit, rest: @C
         }
         rest()
     }
+}
+
+/** One live tool: its name, its value large, its controls, and start/stop. Tap the name or value for the full screen. */
+@Composable
+private fun Strip(tag: String, live: Boolean, open: () -> Unit, value: @Composable () -> Unit, controls: @Composable RowScope.() -> Unit, onToggle: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().background(C.panel).border(1.dp, if (live) C.acc else C.line).padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f).clickable(role = Role.Button, onClick = open).semantics { contentDescription = "$tag: open its full controls" }) {
+            Text("$tag  ›", style = T.label.copy(color = if (live) C.acc else C.dim), maxLines = 1)
+            value()
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically, content = controls)
+        Box(
+            Modifier.padding(start = 6.dp).size(46.dp).background(if (live) C.acc else C.panel2).border(1.dp, if (live) C.acc else C.line2)
+                .clickable(role = Role.Button, onClick = onToggle).semantics { contentDescription = if (live) "Stop $tag" else "Start $tag" },
+            contentAlignment = Alignment.Center,
+        ) { Text(if (live) "■" else "▶", style = T.button.copy(fontSize = 16.sp, color = if (live) C.bg else C.hi)) }
+    }
+}
+
+@Composable
+private fun StripKey(label: String, modifier: Modifier = Modifier, on: Boolean = false, color: Color = C.hi, onClick: () -> Unit) {
+    Box(
+        modifier.height(40.dp).widthIn(min = 34.dp).background(if (on) C.selected else C.panel2).border(1.dp, if (on) C.acc else C.line)
+            .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 7.dp),
+        contentAlignment = Alignment.Center,
+    ) { Text(label, style = T.button.copy(color = if (on) C.acc else color), maxLines = 1) }
 }
 
 @Composable
@@ -375,8 +493,8 @@ internal val A4S = listOf(415.0, 430.0, 432.0, 435.0, 438.0, 439.0, 440.0, 441.0
 
 /** −50…+50 cents in 21 segments; the middle one is in tune (±2.5 ¢). */
 @Composable
-private fun CentsLed(cents: Double?) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+private fun CentsLed(cents: Double?, compact: Boolean = false) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = if (compact) 0.dp else 14.dp), horizontalArrangement = Arrangement.spacedBy(if (compact) 1.dp else 3.dp)) {
         val seg = cents?.let { ((it + 50) / 100 * 20).roundToInt().coerceIn(0, 20) }
         for (i in 0..20) {
             val color = when {
@@ -386,7 +504,7 @@ private fun CentsLed(cents: Double?) {
                 i == 10 -> C.line2
                 else -> C.panel2
             }
-            Box(Modifier.weight(1f).height(if (i == 10) 44.dp else 36.dp).background(color))
+            Box(Modifier.weight(1f).height(if (compact) (if (i == 10) 22.dp else 16.dp) else if (i == 10) 44.dp else 36.dp).background(color))
         }
     }
 }

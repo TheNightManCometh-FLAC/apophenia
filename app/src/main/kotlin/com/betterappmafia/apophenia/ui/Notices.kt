@@ -47,6 +47,8 @@ object Notices {
         Licence("Bravura", "The music font on the staff", "SIL Open Font License 1.1", "Steinberg Media Technologies GmbH", listOf("Bravura-OFL.txt")),
         Licence("Noto Music", "Music symbols in text", "SIL Open Font License 1.1", "The Noto Project Authors", listOf("NotoMusic-OFL.txt")),
         Licence("JetBrains Mono", "The app's typeface", "SIL Open Font License 1.1", "The JetBrains Mono Project Authors", listOf("JetBrainsMono-OFL.txt")),
+        Licence("Cormorant Garamond", "Titles in the Film theme", "SIL Open Font License 1.1", "The Cormorant Project Authors", listOf("CormorantGaramond-OFL.txt")),
+        Licence("Jost", "Labels in the Film theme", "SIL Open Font License 1.1", "The Jost Project Authors", listOf("Jost-OFL.txt")),
         Licence("University of Iowa MIS piano", "The piano sound", "Free to use without restrictions (the source's terms)", "University of Iowa Electronic Music Studios", listOf("iowa-piano-NOTICE.txt")),
         Licence("Android Jetpack (Compose, Room, Lifecycle, Activity, Core) and Kotlin", "The app's interface, database and language", "Apache-2.0", "The Android Open Source Project; JetBrains s.r.o.", listOf("apache-2.0.txt")),
     )

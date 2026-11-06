@@ -52,5 +52,16 @@ Durations are exact rationals with dots and a tuplet stack (any n:m, nested). Ti
 ## Theory content corrections (don't repeat popular errors)
 Negative harmony in C maps n → 7 − n; G7 → **Fm6 = Dø7** (not Dm6); Levy never used the term. Barry Harris 6th-dim extra note: A♭ when part of the °7, G♯ as a passing tone. CT°7 keeps the decorated chord's root (on I in C: C D♯ F♯ A). Messiaen modes and harmonic-major modes: store as pitch-class sets with alias names, no single canonical spelling.
 
+## Ear drills and Course pages (learned 23 Oct–1 Nov 2026)
+- **Voice every generated chord in the asked key, and test it in a key other than C.** `EarHarmony.voice` put the upper notes as if every key were C (only the bass followed the key), so every harmony drill in a random key played wrong chords for days. Tests written in C can't catch this; the chart-spells-what-it-plays test found it.
+- **Course pictures play exactly what they draw** (keys, charts, grids, staves, tab, rhythm bars, table rows), in their drawn key; HEAR follows the TRY key and says so. `CourseTest` enforces it. The UI rule is owned by the personal skill `android-tool-app-ui-design` §8.
+- **No repeated questions:** the last answer gets 0.3 of its weight and comes back only on another root, never at all when the key is fixed. Tested over 3,000 questions; two-answer drills used to repeat half the time.
+- **Drill and page ids are permanent:** high scores and links key on them. When presentations change, keep the old ids resolving.
+- Every drill has a description (`EarAbout`) and links to Course pages; tests check that every link resolves and every drill is described.
+- Write curriculum content from standard theory, never copied from a reference course (Beato's lists were read only for coverage and order).
+
+## MusicXML in tests
+- Validate every exported score (Course examples, tab, road maps, a score with every marking) against the official MusicXML 4.0 XSD (w3c/musicxml tag v4.0, test resources only), and round-trip the guitar techniques through import. Export had silently dropped articulations, ornaments, slurs, hairpins, graces, tremolo, fingering and chord diagrams until 0.9.3.
+
 ## Test fixtures
 Every catalog chord and scale on all 35 roots; McGill Billboard (CC0) and ChoCo CC BY 4.0 subsets (attribute in NOTICE; exclude its Chordify, Mozart Piano Sonata and JAAH subsets, which are NC-SA); synthetic fixtures from the iReal Pro quality list. Chordonomicon and other scrapes: local statistics only, never committed.

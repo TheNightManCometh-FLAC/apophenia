@@ -92,7 +92,7 @@ data class EarDrill(
 }
 
 /** [MELODIC]: one after the other, up and down at random (Christopher, 30 Oct 2026: "Both mixed"). */
-enum class EarDirection(val label: String) { UP("Up"), DOWN("Down"), MELODIC("Melodic, up and down"), TOGETHER("Together"), MIXED("Mixed") }
+enum class EarDirection(val label: String) { UP("Up"), DOWN("Down"), MELODIC("Melodic"), TOGETHER("Together"), MIXED("Mixed") }
 enum class ChordSound(val label: String) { BLOCK("Block chord"), ARPEGGIO("Arpeggio up"), BOTH("Block, then arpeggio") }
 enum class DegreeContext(val label: String) { CADENCE("After a cadence"), DRONE("Over a drone") }
 

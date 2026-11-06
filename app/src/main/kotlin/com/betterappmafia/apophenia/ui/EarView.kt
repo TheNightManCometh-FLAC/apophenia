@@ -134,6 +134,9 @@ internal fun EarDrillView(model: AppModel, drill: EarDrill, requestMic: (() -> U
         if (picked != null || session.complete) return
         picked = a
         session.answer(right)
+        // Every first answer counts for its item (Ear › Weakest and Quick check).
+        val item = com.betterappmafia.apophenia.core.learn.EarMastery.item(drill, question.answer)
+        model.app.io.launch { model.app.db.earAnswers().add(com.betterappmafia.apophenia.data.EarAnswerEntity(item = item, correct = right, at = System.currentTimeMillis())) }
         if (right) { missed.remove(question.answer)?.let { if (it > 1) missed[question.answer] = it - 1 } }
         else { missed[question.answer] = (missed[question.answer] ?: 0) + 1 }
         counts = Triple(session.right, session.asked, session.streak)
@@ -151,16 +154,27 @@ internal fun EarDrillView(model: AppModel, drill: EarDrill, requestMic: (() -> U
             Text(if (mode == "TEST") "TEST · ${minOf(counts.second + (if (picked == null) 1 else 0), session.target)} OF ${session.target}" else "PRACTICE", style = T.label, modifier = Modifier.weight(1f))
             EarLessonLink(model, drill, question.answer, question.root)
         }
+        // What the drill is: open until the first answer, then folded to one tap (Christopher, 31 Oct 2026).
+        var about by remember(drill.id) { mutableStateOf(counts.second == 0) }
+        val text = remember(drill.id) { com.betterappmafia.apophenia.core.learn.EarAbout.of(drill) }
+        Column(Modifier.fillMaxWidth().clickable(role = Role.Button) { about = !about }.padding(horizontal = 14.dp, vertical = 6.dp)) {
+            Text(if (about) "WHAT THIS DRILL IS ▴" else "WHAT THIS DRILL IS ▾", style = T.label.copy(color = C.acc))
+            if (about) {
+                Text(text.what, style = T.body.copy(lineHeight = 19.sp), modifier = Modifier.padding(top = 4.dp))
+                Text("HOW TO LISTEN", style = T.label, modifier = Modifier.padding(top = 8.dp))
+                Text(text.listen, style = T.body.copy(lineHeight = 19.sp, color = C.dim), modifier = Modifier.padding(top = 2.dp))
+            }
+        }
         if (counts.second > 0 && session.complete) {
             val scores by model.app.db.earResults().bests().collectAsState(emptyList())
             val best = scores.firstOrNull { it.drill == drill.id }
-            Kv("TEST COMPLETE") {
+            Kv(if (run.record) "TEST COMPLETE" else "CHECK COMPLETE") {
                 Text(earPercent(counts.first, counts.second), style = T.hi.copy(color = C.acc, fontSize = 38.sp))
                 Text("${counts.first} right out of ${counts.second} questions", style = T.body)
                 best?.bestTotal?.let { Text("BEST ${earPercent(best.bestCorrect ?: 0, it)} · ${best.bestCorrect}/$it", style = T.label) }
             }
             Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Sq("TEST AGAIN", { model.startEar(drill, EarMode.TEST) }, on = true)
+                if (run.record) Sq("TEST AGAIN", { model.startEar(drill, EarMode.TEST) }, on = true)
                 Sq("BACK TO DRILLS", { model.earDrill = null; model.earRun = null })
             }
             return@Column

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sections</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.s1{font-family:Inter,sans-serif;color:#E8E6E1;font-size:14px}
+.s1 .ph{width:390px;height:844px;background:#0F1012;border:1px solid #33363C;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;flex:none}
+.s1 .mono{font-family:'JetBrains Mono',monospace}
+.s1 .top{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#24262B}
+.s1 .proj{font-weight:600;font-size:15px}
+.s1 .mic{font-size:12px;color:#A3A09A;display:flex;gap:6px;align-items:center}
+.s1 .strip{height:52px;display:flex;gap:6px;padding:0 10px 8px;background:#24262B}
+.s1 .strip > div{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:#2F3238;border-radius:10px;font-weight:600;font-size:13px}
+.s1 .band{height:3px}
+.s1 .seg{display:flex;margin:12px 16px 0;background:#17181B;border-radius:12px;padding:4px;gap:4px}
+.s1 .seg div{flex:1;height:36px;display:flex;align-items:center;justify-content:center;border-radius:9px;font-weight:600;font-size:13px;color:#A3A09A}
+.s1 .scr{flex:1;overflow:hidden;position:relative;padding:0 16px}
+.s1 h1{font-size:22px;font-weight:700;margin:16px 0 4px;letter-spacing:-.01em}
+.s1 .cap{font-size:12px;color:#A3A09A}
+.s1 .card{background:#17181B;border-radius:14px;padding:12px}
+.s1 .sq{position:absolute;width:162px;height:158px;background:#202226;border-radius:12px;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;box-shadow:0 1px 0 #ffffff0d inset,0 6px 16px #00000066}
+.s1 .kind{font-size:10px;font-weight:700;letter-spacing:.08em;display:flex;align-items:center;gap:6px;color:#E8E6E1}
+.s1 .kind i{width:8px;height:8px;border-radius:2px;display:block}
+.s1 .tag{font-size:10px;color:#A3A09A;border:1px solid #3A3D44;border-radius:6px;padding:1px 6px}
+.s1 pre{margin:0;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5;color:#D3D0CA;white-space:pre}
+.s1 .row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #26282D}
+.s1 .row:last-child{border-bottom:0}
+.s1 .lab{font-size:12px;color:#A3A09A}
+.s1 .val{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px}
+.s1 .btn{height:44px;padding:0 16px;border-radius:12px;display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14px;background:#2A2D32;color:#E8E6E1;box-sizing:border-box}
+.s1 .pl{height:64px;margin:0 10px 8px;border-radius:16px;background:#2A2D32;display:flex;align-items:center;padding:0 8px 0 14px;gap:10px}
+.s1 .play{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.s1 .nav{height:64px;display:flex;background:#17181B;border-top:1px solid #26282D}
+.s1 .nav div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:600;color:#8E8B85}
+.s1 .nav svg{width:22px;height:22px}
+.s1 .ans{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.s1 .ans div{height:56px;border-radius:12px;background:#202226;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px}
+</style>
+</helmet>
+<div class="s1" style="width:1736px;height:924px;box-sizing:border-box;padding:40px;background:#08090A;display:flex;gap:32px">
+
+<div class="ph">
+  <div class="top"><span class="proj">Night Drive ▾</span><span class="mic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A3A09A" stroke-width="2" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M4 4l16 16"/></svg>Mic off</span></div>
+  <div class="strip"><div><span style="width:8px;height:8px;border-radius:50%;background:#E8A23A"></span>Click <span class="mono" style="font-size:16px;font-weight:800">92</span></div><div>Tools ▾</div><div style="color:#FF6B5B"><span style="width:10px;height:10px;border-radius:50%;background:#EF5B4C"></span>Rec</div><div>+ New</div></div>
+  <div class="band" style="background:#E8A23A"></div>
+  <div class="seg"><div style="background:#E8A23A;color:#1A1206">Board</div><div>Library</div><div>AI</div></div>
+  <div class="scr">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end"><h1>Night Drive</h1><span class="cap" style="margin-bottom:8px">4 fragments · ▶ Play ▾</span></div>
+    <div style="position:relative;height:410px;margin:8px -4px 0">
+      <div class="sq" style="left:4px;top:6px;transform:rotate(-0.6deg)"><div class="kind"><i style="background:#C9A0FF"></i>LYRICS</div><div style="font-weight:600">Verse 1</div><pre><b style="color:#E8A23A">Am</b>        <b style="color:#E8A23A">F</b>
+Headlights on
+the overpass</pre><div style="margin-top:auto;display:flex;gap:4px"><span class="tag">verse</span></div></div>
+      <div class="sq" style="left:186px;top:62px;transform:rotate(1.1deg)"><div class="kind"><i style="background:#FF8A65"></i>RECORDING</div><div style="font-weight:600">Riff idea</div><pre>★ C · 3 takes
+92 · A minor</pre><svg width="140" height="22" viewBox="0 0 340 64" aria-hidden="true"><path d="M0 20V44M14 18V46M28 6V58M43 13V51M57 13V51M72 4V60M86 8V56M101 14V50M115 16V48M130 22V42M144 20V44M158 12V52M172 8V56M187 5V59M201 8V56M215 12V52M230 16V48M244 13V51M258 13V51M273 23V41M287 23V41M301 17V47M316 18V46M330 9V55" stroke="#FF8A65" stroke-width="7" stroke-linecap="round"/></svg><div style="margin-top:auto;display:flex;gap:4px"><span class="tag">riff</span><span class="tag">gtr</span></div></div>
+      <div class="sq" style="left:6px;top:184px;transform:rotate(0.5deg)"><div class="kind"><i style="background:#5CC8FF"></i>CHORDS</div><div style="font-weight:600">Chorus</div><pre style="font-size:13px;font-weight:700;color:#E8E6E1">| Am | F |
+| C  | G ‖</pre><div style="margin-top:auto;display:flex;gap:4px"><span class="tag">chorus</span></div></div>
+      <div class="sq" style="left:190px;top:240px;transform:rotate(-1.1deg)"><div class="kind"><i style="background:#7BD88F"></i>TAB</div><div style="font-weight:600">Bass line</div><pre>G|---------
+D|-----2-3-
+A|-0-0-----
+E|---------</pre><div style="margin-top:auto;display:flex;gap:4px"><span class="tag">bass</span></div></div>
+    </div>
+  </div>
+  <div class="pl"><div style="flex:1"><div class="cap">Night Drive · 3 layers</div><div class="mono" style="font-weight:700">0:00 / 0:16</div></div><div class="play" style="background:#E8A23A"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" fill="#1A1206"/></svg></div></div>
+  <div class="nav"><div style="color:#E8A23A"><svg viewBox="0 0 24 24" fill="none" stroke="#E8A23A" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Make</div><div><svg viewBox="0 0 24 24" fill="none" stroke="#8E8B85" stroke-width="2" aria-hidden="true"><path d="M8 21L11 3h2l3 18z M12 14l5-7"/></svg>Practice</div><div><svg viewBox="0 0 24 24" fill="none" stroke="#8E8B85" stroke-width="2" aria-hidden="true"><path d="M3 5h7a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H3z M21 5h-7a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h7z"/></svg>Study</div></div>
+</div>
+
+<div class="ph">
+  <div class="top"><span class="proj">Night Drive ▾</span><span class="mic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A3A09A" stroke-width="2" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M4 4l16 16"/></svg>Mic off</span></div>
+  <div class="strip"><div><span style="width:8px;height:8px;border-radius:50%;background:#E8A23A"></span>Click <span class="mono" style="font-size:16px;font-weight:800">92</span></div><div>Tools ▾</div><div style="color:#FF6B5B"><span style="width:10px;height:10px;border-radius:50%;background:#EF5B4C"></span>Rec</div><div>+ New</div></div>
+  <div class="band" style="background:#E8A23A"></div>
+  <div class="scr">
+    <div style="display:flex;align-items:center;gap:8px;margin-top:12px"><span style="font-size:22px;color:#A3A09A">‹</span><h1 style="margin:0">Riff idea</h1><span style="margin-left:auto" class="btn">AI ▾</span></div>
+    <div style="display:flex;gap:8px;margin:12px 0"><span class="btn mono" style="width:44px;justify-content:center;padding:0">A</span><span class="btn mono" style="width:44px;justify-content:center;padding:0">B</span><span class="btn mono" style="width:60px;justify-content:center;padding:0;background:#3A2C14;color:#F2C06B;box-shadow:inset 0 0 0 1.5px #E8A23A">★ C</span><span class="cap" style="margin-left:auto;align-self:center">0:42 · 48 kHz</span></div>
+    <div class="card" style="padding:14px 10px"><svg width="338" height="76" viewBox="0 0 340 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0.0 20.1V43.9 M4.8 20.2V43.8 M9.6 16.3V47.7 M14.4 17.7V46.3 M19.2 17.8V46.2 M23.9 13.2V50.8 M28.7 6.1V57.9 M33.5 6.6V57.4 M38.3 6.3V57.7 M43.1 13.0V51.0 M47.9 8.5V55.5 M52.7 11.8V52.2 M57.5 13.2V50.8 M62.3 14.2V49.8 M67.0 12.9V51.1 M71.8 4.0V60.0 M76.6 6.0V58.0 M81.4 7.1V56.9 M86.2 8.2V55.8 M91.0 16.1V47.9 M95.8 15.8V48.2" stroke="#E8A23A" stroke-width="2.6"/><path d="M100.6 13.6V50.4 M105.4 14.0V50.0 M110.1 14.5V49.5 M114.9 16.0V48.0 M119.7 23.2V40.8 M124.5 21.2V42.8 M129.3 22.5V41.5 M134.1 22.8V41.2 M138.9 23.3V40.7 M143.7 20.0V44.0 M148.5 21.6V42.4 M153.2 13.2V50.8 M158.0 12.2V51.8 M162.8 14.0V50.0 M167.6 15.5V48.5 M172.4 7.6V56.4 M177.2 10.5V53.5 M182.0 5.8V58.2 M186.8 5.5V58.5 M191.5 9.3V54.7 M196.3 10.2V53.8 M201.1 7.5V56.5 M205.9 9.7V54.3 M210.7 13.4V50.6 M215.5 11.7V52.3 M220.3 5.3V58.7 M225.1 15.8V48.2 M229.9 16.3V47.7 M234.6 9.9V54.1 M239.4 14.9V49.1 M244.2 13.0V51.0 M249.0 14.8V49.2 M253.8 17.3V46.7 M258.6 12.8V51.2 M263.4 20.9V43.1 M268.2 20.5V43.5 M273.0 23.2V40.8 M277.7 22.2V41.8 M282.5 24.4V39.6 M287.3 22.6V41.4 M292.1 18.6V45.4 M296.9 20.2V43.8 M301.7 16.9V47.1 M306.5 12.4V51.6 M311.3 18.8V45.2 M316.1 18.3V45.7 M320.8 15.7V48.3 M325.6 8.5V55.5 M330.4 9.4V54.6 M335.2 13.5V50.5 M340.0 11.8V52.2" stroke="#5E5B55" stroke-width="2.6"/><path d="M98 0V64" stroke="#FFFFFF" stroke-width="1.5"/></svg></div>
+    <div class="seg" style="margin:12px 0 0"><div style="background:#2F3238;color:#E8E6E1">Info</div><div>Stems</div><div>MIDI</div><div>Text</div></div>
+    <div class="card" style="margin-top:10px;padding:2px 14px">
+      <div class="row"><span class="lab">Tempo · key</span><span class="val">92 · A minor</span></div>
+      <div class="row"><span class="lab">Meter</span><span class="val">4/4 <span style="font-family:Inter;font-weight:500;font-size:11px;color:#A3A09A">from the downbeats</span></span></div>
+    </div>
+    <div class="card" style="margin-top:10px"><div class="lab" style="margin-bottom:8px">Chords</div><div class="mono" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-weight:800;font-size:16px"><span style="background:#202226;border-radius:8px;padding:8px">Am</span><span style="background:#202226;border-radius:8px;padding:8px">F</span><span style="background:#202226;border-radius:8px;padding:8px">C</span><span style="background:#202226;border-radius:8px;padding:8px">G</span></div></div>
+    <div style="display:flex;gap:8px;margin-top:12px"><span class="btn" style="background:#E8A23A;color:#1A1206;flex:1;justify-content:center">Make a chord chart</span><span class="btn">Again</span></div>
+  </div>
+  <div class="pl"><div style="flex:1"><div class="cap">Riff idea · take C</div><div class="mono" style="font-weight:700">0:12 / 0:42</div></div><div class="play" style="background:#E8A23A"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h4v16H6zM14 4h4v16h-4z" fill="#1A1206"/></svg></div></div>
+  <div class="nav"><div style="color:#E8A23A"><svg viewBox="0 0 24 24" fill="none" stroke="#E8A23A" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Make</div><div><svg viewBox="0 0 24 24" fill="none" stroke="#8E8B85" stroke-width="2" aria-hidden="true"><path d="M8 21L11 3h2l3 18z M12 14l5-7"/></svg>Practice</div><div><svg viewBox="0 0 24 24" fill="none" stroke="#8E8B85" stroke-width="2" aria-hidden="true"><path d="M3 5h7a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H3z M21 5h-7a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h7z"/></svg>Study</div></div>
+</div>
+
+<div class="ph">
+  <div class="top"><span class="proj">Night Drive ▾</span><span class="mic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A3A09A" stroke-width="2" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M4 4l16 16"/></svg>Mic off</span></div>
+  <div class="strip"><div><span style="width:8px;height:8px;border-radius:50%;background:#3FC1A5"></span>Click <span class="mono" style="font-size:16px;font-weight:800">92</span></div><div>Tools ▾</div><div style="color:#FF6B5B"><span style="width:10px;height:10px;border-radius:50%;background:#EF5B4C"></span>Rec</div><div>+ New</div></div>
+  <div class="band" style="background:#3FC1A5"></div>
+  <div class="seg"><div>Tools</div><div style="background:#3FC1A5;color:#04201A">Ear</div></div>
+  <div class="scr">
+    <div style="display:flex;align-items:center;gap:8px;margin-top:14px"><span style="font-size:22px;color:#A3A09A">‹</span><div><div style="font-weight:700;font-size:17px">Sus and modal triads</div><div class="cap">No 3rd: what's in its place?</div></div><span class="mono" style="margin-left:auto;font-weight:700;color:#A3A09A">7/25</span></div>
+    <div style="height:6px;border-radius:3px;background:#202226;margin:12px 0"><div style="width:28%;height:100%;border-radius:3px;background:#3FC1A5"></div></div>
+    <div class="card" style="display:flex;flex-direction:column;align-items:center;padding:22px 12px">
+      <div style="width:96px;height:96px;border-radius:50%;background:#3FC1A5;display:flex;align-items:center;justify-content:center"><svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" fill="#04201A"/></svg></div>
+      <div style="margin-top:10px;font-weight:600">Play again</div>
+      <div style="display:flex;gap:24px;margin-top:14px"><div style="text-align:center"><div class="mono" style="font-size:28px;font-weight:800;color:#3FC1A5">6</div><div class="cap">streak</div></div><div style="text-align:center"><div class="mono" style="font-size:28px;font-weight:800">92%</div><div class="cap">best · 23/25</div></div></div>
+    </div>
+    <div class="ans" style="margin-top:12px"><div>Sus2</div><div>Sus4</div><div>Phrygian</div><div>Lydian</div><div>Sus4♭5</div><div>Locrian</div></div>
+    <div class="cap" style="margin-top:12px;color:#7FD9C4">Learn: suspended and modal triads ›</div>
+  </div>
+  <div class="pl"><div style="flex:1"><div class="cap">Night Drive · 3 layers</div><div class="mono" style="font-weight:700">0:00 / 0:16</div></div><div class="play" style="background:#3A3D44"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" fill="#E8E6E1"/></svg></div></div>
+  <div class="nav"><div><svg viewBox="0 0 24 24" fill="none" stroke="#8E8B85" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Make</div><div style="color:#3FC1A5"><svg viewBox="0 0 24 24" fill="none" stroke="#3FC1A5" stroke-width="2" aria-hidden="true"><path d="M8 21L11 3h2l3 18z M12 14l5-7"/></svg>Practice</div><div><svg viewBox="0 0 24 24" fill="none" stroke="#8E8B85" stroke-width="2" aria-hidden="true"><path d="M3 5h7a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H3z M21 5h-7a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h7z"/></svg>Study</div></div>
+</div>
+
+<div class="ph">
+  <div class="top"><span class="proj">Night Drive ▾</span><span class="mic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A3A09A" stroke-width="2" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M4 4l16 16"/></svg>Mic off</span></div>
+  <div class="strip"><div><span style="width:8px;height:8px;border-radius:50%;background:#9D8CFF"></span>Click <span class="mono" style="font-size:16px;font-weight:800">92</span></div><div>Tools ▾</div><div style="color:#FF6B5B"><span style="width:10px;height:10px;border-radius:50%;background:#EF5B4C"></span>Rec</div><div>+ New</div></div>
+  <div class="band" style="background:#9D8CFF"></div>
+  <div class="seg"><div>Course</div><div style="background:#9D8CFF;color:#130E2E">Reference</div></div>
+  <div class="scr">
+    <div class="cap" style="margin-top:14px">Chords › Seventh chords</div>
+    <div style="display:flex;align-items:baseline;gap:12px"><h1 class="mono" style="font-size:34px;margin:4px 0">Cmaj7</h1><span class="cap">CΔ7 · CM7 · Cma7</span></div>
+    <div class="card" style="padding:2px 14px">
+      <div class="row"><span class="lab">Formula</span><span class="val">1 3 5 7</span></div>
+      <div class="row"><span class="lab">Notes</span><span class="val">C E G B</span></div>
+    </div>
+    <div class="card" style="margin-top:10px"><svg width="334" height="96" viewBox="0 0 362 90" preserveAspectRatio="none" aria-hidden="true"><g fill="#E8E6E1"><rect x="0" y="0" width="50" height="90" rx="3"/><rect x="51.7" y="0" width="50" height="90" rx="3"/><rect x="103.4" y="0" width="50" height="90" rx="3"/><rect x="155.1" y="0" width="50" height="90" rx="3"/><rect x="206.8" y="0" width="50" height="90" rx="3"/><rect x="258.5" y="0" width="50" height="90" rx="3"/><rect x="310.2" y="0" width="50" height="90" rx="3"/></g><g fill="#9D8CFF"><rect x="0" y="0" width="50" height="90" rx="3"/><rect x="103.4" y="0" width="50" height="90" rx="3"/><rect x="206.8" y="0" width="50" height="90" rx="3"/><rect x="310.2" y="0" width="50" height="90" rx="3"/></g><g fill="#0F1012"><rect x="36" y="0" width="30" height="54" rx="2"/><rect x="88" y="0" width="30" height="54" rx="2"/><rect x="191" y="0" width="30" height="54" rx="2"/><rect x="243" y="0" width="30" height="54" rx="2"/><rect x="295" y="0" width="30" height="54" rx="2"/></g><g font-family="JetBrains Mono" font-size="13" font-weight="700" fill="#130E2E" text-anchor="middle"><text x="25" y="80">C</text><text x="128" y="80">E</text><text x="232" y="80">G</text><text x="335" y="80">B</text></g></svg></div>
+    <div style="display:flex;gap:10px;margin-top:10px">
+      <div class="card" style="flex:none"><div class="lab">Guitar · x32000</div><svg width="130" height="96" viewBox="0 0 160 104" aria-hidden="true"><path d="M20 45H140M20 70H140M20 95H140M20 20V95M44 20V95M68 20V95M92 20V95M116 20V95M140 20V95" stroke="#4A4D55"/><path d="M20 20H140" stroke="#E8E6E1" stroke-width="4"/><circle cx="44" cy="82" r="9" fill="#9D8CFF"/><circle cx="68" cy="57" r="9" fill="#9D8CFF"/><g fill="none" stroke="#A3A09A" stroke-width="2"><circle cx="92" cy="9" r="5"/><circle cx="116" cy="9" r="5"/><circle cx="140" cy="9" r="5"/></g><path d="M15 4L25 14M25 4L15 14" stroke="#A3A09A" stroke-width="2"/></svg></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:8px"><span class="btn" style="background:#9D8CFF;color:#130E2E;justify-content:center">▶ Hear it</span><span class="btn" style="justify-content:center">In yours</span><span class="btn" style="justify-content:center">Course ›</span></div>
+    </div>
+  </div>
+  <div class="pl"><div style="flex:1"><div class="cap">Night Drive · 3 layers</div><div class="mono" style="font-weight:700">0:00 / 0:16</div></div><div class="play" style="background:#3A3D44"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" fill="#E8E6E1"/></svg></div></div>
+  <div class="nav"><div><svg viewBox="0 0 24 24" fill="none" stroke="#8E8B85" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Make</div><div><svg viewBox="0 0 24 24" fill="none" stroke="#8E8B85" stroke-width="2" aria-hidden="true"><path d="M8 21L11 3h2l3 18z M12 14l5-7"/></svg>Practice</div><div style="color:#9D8CFF"><svg viewBox="0 0 24 24" fill="none" stroke="#9D8CFF" stroke-width="2" aria-hidden="true"><path d="M3 5h7a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H3z M21 5h-7a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h7z"/></svg>Study</div></div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1736,"height":924}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

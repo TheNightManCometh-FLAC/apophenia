@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Oil light</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,300;0,400;0,500;0,600;1,400&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+.m6{font-family:'Inter Tight',sans-serif;color:#111;font-size:14px}
+.m6 .ph{width:390px;height:844px;background:#FFFFFF;border:1px solid #D8D8D4;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;flex:none}
+.m6 .mono{font-family:'IBM Plex Mono',monospace}
+.m6 .top{display:flex;justify-content:space-between;align-items:center;padding:16px 24px 8px;font-size:12px;letter-spacing:.04em}
+.m6 .strip{display:flex;justify-content:space-between;padding:8px 24px 12px;border-bottom:1px solid #E6E6E2;font-size:14px}
+.m6 .strip span{height:28px;display:flex;align-items:center;gap:6px}
+.m6 .room{padding:22px 24px 0}
+.m6 .room .no{font-size:12px;letter-spacing:.06em;color:#6B6B66;display:flex;align-items:center;gap:8px}
+.m6 .room h1{font-size:30px;font-weight:300;margin:4px 0 0;letter-spacing:-.01em}
+.m6 .scr{flex:1;overflow:hidden;position:relative}
+.m6 .frame{background:#fff;border:6px solid #141414;box-shadow:0 10px 24px #00000026;box-sizing:border-box}
+.m6 .mat{border:14px solid #FAFAF8;outline:1px solid #E4E4E0;outline-offset:-15px}
+.m6 .label{font-size:11.5px;line-height:1.45;color:#2B2B28}
+.m6 .label b{font-weight:600}
+.m6 .label i{font-style:italic}
+.m6 pre{margin:0;font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.45;color:#111;white-space:pre}
+.m6 .pl{display:flex;align-items:center;gap:12px;padding:12px 24px;border-top:1px solid #E6E6E2;font-size:13px}
+.m6 .nav{display:flex;justify-content:space-around;padding:14px 24px 22px;font-size:15px;color:#8A8A85}
+.m6 .nav div{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:64px}
+.m6 .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.m6 .lst{border-top:1px solid #E6E6E2}
+.m6 .lst div{display:flex;justify-content:space-between;align-items:center;height:52px;border-bottom:1px solid #E6E6E2;font-size:17px;font-weight:400}
+
+.m6 .mat.oil{border:14px solid transparent;outline:none;background:linear-gradient(#fff,#fff), var(--oil);background-origin:padding-box,border-box,border-box,border-box,border-box;background-clip:padding-box,border-box,border-box,border-box,border-box;background-repeat:no-repeat}
+.m6 .mk1{--oil:radial-gradient(ellipse at 18% 22%, #FF2E88 0 22%, transparent 52%), radial-gradient(ellipse at 82% 78%, #FFD400 0 18%, transparent 48%), radial-gradient(circle at 70% 12%, #7A3CFF 0 14%, transparent 40%), linear-gradient(140deg, #FF8A00, #FF2E88 55%, #7A3CFF)}
+.m6 .mk2{--oil:radial-gradient(ellipse at 78% 30%, #FF2E88 0 22%, transparent 52%), radial-gradient(ellipse at 20% 80%, #FFD400 0 18%, transparent 48%), radial-gradient(circle at 40% 90%, #7A3CFF 0 14%, transparent 40%), linear-gradient(140deg, #FF8A00, #FF2E88 55%, #7A3CFF)}
+.m6 .mk3{--oil:radial-gradient(ellipse at 30% 85%, #FF2E88 0 22%, transparent 52%), radial-gradient(ellipse at 75% 15%, #FFD400 0 18%, transparent 48%), radial-gradient(circle at 10% 30%, #7A3CFF 0 14%, transparent 40%), linear-gradient(140deg, #FF8A00, #FF2E88 55%, #7A3CFF)}
+.m6 .mk4{--oil:radial-gradient(ellipse at 60% 60%, #FF2E88 0 22%, transparent 52%), radial-gradient(ellipse at 15% 20%, #FFD400 0 18%, transparent 48%), radial-gradient(circle at 90% 85%, #7A3CFF 0 14%, transparent 40%), linear-gradient(140deg, #FF8A00, #FF2E88 55%, #7A3CFF)}
+.m6 .st1{--oil:radial-gradient(ellipse at 20% 30%, #B6F500 0 22%, transparent 52%), radial-gradient(ellipse at 80% 70%, #FF4FD8 0 18%, transparent 48%), radial-gradient(circle at 55% 5%, #00C2FF 0 14%, transparent 40%), linear-gradient(140deg, #FFB000, #B6F500 55%, #00C2FF)}
+.m6 .blob{width:11px;height:11px;border-radius:50%;display:inline-block;filter:saturate(1.2)}
+.m6 .bmk{background:radial-gradient(circle at 35% 35%, #FFD400, #FF2E88 55%, #7A3CFF)}
+.m6 .bpr{background:radial-gradient(circle at 35% 35%, #00E5A8, #00C2FF 55%, #7A3CFF)}
+.m6 .bst{background:radial-gradient(circle at 35% 35%, #B6F500, #FFB000 55%, #FF4FD8)}
+.m6 .oiltxt{background:linear-gradient(100deg, #00C2FF, #7A3CFF 50%, #FF4FD8);-webkit-background-clip:text;background-clip:text;color:transparent}
+.m6 .chordtxt{background:linear-gradient(90deg, #FF2E88, #FF8A00 45%, #7A3CFF);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:600!important}
+</style>
+</helmet>
+<div class="m6" style="width:1736px;height:924px;box-sizing:border-box;padding:40px;background:#ECECE8;display:flex;gap:32px">
+
+<div class="ph">
+  <div class="top"><span>NIGHT DRIVE ▾</span><span style="color:#6B6B66">Mic off</span></div>
+  <div class="strip"><span>Click <span class="mono">92</span></span><span>Tools</span><span><span class="dot" style="background:#D9301E;width:9px;height:9px"></span>Rec</span><span>+ New</span></div>
+  <div class="room"><div class="no"><span class="blob bmk"></span>ROOM 1 · MAKE</div><h1>Board</h1><div style="display:flex;gap:18px;margin-top:10px;font-size:13px;color:#6B6B66"><span style="color:#111;text-decoration:underline;text-underline-offset:4px">Board</span><span>Library</span><span>AI</span></div></div>
+  <div class="scr">
+    <div style="position:relative;height:440px;margin:18px 24px 0">
+      <div class="frame" style="position:absolute;left:0;top:0;width:150px;height:150px"><div class="mat oil mk1" style="height:100%;box-sizing:border-box;padding:6px"><div style="font-size:11px;line-height:1.4;font-style:italic">Am &nbsp; &nbsp; &nbsp; F<br>Headlights on<br>the overpass</div></div></div>
+      <div class="label" style="position:absolute;left:0;top:160px;width:150px"><b>Verse 1</b>, 2026<br>Lyrics · verse</div>
+      <div class="frame" style="position:absolute;left:186px;top:40px;width:156px;height:110px"><div class="mat oil mk2" style="height:100%;box-sizing:border-box;padding:8px 4px;display:flex;align-items:center"><svg width="100%" height="40" viewBox="0 0 340 64" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="og1" x1="0" x2="1"><stop offset="0" stop-color="#FF2E88"/><stop offset=".45" stop-color="#FF8A00"/><stop offset=".75" stop-color="#FFD400"/><stop offset="1" stop-color="#7A3CFF"/></linearGradient></defs><path d="M0 20V44M14 18V46M28 6V58M43 13V51M57 13V51M72 4V60M86 8V56M101 14V50M115 16V48M130 22V42M144 20V44M158 12V52M172 8V56M187 5V59M201 8V56M215 12V52M230 16V48M244 13V51M258 13V51M273 23V41M287 23V41M301 17V47M316 18V46M330 9V55" stroke="url(#og1)" stroke-width="5"/></svg></div></div>
+      <div class="label" style="position:absolute;left:186px;top:160px;width:156px"><b>Riff idea</b> <span class="dot" style="background:#D9301E;width:9px;height:9px;vertical-align:middle"></span>, 2026<br>Recording, take C of 3<br>0:42 · A minor · <span class="mono">92</span></div>
+      <div class="frame" style="position:absolute;left:10px;top:226px;width:136px;height:100px"><div class="mat oil mk3" style="height:100%;box-sizing:border-box;padding:6px;display:flex;align-items:center;justify-content:center"><span class="chordtxt" style="font-size:16px;letter-spacing:.04em">Am F C G</span></div></div>
+      <div class="label" style="position:absolute;left:10px;top:334px;width:150px"><b>Chorus</b>, 2026<br>Chords</div>
+      <div class="frame" style="position:absolute;left:190px;top:244px;width:150px;height:96px"><div class="mat oil mk4" style="height:100%;box-sizing:border-box;padding:4px"><pre>D|---2-3-
+A|-0-----</pre></div></div>
+      <div class="label" style="position:absolute;left:190px;top:348px;width:150px"><b>Bass line</b>, 2026<br>Tab · bass</div>
+    </div>
+  </div>
+  <div class="pl"><span style="font-size:15px">▶</span><span style="flex:1">Night Drive, 3 layers</span><span class="mono" style="color:#6B6B66">0:00 / 0:16</span></div>
+  <div class="nav"><div style="color:#111">Make<span class="blob bmk"></span></div><div>Practice<span class="dot" style="background:transparent"></span></div><div>Study<span class="dot" style="background:transparent"></span></div></div>
+</div>
+
+<div class="ph">
+  <div class="top"><span>← BOARD</span><span style="color:#6B6B66">AI ▾</span></div>
+  <div class="strip"><span>Click <span class="mono">92</span></span><span>Tools</span><span><span class="dot" style="background:#D9301E;width:9px;height:9px"></span>Rec</span><span>+ New</span></div>
+  <div class="scr" style="padding:24px 24px 0">
+    <div class="frame" style="width:100%;height:150px"><div class="mat oil mk2" style="height:100%;box-sizing:border-box;padding:12px 6px;display:flex;align-items:center"><svg width="100%" height="80" viewBox="0 0 340 64" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="og2" x1="0" x2="1"><stop offset="0" stop-color="#FF2E88"/><stop offset=".45" stop-color="#FF8A00"/><stop offset=".75" stop-color="#FFD400"/><stop offset="1" stop-color="#7A3CFF"/></linearGradient></defs><path d="M0.0 20.1V43.9 M4.8 20.2V43.8 M9.6 16.3V47.7 M14.4 17.7V46.3 M19.2 17.8V46.2 M23.9 13.2V50.8 M28.7 6.1V57.9 M33.5 6.6V57.4 M38.3 6.3V57.7 M43.1 13.0V51.0 M47.9 8.5V55.5 M52.7 11.8V52.2 M57.5 13.2V50.8 M62.3 14.2V49.8 M67.0 12.9V51.1 M71.8 4.0V60.0 M76.6 6.0V58.0 M81.4 7.1V56.9 M86.2 8.2V55.8 M91.0 16.1V47.9 M95.8 15.8V48.2 M100.6 13.6V50.4 M105.4 14.0V50.0 M110.1 14.5V49.5 M114.9 16.0V48.0 M119.7 23.2V40.8 M124.5 21.2V42.8 M129.3 22.5V41.5 M134.1 22.8V41.2 M138.9 23.3V40.7 M143.7 20.0V44.0 M148.5 21.6V42.4 M153.2 13.2V50.8 M158.0 12.2V51.8 M162.8 14.0V50.0 M167.6 15.5V48.5 M172.4 7.6V56.4 M177.2 10.5V53.5 M182.0 5.8V58.2 M186.8 5.5V58.5 M191.5 9.3V54.7 M196.3 10.2V53.8 M201.1 7.5V56.5 M205.9 9.7V54.3 M210.7 13.4V50.6 M215.5 11.7V52.3 M220.3 5.3V58.7 M225.1 15.8V48.2 M229.9 16.3V47.7 M234.6 9.9V54.1 M239.4 14.9V49.1 M244.2 13.0V51.0 M249.0 14.8V49.2 M253.8 17.3V46.7 M258.6 12.8V51.2 M263.4 20.9V43.1 M268.2 20.5V43.5 M273.0 23.2V40.8 M277.7 22.2V41.8 M282.5 24.4V39.6 M287.3 22.6V41.4 M292.1 18.6V45.4 M296.9 20.2V43.8 M301.7 16.9V47.1 M306.5 12.4V51.6 M311.3 18.8V45.2 M316.1 18.3V45.7 M320.8 15.7V48.3 M325.6 8.5V55.5 M330.4 9.4V54.6 M335.2 13.5V50.5 M340.0 11.8V52.2" stroke="url(#og2)" stroke-width="2.2"/><rect x="99" y="0" width="241" height="64" fill="#fff" opacity=".62"/><path d="M98 0V64" stroke="#111" stroke-width="2"/></svg></div></div>
+    <div style="display:flex;gap:16px;margin-top:18px">
+      <div class="label" style="flex:1;font-size:13px"><b style="font-size:20px;font-weight:500">Riff idea</b>, 2026<br>Recording, take C of 3 <span class="dot" style="background:#D9301E;width:9px;height:9px;vertical-align:middle"></span><br>0:42, 48 kHz stereo<br><span style="color:#6B6B66">A minor · <span class="mono">92</span> BPM · 4/4, read from the downbeats</span></div>
+    </div>
+    <div style="display:flex;gap:24px;margin-top:18px;font-size:15px"><span>A</span><span>B</span><span style="text-decoration:underline;text-underline-offset:5px">C <span class="dot" style="background:#D9301E;vertical-align:middle"></span></span></div>
+    <div style="margin-top:22px;font-size:12px;letter-spacing:.06em;color:#6B6B66">CHORDS</div>
+    <div class="chordtxt" style="font-size:26px;letter-spacing:.06em;margin-top:4px;display:inline-block">Am &nbsp;F &nbsp;C &nbsp;G</div>
+    <div class="lst" style="margin-top:18px"><div><span>Make a chord chart</span><span>→</span></div><div><span>Stems · MIDI · Text</span><span>→</span></div></div>
+  </div>
+  <div class="pl"><span style="font-size:13px">❚❚</span><span style="flex:1">Riff idea, take C</span><span class="mono" style="color:#6B6B66">0:12 / 0:42</span></div>
+  <div class="nav"><div style="color:#111">Make<span class="blob bmk"></span></div><div>Practice<span class="dot" style="background:transparent"></span></div><div>Study<span class="dot" style="background:transparent"></span></div></div>
+</div>
+
+<div class="ph">
+  <div class="top"><span>NIGHT DRIVE ▾</span><span style="color:#6B6B66">Mic off</span></div>
+  <div class="strip"><span>Click <span class="mono">92</span></span><span>Tools</span><span><span class="dot" style="background:#D9301E;width:9px;height:9px"></span>Rec</span><span>+ New</span></div>
+  <div class="room"><div class="no"><span class="blob bpr"></span>ROOM 2 · PRACTICE</div><h1>Sus and modal triads</h1><div style="display:flex;gap:18px;margin-top:10px;font-size:13px;color:#6B6B66"><span>Tools</span><span style="color:#111;text-decoration:underline;text-underline-offset:4px">Ear</span></div></div>
+  <div class="scr" style="padding:0 24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:26px 0 22px">
+      <span style="width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 30% 28%, #00E5A8 0 16%, transparent 42%), radial-gradient(circle at 72% 70%, #FF4FD8 0 18%, transparent 46%), conic-gradient(from 40deg, #00C2FF, #7A3CFF, #FF4FD8, #00C2FF);box-shadow:0 8px 22px #7A3CFF55"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4l13 8-13 8z" fill="#fff"/></svg></span>
+      <div style="text-align:right"><div style="font-size:56px;font-weight:400;line-height:1"><span class="oiltxt">7</span><span style="font-size:22px;color:#8A8A85">/25</span></div><div class="label" style="color:#6B6B66">Streak 6 · best 92%</div></div>
+    </div>
+    <div class="label" style="color:#6B6B66;margin-bottom:8px">No third. What is in its place?</div>
+    <div class="lst"><div><span>Sus2</span><span class="mono" style="font-size:12px;color:#8A8A85">1 2 5</span></div><div><span>Sus4</span><span class="mono" style="font-size:12px;color:#8A8A85">1 4 5</span></div><div><span>Phrygian</span><span class="mono" style="font-size:12px;color:#8A8A85">1 ♭2 5</span></div><div><span>Lydian</span><span class="mono" style="font-size:12px;color:#8A8A85">1 ♯4 5</span></div><div><span>Sus4♭5</span><span class="mono" style="font-size:12px;color:#8A8A85">1 4 ♭5</span></div><div><span>Locrian</span><span class="mono" style="font-size:12px;color:#8A8A85">1 ♭2 ♭5</span></div></div>
+  </div>
+  <div class="pl"><span style="font-size:15px">▶</span><span style="flex:1">Night Drive, 3 layers</span><span class="mono" style="color:#6B6B66">0:00 / 0:16</span></div>
+  <div class="nav"><div>Make<span class="dot" style="background:transparent"></span></div><div style="color:#111">Practice<span class="blob bpr"></span></div><div>Study<span class="dot" style="background:transparent"></span></div></div>
+</div>
+
+<div class="ph">
+  <div class="top"><span>NIGHT DRIVE ▾</span><span style="color:#6B6B66">Mic off</span></div>
+  <div class="strip"><span>Click <span class="mono">92</span></span><span>Tools</span><span><span class="dot" style="background:#D9301E;width:9px;height:9px"></span>Rec</span><span>+ New</span></div>
+  <div class="room"><div class="no"><span class="blob bst"></span>ROOM 3 · STUDY</div><h1>Cmaj7</h1><div style="display:flex;gap:18px;margin-top:10px;font-size:13px;color:#6B6B66"><span>Course</span><span style="color:#111;text-decoration:underline;text-underline-offset:4px">Reference</span></div></div>
+  <div class="scr" style="padding:22px 24px 0">
+    <div class="frame" style="width:100%"><div class="mat oil st1" style="padding:10px"><svg width="100%" height="96" viewBox="0 0 362 90" preserveAspectRatio="none" aria-hidden="true"><g fill="#fff" stroke="#111" stroke-width="1"><rect x="0.5" y="0.5" width="51" height="89"/><rect x="52.2" y="0.5" width="51" height="89"/><rect x="103.9" y="0.5" width="51" height="89"/><rect x="155.6" y="0.5" width="51" height="89"/><rect x="207.3" y="0.5" width="51" height="89"/><rect x="259" y="0.5" width="51" height="89"/><rect x="310.7" y="0.5" width="51" height="89"/></g><g fill="#111"><rect x="36" y="0" width="30" height="54"/><rect x="88" y="0" width="30" height="54"/><rect x="191" y="0" width="30" height="54"/><rect x="243" y="0" width="30" height="54"/><rect x="295" y="0" width="30" height="54"/></g><defs><radialGradient id="sd" cx=".35" cy=".35"><stop offset="0" stop-color="#B6F500"/><stop offset=".55" stop-color="#FFB000"/><stop offset="1" stop-color="#FF4FD8"/></radialGradient></defs><g fill="url(#sd)"><circle cx="26" cy="74" r="8"/><circle cx="129" cy="74" r="8"/><circle cx="233" cy="74" r="8"/><circle cx="336" cy="74" r="8"/></g></svg></div></div>
+    <div class="label" style="margin-top:14px;font-size:13px"><b style="font-size:20px;font-weight:500">Cmaj7</b><br>Seventh chord · 1 3 5 7 · C E G B<br><span style="color:#6B6B66">Also written CΔ7, CM7, Cma7</span></div>
+    <div style="display:flex;gap:20px;align-items:center;margin-top:18px">
+      <svg width="110" height="78" viewBox="0 0 160 104" aria-hidden="true"><path d="M20 45H140M20 70H140M20 95H140M20 20V95M44 20V95M68 20V95M92 20V95M116 20V95M140 20V95" stroke="#111" stroke-width="1"/><path d="M20 20H140" stroke="#111" stroke-width="4"/><defs><radialGradient id="sd2" cx=".35" cy=".35"><stop offset="0" stop-color="#B6F500"/><stop offset=".55" stop-color="#FFB000"/><stop offset="1" stop-color="#FF4FD8"/></radialGradient></defs><circle cx="44" cy="82" r="8" fill="url(#sd2)"/><circle cx="68" cy="57" r="8" fill="url(#sd2)"/><g fill="none" stroke="#111" stroke-width="1.5"><circle cx="92" cy="9" r="5"/><circle cx="116" cy="9" r="5"/><circle cx="140" cy="9" r="5"/></g><path d="M15 4L25 14M25 4L15 14" stroke="#111" stroke-width="1.5"/></svg>
+      <div class="label">Guitar, x32000<br><span style="color:#6B6B66">Open position</span></div>
+    </div>
+    <div class="lst" style="margin-top:16px"><div><span>▶ Hear it</span><span>→</span></div><div><span>Course: seventh chords</span><span>→</span></div></div>
+  </div>
+  <div class="pl"><span style="font-size:15px">▶</span><span style="flex:1">Night Drive, 3 layers</span><span class="mono" style="color:#6B6B66">0:00 / 0:16</span></div>
+  <div class="nav"><div>Make<span class="dot" style="background:transparent"></span></div><div>Practice<span class="dot" style="background:transparent"></span></div><div style="color:#111">Study<span class="blob bst"></span></div></div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1736,"height":924}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

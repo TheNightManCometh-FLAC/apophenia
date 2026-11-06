@@ -12,7 +12,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlin.random.Random
 
 /** Kept on AppModel while a related lesson is open, so returning resumes the same question and score. */
-class EarRun(val drill: EarDrill, val mode: EarMode, target: Int, settings: EarSettings, strings: Int) {
+class EarRun(val drill: EarDrill, val mode: EarMode, target: Int, settings: EarSettings, strings: Int, val record: Boolean = true) {
     val progress = EarProgress(mode, target)
     val random = Random(System.nanoTime())
     var settings by mutableStateOf(settings)
@@ -37,7 +37,7 @@ class EarRun(val drill: EarDrill, val mode: EarMode, target: Int, settings: EarS
     }
 
     fun save(model: AppModel) {
-        if (!progress.recordable) return
+        if (!record || !progress.recordable) return
         val result = EarResultEntity(drill = drill.id, mode = mode.name.lowercase(), correct = progress.right,
             total = progress.asked, bestStreak = progress.best, finishedAt = System.currentTimeMillis())
         model.app.io.launch {

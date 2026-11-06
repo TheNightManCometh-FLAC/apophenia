@@ -115,14 +115,14 @@ class MusicXmlTest {
 
     @Test
     fun `every score example in the Course exports and adds up`() {
-        val scores = com.betterappmafia.apophenia.core.learn.Course.pages.mapNotNull { (it.see as? com.betterappmafia.apophenia.core.learn.CourseSee.Score)?.score }
+        val scores = com.betterappmafia.apophenia.core.learn.Course.pages.flatMap { p -> p.pictures.filterIsInstance<com.betterappmafia.apophenia.core.learn.CourseSee.Score>().map { it.score } }
         assertTrue(scores.size >= 10)
         for (s in scores) assertBarsAddUp(parse(MusicXml.write(s)), s)
     }
 
     @Test
     fun `every export is valid against the MusicXML 4 schema`() {
-        val scores = com.betterappmafia.apophenia.core.learn.Course.pages.mapNotNull { (it.see as? com.betterappmafia.apophenia.core.learn.CourseSee.Score)?.score } +
+        val scores = com.betterappmafia.apophenia.core.learn.Course.pages.flatMap { p -> p.pictures.filterIsInstance<com.betterappmafia.apophenia.core.learn.CourseSee.Score>().map { it.score } } +
             listOf(CourseReading.tabScore, CourseReading.roadmap)
         for (s in scores) assertValid(MusicXml.write(s), s.title)
     }

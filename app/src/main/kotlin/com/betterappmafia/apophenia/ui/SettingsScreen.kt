@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -142,7 +143,7 @@ private fun ThemePicker(model: AppModel) {
     Palettes.ALL.forEach { p ->
         val on = C.palette.id == p.id
         Row(
-            Modifier.fillMaxWidth().height(56.dp).underline().background(if (on) C.selected else C.bg)
+            Modifier.fillMaxWidth().height(56.dp).underline().background(if (on) C.selected else if (C.palette.film) Color.Transparent else C.bg)
                 .clickable(role = Role.RadioButton) { model.chooseTheme(p) }.padding(horizontal = 14.dp)
                 .semantics { contentDescription = "Theme ${p.label}${if (on) ", chosen" else ""}" },
             verticalAlignment = Alignment.CenterVertically,
@@ -152,6 +153,10 @@ private fun ThemePicker(model: AppModel) {
             Text(p.label, style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold), modifier = Modifier.weight(1f))
             Text(if (on) "✓" else "", style = T.hi.copy(color = C.acc))
         }
+    }
+    // For measuring on the phone: how long the last Film frame took to paint (it's painted once, then cached).
+    FilmFrames.lastPaint?.let { (ms, w, h) ->
+        Text("Last Film frame painted in $ms ms ($w × $h), then cached.", style = T.small, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
     }
 }
 

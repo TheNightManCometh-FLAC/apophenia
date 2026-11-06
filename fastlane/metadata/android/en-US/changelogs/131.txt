@@ -1,0 +1,1 @@
+The player has better controls: a scrub bar along its top (tap or drag to move), back to the start (or to loop point A), the take's speed and its A-B loop right there, and a real pause button instead of a square that looked like stop.

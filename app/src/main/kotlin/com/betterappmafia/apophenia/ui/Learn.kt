@@ -124,24 +124,7 @@ private fun RudimentPage(model: AppModel, r: Rudiment) {
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             Text("${r.family.uppercase()} · PAS #${r.number}", style = T.label, modifier = Modifier.padding(14.dp))
-            FlowRow(Modifier.fillMaxWidth().padding(horizontal = 10.dp)) {
-                r.strokes.forEachIndexed { i, st ->
-                    Column(
-                        Modifier.width(40.dp).padding(2.dp).background(if (i == lit) C.selected else Color.Transparent).border(1.dp, if (i == lit) C.acc else C.line),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(if (st.accent) ">" else " ", style = T.label.copy(color = C.acc, fontSize = 11.sp))
-                        Text(st.grace.ifEmpty { " " }, style = T.label.copy(fontSize = 9.sp, color = C.dim))
-                        Text(st.hand?.toString() ?: "·", style = T.hi.copy(fontSize = 20.sp, color = if (st.hand == null) C.faint else if (i == lit) C.acc else C.hi))
-                        Text(if (st.buzz) "z" else " ", style = T.label)
-                    }
-                }
-            }
-            Text(
-                "> accent · small letters over a stroke are grace notes from that hand (one: a flam, two: a drag) · z buzz · · the note before lasts longer.\n\n" +
-                    "${r.slotsPerBeat} strokes to a beat. Rhythm is simplified to equal steps; the sticking, accents and grace notes are the rudiment's.",
-                style = T.small.copy(lineHeight = 16.sp), modifier = Modifier.padding(14.dp),
-            )
+            RudimentStrokes(r, lit)
             Box {
                 KvText("TEMPO", "$bpm BPM ▾") { tempoMenu = true }
                 ConsoleMenu(tempoMenu, { tempoMenu = false }, "TEMPO (A BEAT = ${r.slotsPerBeat} STROKES)", TEMPOS.map { t ->
@@ -160,6 +143,30 @@ private fun RudimentPage(model: AppModel, r: Rudiment) {
             contentAlignment = Alignment.Center,
         ) { Text(if (mine && p!!.playing) "■ STOP" else "▶ HEAR IT", style = T.button.copy(fontSize = 16.sp)) }
     }
+}
+
+/** A rudiment's sticking, one box per stroke, the stroke [lit] being played; then how to read it. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun RudimentStrokes(r: Rudiment, lit: Int) {
+    FlowRow(Modifier.fillMaxWidth().padding(horizontal = 10.dp)) {
+        r.strokes.forEachIndexed { i, st ->
+            Column(
+                Modifier.width(40.dp).padding(2.dp).background(if (i == lit) C.selected else Color.Transparent).border(1.dp, if (i == lit) C.acc else C.line),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(if (st.accent) ">" else " ", style = T.label.copy(color = C.acc, fontSize = 11.sp))
+                Text(st.grace.ifEmpty { " " }, style = T.label.copy(fontSize = 9.sp, color = C.dim))
+                Text(st.hand?.toString() ?: "·", style = T.hi.copy(fontSize = 20.sp, color = if (st.hand == null) C.faint else if (i == lit) C.acc else C.hi))
+                Text(if (st.buzz) "z" else " ", style = T.label)
+            }
+        }
+    }
+    Text(
+        "> accent · small letters over a stroke are grace notes from that hand (one: a flam, two: a drag) · z buzz · · the note before lasts longer.\n\n" +
+            "${r.slotsPerBeat} strokes to a beat. Rhythm is simplified to equal steps; the sticking, accents and grace notes are the rudiment's.",
+        style = T.small.copy(lineHeight = 16.sp), modifier = Modifier.padding(14.dp),
+    )
 }
 
 private val GROOVE_TEMPOS = listOf(50, 60, 70, 76, 80, 90, 92, 96, 100, 110, 116, 120, 130, 140, 160, 180, 200)
@@ -266,7 +273,7 @@ fun renderReference(model: AppModel, name: String, pcm: () -> FloatArray): File 
 const val REFERENCE_SCRAP = -1L
 
 /** Four passes of the rudiment at [bpm], rendered once into the cache and kept there (it's derived, evictable). */
-private fun renderRudiment(model: AppModel, r: Rudiment, bpm: Int): File {
+internal fun renderRudiment(model: AppModel, r: Rudiment, bpm: Int): File {
     val dir = File(model.app.cacheDir, "reference").apply { mkdirs() }
     val f = File(dir, "rudiment-${r.number}-$bpm-v1.wav")
     if (f.length() > 44) return f

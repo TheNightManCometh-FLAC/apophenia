@@ -1,0 +1,1 @@
+0.9.47: delete take B and the next take is B again, not C (a take brought back from the trash takes the next free letter if its own was reused). Pausing a take recorded over a playing stack writes silence for the pause, so the rest of the take stays lined up with the stack. Other pauses still cut the paused stretch out.

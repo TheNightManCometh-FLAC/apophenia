@@ -1,6 +1,13 @@
 package com.betterappmafia.apophenia.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.abs
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.betterappmafia.apophenia.core.catalog.KeyMode
 import com.betterappmafia.apophenia.audio.Mic
 import com.betterappmafia.apophenia.ui.theme.C
 import com.betterappmafia.apophenia.ui.theme.T
@@ -54,6 +62,12 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
     val mic by audio.mic.collectAsState()
 
     Box(Modifier.fillMaxSize().background(C.bg)) {
+        // Film: the project's painted frame behind every screen (design plan, 31 Oct 2026).
+        if (C.palette.film) {
+            // Full brightness on every screen, light trails crossing list text included: Christopher read it fine and
+            // preferred it to a darker scrim off the Board (31 Oct 2026).
+            SectionBackdrop(model, Modifier.fillMaxSize())
+        }
         // Stand mode takes the whole screen (plan §4.4); recording, sheets and dialogs still sit over it.
         val stand = model.standProject
         if (stand != null) Box(Modifier.fillMaxSize().systemBarsPadding()) { StandMode(model, stand, requestMic) { model.standProject = null } }
@@ -65,7 +79,7 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
                 when {
                     model.correcting != null -> CorrectionScreen(model, model.correcting!!)
                     detail != null -> ScrapDetail(model, detail, requestMic)
-                    model.showStack -> StackScreen(model)
+                    model.showStack -> StackScreen(model, requestMic)
                     model.showTrash -> TrashScreen(model)
                     model.showNotices -> NoticesScreen(model)
                     model.showSettings -> SettingsScreen(model, requestMic)
@@ -95,7 +109,7 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
         model.restartMessage?.let { RestartScreen(it) }
     }
 
-    BackHandler(enabled = model.sheet != Sheet.None || model.correcting != null || model.detail != null || model.showTrash || model.showNotices || model.showSettings || model.showStack || model.selecting || model.performanceOpen || (model.mode == Mode.EXERCISES && model.exerciseOpen != null) || (model.mode == Mode.TOOLS && model.tools.screen != null) || (model.mode.learn && (model.learnRudiment != null || model.learnGroove != null)) ||
+    BackHandler(enabled = model.sheet != Sheet.None || model.correcting != null || model.detail != null || model.showTrash || model.showNotices || model.showSettings || model.showStack || model.selecting || model.performanceOpen || (model.mode == Mode.EXERCISES && (model.exerciseOpen != null || model.curatedOpen != null)) || (model.mode == Mode.TOOLS && model.tools.screen != null) || (model.mode.learn && (model.learnRudiment != null || model.learnGroove != null)) ||
         (model.mode == Mode.REFERENCE && (model.refPage != null || model.learnList != null)) || (model.mode == Mode.COURSE && (model.coursePage != null || model.courseCat != null))) {
         when {
             model.sheet != Sheet.None -> model.sheet = Sheet.None
@@ -106,7 +120,7 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
             model.showNotices -> model.showNotices = false
             model.showSettings -> model.showSettings = false
             model.performanceOpen -> model.performanceOpen = false
-            model.mode == Mode.EXERCISES && model.exerciseOpen != null -> model.exerciseOpen = null
+            model.mode == Mode.EXERCISES && (model.exerciseOpen != null || model.curatedOpen != null) -> { model.exerciseOpen = null; model.curatedOpen = null }
             model.mode == Mode.TOOLS && model.tools.screen != null -> model.tools.screen = null
             model.mode.learn && model.learnGroove != null -> model.learnGroove = null
             model.mode.learn && model.learnRudiment != null -> model.learnRudiment = null
@@ -146,6 +160,14 @@ private fun TopBar(model: AppModel, mic: Mic) {
             )
             Text(label, style = T.label.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color, letterSpacing = 0.08.sp))
         }
+        // Christopher, 5 Nov 2026: a coffee cup as a quick way to the donate link. Opens the browser; the app stays offline.
+        val ctx = androidx.compose.ui.platform.LocalContext.current
+        Box(
+            Modifier.fillMaxHeight().padding(start = 4.dp).width(40.dp).clickable(role = Role.Button) {
+                runCatching { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(DONATE_URL))) }
+            }.semantics { contentDescription = "Support Apophenia on Ko-fi" },
+            contentAlignment = Alignment.Center,
+        ) { Glyph(GlyphKind.CUP, C.dim, 18.dp) }
         Box(
             Modifier.fillMaxHeight().width(44.dp).clickable(role = Role.Button) { model.showSettings = !model.showSettings }
                 .semantics { contentDescription = "Settings" },
@@ -289,48 +311,205 @@ private fun Transport(model: AppModel) {
     val stack = s
     if (p != null || stack == null) TakeRow(model, p, slim = stack != null)
     if (stack != null) {
-        Row(Modifier.fillMaxWidth().height(56.dp).background(C.panel).drawBehindTop(C.line)) {
+        // The stack in the player (his stacks pick, 2 Nov 2026): a bar per layer in its take's key colour, the name as a
+        // title card, tempo · key · layers; ■/▶ plays, × takes it out of the player (it stays saved).
+        val layers by model.stacks.layers.collectAsState()
+        Row(Modifier.fillMaxWidth().height(60.dp).background(C.panel).drawBehindTop(C.line), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.padding(start = 12.dp).width(28.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                layers.take(6).forEach { r ->
+                    val k = KeyMode.parseOrNull(r.key)
+                    val warm = com.betterappmafia.apophenia.core.art.FilmFrame.palette(k?.tonic?.pitchClass, k?.let { isMinor(it) } ?: false).third
+                    Box(Modifier.fillMaxWidth().height(4.dp).background(androidx.compose.ui.graphics.Color(warm[0] / 255f, warm[1] / 255f, warm[2] / 255f, if (r.layer.muted) 0.3f else 0.85f)))
+                }
+            }
             Column(
                 Modifier.weight(1f).fillMaxHeight().clickable { model.showStack = true; model.detail = null }.padding(horizontal = 12.dp)
                     .semantics { contentDescription = "${stack.title}. Open the stack." },
                 verticalArrangement = Arrangement.Center,
             ) {
-                Line1("${stack.title} · ${stack.layers} LAYER${if (stack.layers == 1) "" else "S"}".uppercase(), T.label)
-                Text("${if (stack.playing) "▶" else "■"} ${clock(stack.position, model.app.audio.sampleRate)} / ${clock(stack.length, model.app.audio.sampleRate)}", style = T.hi.copy(fontSize = 13.sp))
+                Line1(stack.title, T.display.copy(fontSize = 19.sp))
+                Line1(listOfNotNull(model.stacks.tempo(layers)?.let { "%.0f BPM".format(it) }, model.stacks.key(layers)?.display?.uppercase(), "${stack.layers} LAYER${if (stack.layers == 1) "" else "S"}").joinToString(" · ") +
+                    "  ${clock(stack.position, model.app.audio.sampleRate)}", T.label)
             }
             Box(
-                Modifier.width(60.dp).fillMaxHeight().drawBehind { drawLine(C.line, Offset(0f, 0f), Offset(0f, size.height), 1f) }
+                Modifier.width(52.dp).fillMaxHeight().drawBehind { drawLine(C.line, Offset(0f, 0f), Offset(0f, size.height), 1f) }
                     .clickable(enabled = stack.layers > 0, role = Role.Button) { model.app.audio.stackToggle() }
                     .semantics { contentDescription = if (stack.playing) "Stop the stack" else "Play the stack" },
                 contentAlignment = Alignment.Center,
             ) { Text(if (stack.playing) "■" else "▶", style = T.hi.copy(fontSize = 20.sp, color = if (stack.layers == 0) C.faint else C.acc)) }
+            Box(
+                Modifier.width(48.dp).fillMaxHeight().drawBehind { drawLine(C.line, Offset(0f, 0f), Offset(0f, size.height), 1f) }
+                    .clickable(role = Role.Button) { model.showStack = false; model.app.audio.unloadStack() }
+                    .semantics { contentDescription = "Take the stack out of the player. It stays saved." },
+                contentAlignment = Alignment.Center,
+            ) { Text("×", style = T.hi.copy(fontSize = 20.sp, color = C.dim)) }
         }
     }
 }
 
+
+/**
+ * The take in the player (Christopher, 4 Nov 2026: "The player needs better controls"; he picked a scrub bar, back to
+ * start, and speed and loop): a scrub bar along the top (tap or drag to move), back to the top or to loop point A,
+ * the take's speed and A–B loop as menus, and play/pause.
+ */
 @Composable
 private fun TakeRow(model: AppModel, p: com.betterappmafia.apophenia.audio.Loaded?, slim: Boolean) {
-    Row(Modifier.fillMaxWidth().height(if (slim) 42.dp else 56.dp).background(C.panel).drawBehindTop(C.line)) {
-        Column(
-            Modifier.weight(1f).fillMaxHeight().clickable(enabled = p != null && p.scrapId != REFERENCE_SCRAP) { p?.let { model.open(it.scrapId) } }.padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.Center,
-        ) {
-            if (p == null) {
-                Text("PLAYER", style = T.label)
-                Text("Nothing loaded · ▶ a take in the Library", style = T.small)
-            } else if (slim) {
-                Line1("${if (p.playing) "▶" else "■"} ${clock(p.position, p.rate)}  ${p.title.uppercase()}", T.label)
-            } else {
-                Line1(p.title.uppercase() + if (p.playback.isPlain) "" else " · ${p.playback.label}", T.label)
-                Text("${if (p.playing) "▶" else "■"} ${clock(p.position, p.rate)} / ${clock(p.frames, p.rate)}", style = T.hi.copy(fontSize = 13.sp))
+    val audio = model.app.audio
+    // Speed and loop apply to recordings and imported songs only (plan §7 Playback speed), not reference sounds or scores.
+    val rec = p != null && p.scrapId != REFERENCE_SCRAP && p.takeId > 0
+    var drag by remember { mutableStateOf<Float?>(null) }
+    Column(Modifier.fillMaxWidth().background(C.panel).drawBehindTop(C.line)) {
+        if (p != null) Scrubber(p, drag, { drag = it }) { f -> drag = null; audio.seekFrame((p.frames * f).toLong(), play = p.playing) }
+        Row(Modifier.fillMaxWidth().height(if (slim) 40.dp else 50.dp)) {
+            if (p != null) PlayerKey(44.dp, if (p.playback.hasLoop) "Back to loop point A" else "Back to the start", divider = false, onClick = {
+                audio.seekFrame(if (p.playback.hasLoop) p.playback.loopA else 0, play = p.playing)
+            }) { Glyph(GlyphKind.START, C.hi, if (slim) 12.dp else 14.dp) }
+            Column(
+                Modifier.weight(1f).fillMaxHeight().clickable(enabled = p != null && p.scrapId != REFERENCE_SCRAP) { p?.let { model.open(it.scrapId) } }
+                    .padding(horizontal = if (p == null) 12.dp else 4.dp),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                if (p == null) {
+                    Text("PLAYER", style = T.label)
+                    Text("Nothing loaded · ▶ a take in the Library", style = T.small)
+                } else {
+                    val at = drag?.let { (p.frames * it).toLong() } ?: p.position
+                    val time = "${clock(at, p.rate)} / ${clock(p.frames, p.rate)}"
+                    if (slim) Line1("$time  ${p.title.uppercase()}", T.label)
+                    else {
+                        Line1(p.title.uppercase(), T.label)
+                        Text(time, style = T.hi.copy(fontSize = 13.sp))
+                    }
+                }
+            }
+            if (rec) {
+                SpeedKey(model, p!!)
+                LoopKey(model, p)
+            }
+            PlayerKey(56.dp, if (p?.playing == true) "Pause" else "Play", enabled = p != null, onClick = { audio.togglePlay() }) {
+                Glyph(if (p?.playing == true) GlyphKind.PAUSE else GlyphKind.PLAY, if (p == null) C.faint else C.hi, if (slim) 14.dp else 18.dp)
             }
         }
-        Box(
-            Modifier.width(60.dp).fillMaxHeight().drawBehind { drawLine(C.line, Offset(0f, 0f), Offset(0f, size.height), 1f) }
-                .clickable(enabled = p != null, role = Role.Button) { model.app.audio.togglePlay() }
-                .semantics { contentDescription = if (p?.playing == true) "Stop" else "Play" },
-            contentAlignment = Alignment.Center,
-        ) { Text(if (p?.playing == true) "■" else "▶", style = T.hi.copy(fontSize = if (slim) 16.sp else 20.sp, color = if (p == null) C.faint else C.hi)) }
+    }
+}
+
+/** The position along the take, with the A–B loop shaded: tap to move there, drag to scrub (it moves on release). */
+@Composable
+private fun Scrubber(p: com.betterappmafia.apophenia.audio.Loaded, drag: Float?, onDrag: (Float?) -> Unit, onSeek: (Float) -> Unit) {
+    val n = p.frames.coerceAtLeast(1).toFloat()
+    val at = drag ?: (p.position / n).coerceIn(0f, 1f)
+    Canvas(
+        Modifier.fillMaxWidth().height(22.dp)
+            .pointerInput(p.path, p.frames) {
+                val pad = 12.dp.toPx()
+                detectTapGestures { o -> onSeek(((o.x - pad) / (size.width - 2 * pad)).coerceIn(0f, 1f)) }
+            }
+            .pointerInput(p.path, p.frames) {
+                val pad = 12.dp.toPx()
+                fun frac(x: Float) = ((x - pad) / (size.width - 2 * pad)).coerceIn(0f, 1f)
+                var f = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { o -> f = frac(o.x); onDrag(f) },
+                    onDragEnd = { onSeek(f) },
+                    onDragCancel = { onDrag(null) },
+                ) { change, _ -> f = frac(change.position.x); onDrag(f) }
+            }
+            .semantics { contentDescription = "Position ${clock(p.position, p.rate)} of ${clock(p.frames, p.rate)}. Tap or drag to move." },
+    ) {
+        val pad = 12.dp.toPx(); val w = size.width - 2 * pad; val y = size.height / 2
+        val pb = p.playback
+        if (pb.loopA >= 0) {
+            val a = pad + w * (pb.loopA / n).coerceIn(0f, 1f)
+            val b = if (pb.hasLoop) pad + w * (pb.loopB / n).coerceIn(0f, 1f) else a + 2.dp.toPx()
+            drawRect(C.listening.copy(alpha = 0.4f), Offset(a, y - 5.dp.toPx()), Size(b - a, 10.dp.toPx()))
+        }
+        drawLine(C.line2, Offset(pad, y), Offset(pad + w, y), 2.dp.toPx())
+        drawLine(C.acc, Offset(pad, y), Offset(pad + w * at, y), 2.dp.toPx())
+        drawLine(C.hi, Offset(pad + w * at, y - 6.dp.toPx()), Offset(pad + w * at, y + 6.dp.toPx()), 3.dp.toPx())
+    }
+}
+
+/** The take's speed as a menu of the Playback speed steps; the full screen has the fine steps, pitch and step-up. */
+@Composable
+private fun SpeedKey(model: AppModel, p: com.betterappmafia.apophenia.audio.Loaded) {
+    val pb = p.playback
+    var open by remember { mutableStateOf(false) }
+    Box {
+        PlayerKey(60.dp, "Speed %.2f times. Change it.".format(java.util.Locale.ROOT, pb.speed), onClick = { open = true }) {
+            Text("%.2f×".format(java.util.Locale.ROOT, pb.speed), style = T.hi.copy(fontSize = 13.sp, color = if (pb.speed != 1.0) C.acc else C.hi))
+        }
+        ConsoleMenu(open, { open = false }, "SPEED · PITCH KEPT", com.betterappmafia.apophenia.audio.Playback.SPEEDS.map { s ->
+            MenuItem("%.2f×".format(java.util.Locale.ROOT, s), if (abs(s - pb.speed) < 1e-6) "✓" else "${(s * 100).toInt()}%") { model.app.audio.setPlayback(pb.copy(speed = s)) }
+        } + MenuItem("Pitch, step-up, marks…", "PLAYBACK SPEED") { model.tools.open(ToolScreen.SPEED) })
+    }
+}
+
+/** The A–B loop: set A and B where the take is, or clear it. */
+@Composable
+private fun LoopKey(model: AppModel, p: com.betterappmafia.apophenia.audio.Loaded) {
+    val pb = p.playback
+    val audio = model.app.audio
+    var open by remember { mutableStateOf(false) }
+    val label = if (pb.hasLoop) "A–B" else if (pb.loopA >= 0) "A…" else "LOOP"
+    Box {
+        PlayerKey(52.dp, if (pb.hasLoop) "Loop on. Change it." else "Loop. Set it.", onClick = { open = true }) {
+            Text(label, style = T.button.copy(fontSize = 11.sp, color = if (pb.loopA >= 0) C.acc else C.hi))
+        }
+        val here = clock(p.position, p.rate)
+        ConsoleMenu(open, { open = false }, if (pb.hasLoop) "LOOP ${clock(pb.loopA, p.rate)}–${clock(pb.loopB, p.rate)}" else "LOOP", listOf(
+            MenuItem("Set A here", here) { audio.setPlayback(pb.copy(loopA = p.position, loopB = if (pb.loopB > p.position) pb.loopB else -1)) },
+            MenuItem("Set B here", here, enabled = pb.loopA >= 0 && p.position > pb.loopA) { audio.setPlayback(pb.copy(loopB = p.position)) },
+            MenuItem("Clear the loop", "", enabled = pb.loopA >= 0) { audio.setPlayback(pb.copy(loopA = -1, loopB = -1, stepBy = 0.0, countInBeats = 0)) },
+            MenuItem("Step-up, count-in, saved loops…", "PLAYBACK SPEED") { model.tools.open(ToolScreen.SPEED) },
+        ))
+    }
+}
+
+/** A key in the player row, with a divider on its left. */
+@Composable
+private fun PlayerKey(width: androidx.compose.ui.unit.Dp, description: String, enabled: Boolean = true, divider: Boolean = true, onClick: () -> Unit, content: @Composable () -> Unit) {
+    Box(
+        Modifier.width(width).fillMaxHeight().drawBehind { if (divider) drawLine(C.line, Offset(0f, 0f), Offset(0f, size.height), 1f) }
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick).semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) { content() }
+}
+
+enum class GlyphKind { PLAY, PAUSE, START, CUP }
+
+/** Transport glyphs drawn, not typed: the fonts disagree on pause and back-to-start, and ■ read as stopped when it was paused. */
+@Composable
+fun Glyph(kind: GlyphKind, color: Color, size: androidx.compose.ui.unit.Dp = 16.dp) {
+    Canvas(Modifier.size(size)) {
+        val w = this.size.width; val h = this.size.height
+        when (kind) {
+            GlyphKind.PLAY -> drawPath(Path().apply { moveTo(w * 0.18f, 0f); lineTo(w * 0.95f, h / 2); lineTo(w * 0.18f, h); close() }, color)
+            GlyphKind.PAUSE -> {
+                drawRect(color, Offset(w * 0.18f, 0f), Size(w * 0.24f, h))
+                drawRect(color, Offset(w * 0.58f, 0f), Size(w * 0.24f, h))
+            }
+            GlyphKind.START -> {
+                drawRect(color, Offset(w * 0.1f, h * 0.08f), Size(w * 0.16f, h * 0.84f))
+                drawPath(Path().apply { moveTo(w * 0.92f, h * 0.08f); lineTo(w * 0.3f, h / 2); lineTo(w * 0.92f, h * 0.92f); close() }, color)
+            }
+            GlyphKind.CUP -> {
+                val sw = w * 0.09f
+                val line = androidx.compose.ui.graphics.drawscope.Stroke(width = sw, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                // Cup body: straight top, sides narrowing to a rounded base.
+                drawPath(Path().apply {
+                    moveTo(w * 0.08f, h * 0.42f); lineTo(w * 0.72f, h * 0.42f)
+                    lineTo(w * 0.66f, h * 0.84f); quadraticTo(w * 0.64f, h * 0.94f, w * 0.54f, h * 0.94f)
+                    lineTo(w * 0.26f, h * 0.94f); quadraticTo(w * 0.16f, h * 0.94f, w * 0.14f, h * 0.84f); close()
+                }, color, style = line)
+                // Handle.
+                drawArc(color, -80f, 160f, false, Offset(w * 0.6f, h * 0.48f), Size(w * 0.3f, h * 0.26f), style = line)
+                // Steam.
+                for (x in listOf(0.3f, 0.5f)) drawPath(Path().apply {
+                    moveTo(w * x, h * 0.32f); quadraticTo(w * (x - 0.08f), h * 0.2f, w * x, h * 0.12f); quadraticTo(w * (x + 0.08f), h * 0.04f, w * x, h * 0.0f)
+                }, color, style = line)
+            }
+        }
     }
 }
 
@@ -438,11 +617,12 @@ private fun RecordingOverlay(model: AppModel) {
     val audio = model.app.audio
     val frames by audio.recFrames.collectAsState()
     val level by audio.level.collectAsState()
+    val paused by audio.recPaused.collectAsState()
     val target = model.recordTarget
     Column(Modifier.fillMaxSize().background(C.bg).systemBarsPadding().clickable(enabled = false) {}) {
         Row(Modifier.fillMaxWidth().height(40.dp).underline().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(8.dp).background(C.rec, CircleShape))
-            Text("  RECORDING", style = T.button.copy(color = C.rec), modifier = Modifier.weight(1f))
+            Box(Modifier.size(8.dp).let { if (paused) it.border(1.5.dp, C.rec, CircleShape) else it.background(C.rec, CircleShape) })
+            Text(if (paused) "  PAUSED" else "  RECORDING", style = T.button.copy(color = C.rec), modifier = Modifier.weight(1f))
             Text(
                 when (target) {
                     RecordTarget.Library -> "TO LIBRARY"
@@ -454,7 +634,8 @@ private fun RecordingOverlay(model: AppModel) {
             )
         }
         Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(clock(frames, audio.sampleRate), style = T.hi.copy(fontSize = 88.sp, letterSpacing = (-4).sp))
+            Text(clock(frames, audio.sampleRate), style = T.hi.copy(fontSize = 88.sp, letterSpacing = (-4).sp, color = if (paused) C.dim else C.hi))
+            if (paused) Text(if (target is RecordTarget.StackLayer) "PAUSED · SILENCE IS WRITTEN SO THE TAKE STAYS LINED UP WITH THE STACK" else "PAUSED · NOTHING IS WRITTEN · RESUME CONTINUES THE SAME TAKE", style = T.label, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 24.dp))
             Gap(24.dp)
             LevelLed(level)
             // Plan §7 Recorder: say when the input clips, and keep saying it for 2 s.
@@ -484,11 +665,24 @@ private fun RecordingOverlay(model: AppModel) {
         }
         Row(Modifier.fillMaxWidth().height(80.dp).drawBehindTop(C.acc)) {
             val marks by audio.markCount.collectAsState()
+            // ✕ DELETE (Christopher, 2 Nov 2026): stops and puts the take in the trash, with UNDO; no save sheet.
             Box(
-                Modifier.weight(1f).fillMaxHeight().background(C.panel).clickable(role = Role.Button) { audio.markRecording() }
+                Modifier.weight(0.8f).fillMaxHeight().background(C.panel).clickable(role = Role.Button) { model.stopRecording(discard = true) }
+                    .semantics { contentDescription = "Stop and delete this take" },
+                contentAlignment = Alignment.Center,
+            ) { Text("✕ DELETE", style = T.button.copy(fontSize = 13.sp, color = C.dim)) }
+            Box(Modifier.width(1.dp).fillMaxHeight().background(C.line))
+            Box(
+                Modifier.weight(0.8f).fillMaxHeight().background(C.panel).clickable(role = Role.Button, enabled = !paused) { audio.markRecording() }
                     .semantics { contentDescription = "Drop a marker here" },
                 contentAlignment = Alignment.Center,
-            ) { Text(if (marks == 0) "◆ MARK" else "◆ MARK · $marks", style = T.button.copy(fontSize = 14.sp)) }
+            ) { Text(if (marks == 0) "◆ MARK" else "◆ MARK · $marks", style = T.button.copy(fontSize = 13.sp, color = if (paused) C.faint else C.hi)) }
+            Box(Modifier.width(1.dp).fillMaxHeight().background(C.line))
+            Box(
+                Modifier.weight(1f).fillMaxHeight().background(if (paused) C.selected else C.panel).clickable(role = Role.Button) { audio.pauseRecording(!paused) }
+                    .semantics { contentDescription = if (paused) "Resume recording" else "Pause recording" },
+                contentAlignment = Alignment.Center,
+            ) { Text(if (paused) "● RESUME" else "❚❚ PAUSE", style = T.button.copy(fontSize = 14.sp, color = if (paused) C.rec else C.hi)) }
             Box(
                 Modifier.weight(1f).fillMaxHeight().background(C.selected)
                     .clickable(role = Role.Button) { model.stopRecording() }.semantics { contentDescription = "Stop recording" },

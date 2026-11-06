@@ -11,8 +11,8 @@ import kotlin.test.assertTrue
 class CourseRhythmTest {
     @Test
     fun `every written bar fills its meter exactly`() {
-        val sees = Course.pages.mapNotNull { it.see as? CourseSee.Rhythm }
-        assertTrue(sees.size >= 8)
+        val sees = Course.pages.flatMap { it.pictures.filterIsInstance<CourseSee.Rhythm>() }
+        assertTrue(sees.size >= 20)
         for (s in sees) for ((label, meter, notes) in s.bars) {
             assertEquals(meter.barLength, notes.fold(Rational.ZERO) { a, n -> a + n.d.length }, "${s.caption} · $label")
         }

@@ -127,9 +127,9 @@ private fun androidx.compose.foundation.layout.ColumnScope.SpeedControls(model: 
             Key("−5 s", Modifier.weight(1f)) { seekTo((p.position - 5 * rate).coerceAtLeast(0)) }
             Box(
                 Modifier.weight(1.4f).fillMaxHeight().background(C.selected).clickable(role = Role.Button) { audio.togglePlay() }
-                    .semantics { contentDescription = if (p.playing) "Stop" else "Play" },
+                    .semantics { contentDescription = if (p.playing) "Pause" else "Play" },
                 contentAlignment = Alignment.Center,
-            ) { Text(if (p.playing) "■" else "▶", style = T.hi.copy(fontSize = 22.sp, color = C.acc)) }
+            ) { Glyph(if (p.playing) GlyphKind.PAUSE else GlyphKind.PLAY, C.acc, 20.dp) }
             Key("+5 s", Modifier.weight(1f)) { seekTo((p.position + 5 * rate).coerceAtMost(p.frames - 1)) }
         }
         // Speed: a menu plus fine steps.

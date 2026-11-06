@@ -69,15 +69,19 @@ class DatabaseTest {
     }
 
     @Test
-    fun `a trashed take keeps its letter so a restore never collides`() = runBlocking<Unit> {
+    fun `a deleted take's letter is reused and a restore never collides`() = runBlocking<Unit> {
         val s = scrap()
         take(s, "A")
         val b = take(s, "B")
         db.takes().moveToTrash(b, now)
-        assertEquals("C", TakeLetters.next(db.takes().lettersUsed(s)))
+        assertEquals("B", TakeLetters.next(db.takes().lettersUsed(s)), "delete B, the next take is B again")
         assertEquals(listOf("A"), db.takes().takesOf(s).map { it.letter })
         db.takes().restore(b)
-        assertEquals(listOf("A", "B"), db.takes().takesOf(s).map { it.letter })
+        assertEquals(listOf("A", "B"), db.takes().takesOf(s).map { it.letter }, "nothing took B meanwhile: it keeps B")
+        db.takes().moveToTrash(b, now)
+        assertEquals("B", db.scraps().addTake(s, db.takes().get(b)!!.copy(id = 0, audioPath = "new-b.wav", deletedAt = null), now), "the new take is B")
+        db.takes().restore(b)
+        assertEquals(listOf("A", "B", "C"), db.takes().takesOf(s).map { it.letter }, "the old B comes back as C")
     }
 
     @Test

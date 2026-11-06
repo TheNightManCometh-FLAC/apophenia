@@ -32,6 +32,8 @@ data class PracticeEntity(
     /** An exercise or anything else practised, in your words (the curated Exercises come later). */
     val exercise: String? = null,
     val note: String? = null,
+    /** The tempo it was practised at, when it was an exercise (schema v16). */
+    val bpm: Int? = null,
 )
 
 /** A practice row with what it was attached to, for the history. */
@@ -63,6 +65,11 @@ interface PracticeDao {
 
     @Query("SELECT COALESCE(SUM(seconds), 0) FROM practice WHERE started_at >= :since") fun secondsSince(since: Long): Flow<Long>
     @Query("SELECT COALESCE(SUM(seconds), 0) FROM practice WHERE scrap_id = :scrapId") fun secondsOnScrap(scrapId: Long): Flow<Long>
+    /** Every stretch since [since] (0 for all), for the streak, the week and month totals and the calendar. */
+    @Query("SELECT started_at, seconds FROM practice WHERE started_at >= :since ORDER BY started_at") fun spans(since: Long = 0): Flow<List<PracticeSpan>>
     @Query("DELETE FROM practice WHERE id = :id") suspend fun delete(id: Long)
     @Query("UPDATE practice SET note = :note WHERE id = :id") suspend fun setNote(id: Long, note: String?)
 }
+
+/** When a stretch of practice started and how long it was. */
+data class PracticeSpan(@ColumnInfo(name = "started_at") val startedAt: Long, val seconds: Long)

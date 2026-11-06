@@ -20,8 +20,10 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -49,6 +51,9 @@ import com.betterappmafia.apophenia.core.learn.CoursePage
 import com.betterappmafia.apophenia.core.learn.CourseSee
 import com.betterappmafia.apophenia.core.learn.CourseTarget
 import com.betterappmafia.apophenia.core.learn.EarAudio
+import com.betterappmafia.apophenia.core.learn.Play
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import com.betterappmafia.apophenia.core.learn.InYours
 import com.betterappmafia.apophenia.core.learn.RefHit
 import com.betterappmafia.apophenia.core.learn.RefKind
@@ -65,35 +70,70 @@ import kotlin.random.Random
  * guide; every page is open.
  */
 
-/** Learn · Course: the nine categories. */
+/**
+ * Theory basics as a contents page (design option C, then plates, his picks 1 Nov 2026). Each chapter opens on a painted
+ * plate: the Film painter's long exposure in the chapter's own colour, its light rising and falling with the chapter's
+ * topic levels, and the chapter's drawing in cream over it. Then the title card, topics, pages and levels, and every
+ * topic named, so you see what a chapter teaches before opening it.
+ */
 @Composable
 internal fun CourseHome(model: AppModel) {
-    Course.categories.forEach { c ->
+    Course.categories.forEachIndexed { i, c ->
         val pages = c.topics.sumOf { it.pages.size }
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 66.dp).underline().clickable(role = Role.Button) { model.courseCat = c.id }.padding(horizontal = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("${c.topics.size} TOPICS" + (if (pages > 0) " · $pages PAGES" else " · TO BE WRITTEN"), style = T.label)
-                Text(c.name.uppercase(), style = T.body.copy(color = C.hi, fontWeight = FontWeight.Bold))
-                Text(c.range, style = T.label.copy(color = C.acc))
+        val (title, sub) = c.name.split(" · ", limit = 2).let { it[0] to it.getOrNull(1) }
+        Column(Modifier.fillMaxWidth().underline().clickable(role = Role.Button) { model.courseCat = c.id }.padding(bottom = 16.dp)) {
+            Box(Modifier.fillMaxWidth().aspectRatio(16f / 7f).background(PLATE_BLACK)) {
+                FilmBackdrop(remember(c.id) { plate(i, c) }, Modifier.fillMaxSize())
+                Course.cover(c)?.let { SeeStrip(it, Modifier.align(Alignment.Center).padding(horizontal = 48.dp), height = 76.dp, ink = PLATE_CREAM) }
+                Text("${i + 1}", style = chapterNumber.copy(color = PLATE_CREAM), modifier = Modifier.padding(start = 14.dp, top = 6.dp))
             }
-            Text("›", style = T.hi.copy(color = C.acc))
+            Column(Modifier.padding(horizontal = 14.dp).padding(top = 12.dp)) {
+                Text(title, style = T.display)
+                Text(listOfNotNull(sub?.uppercase(), "${c.topics.size} TOPICS", if (pages > 0) "$pages PAGES" else "TO BE WRITTEN").joinToString(" · ") + "  " + c.range,
+                    style = T.label, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
+                Text(topicList(c.topics.map { it.name }), style = T.small.copy(color = C.text, lineHeight = 18.sp))
+            }
         }
     }
     Kv("LEVELS") { Text("● to ●●●●● is only a guide to how complex a page is. Everything is open.", style = T.small.copy(lineHeight = 16.sp)) }
 }
 
-/** A category's topics, filtered by LEVEL ▾. A topic opens its first page. */
+private val PLATE_BLACK = androidx.compose.ui.graphics.Color(0xFF0A0A0B)
+private val PLATE_CREAM = androidx.compose.ui.graphics.Color(0xFFF6F2EA)
+
+/** [Claude] each chapter's colour, as the painter's key hue (pitch class × 30°), spread so neighbours differ. */
+private val PLATE_HUE = intArrayOf(7, 0, 9, 5, 1, 11, 3, 2, 8)
+
+/**
+ * A chapter's plate: the painter's long-exposure frame, seeded by the chapter, its light following the topic levels in
+ * order (a chapter that climbs from ● to ●●●●● burns brighter as it goes). Same input, same pixels, painted once and cached.
+ */
+private fun plate(i: Int, c: CourseCategory): com.betterappmafia.apophenia.core.art.FilmFrame.Input {
+    val levels = c.topics.map { it.level }.ifEmpty { listOf(1) }
+    val env = FloatArray(96) { x -> 0.25f + 0.15f * levels[minOf(levels.size - 1, x * levels.size / 96)] }
+    return com.betterappmafia.apophenia.core.art.FilmFrame.Input(com.betterappmafia.apophenia.core.art.FilmFrame.Kind.TAKE, 7000L + i, PLATE_HUE[i % 9], false, null, listOf(env))
+}
+
+private val chapterNumber get() = T.display.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Normal, fontSize = 40.sp, color = C.acc)
+
+/** Topic names run together with quiet dots between them. */
+private fun topicList(names: List<String>) = androidx.compose.ui.text.buildAnnotatedString {
+    names.forEachIndexed { i, n ->
+        if (i > 0) { pushStyle(androidx.compose.ui.text.SpanStyle(color = C.faint)); append("  ·  "); pop() }
+        append(n)
+    }
+}
+
+/** A chapter's topics, filtered by LEVEL ▾: number, title card, what it covers, and the topic's own first picture. A topic opens its first page. */
 @Composable
 internal fun CourseTopics(model: AppModel, cat: CourseCategory) {
     var menu by remember { mutableStateOf(false) }
     val levels = listOf(0 to "All", 1 to "● only", 2 to "●● only", 3 to "●●● only", 4 to "●●●● and up")
+    val chapter = Course.categories.indexOf(cat) + 1
     Column(Modifier.fillMaxSize()) {
         TitleBar {
             Sq("‹", { model.courseCat = null })
-            Text(cat.name.uppercase(), style = T.title, modifier = Modifier.weight(1f), maxLines = 1)
+            Text(cat.name.substringBefore(" · ").uppercase(), style = T.title, modifier = Modifier.weight(1f), maxLines = 1)
             Box {
                 Sq("LEVEL: ${levels.first { it.first == model.courseLevel }.second.uppercase()} ▾", { menu = true })
                 ConsoleMenu(menu, { menu = false }, "SHOW LEVEL", levels.map { (l, name) ->
@@ -107,16 +147,17 @@ internal fun CourseTopics(model: AppModel, cat: CourseCategory) {
             shown.forEach { t ->
                 val written = t.pages.isNotEmpty()
                 Row(
-                    Modifier.fillMaxWidth().heightIn(min = 62.dp).underline()
+                    Modifier.fillMaxWidth().underline()
                         .clickable(enabled = written, role = Role.Button) { model.courseRoot = null; model.coursePage = t.pages.first().id }
-                        .padding(horizontal = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .padding(horizontal = 14.dp, vertical = 14.dp),
                 ) {
+                    Text("$chapter.${cat.topics.indexOf(t) + 1}", style = chapterNumber.copy(fontSize = 22.sp, color = if (written) C.acc else C.faint), modifier = Modifier.width(48.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(t.name, style = T.body.copy(color = if (written) C.hi else C.dim, fontWeight = FontWeight.Bold))
-                        Line1(if (written) "${t.pages.size} PAGES · ${t.note.uppercase()}" else "TO BE WRITTEN · ${t.note.uppercase()}", T.label)
+                        Text(t.name, style = T.display.copy(fontSize = 22.sp, lineHeight = 24.sp, color = if (written) C.hi else C.dim))
+                        Text(t.note, style = T.small.copy(color = C.text), modifier = Modifier.padding(top = 2.dp))
+                        Text((if (written) "${t.pages.size} PAGE${if (t.pages.size > 1) "S" else ""}" else "TO BE WRITTEN") + "  " + Course.gauge(t.level), style = T.label, modifier = Modifier.padding(top = 4.dp))
+                        if (written) Course.cover(t)?.let { SeeStrip(it, Modifier.padding(top = 10.dp), height = 64.dp) }
                     }
-                    Text(Course.gauge(t.level), style = T.label.copy(color = if (written) C.acc else C.faint))
                 }
             }
             Gap(24.dp)
@@ -160,9 +201,23 @@ internal fun LessonView(model: AppModel, page: CoursePage) {
             Text("${cat.name.uppercase()} › ${topic.name.uppercase()} · PAGE ${at + 1} OF ${topic.pages.size}", style = T.label, modifier = Modifier.padding(start = 14.dp, top = 12.dp, end = 14.dp))
             Section("EXPLAIN")
             Text(page.explain, style = T.body.copy(lineHeight = 20.sp), modifier = Modifier.padding(horizontal = 14.dp))
+            page.steps.forEachIndexed { i, s ->
+                Text("${i + 1}", style = T.label.copy(color = C.acc), modifier = Modifier.padding(start = 14.dp, top = 22.dp))
+                Text(s.text, style = T.body.copy(lineHeight = 20.sp), modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 2.dp))
+                s.see?.let { See(model, page, it, root) }
+                if (s.hear.isNotEmpty()) FlowRow(Modifier.padding(start = 14.dp, end = 14.dp, top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    s.hear.forEach { h -> Sq("▶ ${h.label}", { hearCourse(model, page, h.label, h.make(rootMidi, Random(0))) }) }
+                }
+            }
             page.see?.let { See(model, page, it, root) }
+            if (page.inShort.isNotEmpty()) {
+                Section("IN SHORT")
+                Column(Modifier.padding(horizontal = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    page.inShort.forEach { Row { Text("— ", style = T.body.copy(color = C.acc)); Text(it, style = T.body.copy(lineHeight = 20.sp)) } }
+                }
+            }
             if (page.hear.isNotEmpty()) {
-                Section("HEAR")
+                Section(if (page.steps.isEmpty()) "HEAR" else "HEAR IT IN ${refName(model, root).uppercase()} · CHANGE THE KEY UNDER TRY")
                 FlowRow(Modifier.padding(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     page.hear.forEach { s -> Sq("▶ ${s.label}", { hearCourse(model, page, s.label, s.make(rootMidi, Random(0))) }) }
                 }
@@ -214,17 +269,42 @@ private fun Section(label: String) = Text(label, style = T.label.copy(color = C.
 private fun See(model: AppModel, page: CoursePage, see: CourseSee, root: PitchName) = when (see) {
     is CourseSee.Table -> {
         Section("SEE · ${see.caption}")
+        val plays = see.play.filterNotNull()
+        if (plays.isNotEmpty()) Row(Modifier.padding(start = 14.dp, bottom = 6.dp)) {
+            Sq("▶ PLAY THE TABLE", { hearPlay(model, page, see.caption, Play(plays.flatMap { it.chords }, plays.first().step)) })
+        }
         Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
             Column(Modifier.padding(horizontal = 14.dp)) {
                 val widths = see.header.indices.map { c -> (listOf(see.header[c]) + see.rows.map { it.getOrElse(c) { "" } }).maxOf { it.length }.coerceIn(3, 22) * 8 + 10 }
                 Row { see.header.forEachIndexed { c, h -> Text(h, style = T.label, modifier = Modifier.width(widths[c].dp)) } }
-                see.rows.forEach { r ->
-                    Row(Modifier.padding(top = 4.dp)) {
+                see.rows.forEachIndexed { i, r ->
+                    val p = see.play.getOrNull(i)
+                    Row(Modifier.padding(top = 4.dp).let { if (p != null) it.clickable(role = Role.Button) { hearPlay(model, page, r.first(), p) } else it }, verticalAlignment = Alignment.CenterVertically) {
                         r.forEachIndexed { c, v -> Text(v, style = if (c == 0) T.body.copy(color = C.hi, fontWeight = FontWeight.Bold) else T.small, modifier = Modifier.width(widths[c].dp)) }
+                        if (p != null) Text("▶", style = T.small.copy(color = C.acc), modifier = Modifier.width(30.dp))
                     }
                 }
             }
         }
+        if (plays.isNotEmpty()) Text("TAP A ROW TO HEAR IT", style = T.label, modifier = Modifier.padding(start = 14.dp, top = 6.dp)) else Unit
+    }
+    is CourseSee.Keys -> {
+        Section(see.caption)
+        CourseKeys(see.keys)
+        see.play?.let { p -> Row(Modifier.padding(start = 14.dp)) { Sq("▶ PLAY WHAT'S LIT", { hearPlay(model, page, see.caption, p) }) } }
+    }
+    is CourseSee.Grid -> {
+        Section(see.caption)
+        CourseGrid(model, page, see)
+    }
+    is CourseSee.Chart -> {
+        Section(see.caption)
+        CourseChart(model, page, see)
+    }
+    is CourseSee.Staff -> {
+        Section(see.caption)
+        see.score.parts.forEach { part -> NotationCanvas(see.score, part, null, null, emptySet(), 0, model.chordDialect, model.chordStyle) { _, _, _, _, _ -> } }
+        see.play?.let { p -> Row(Modifier.padding(start = 14.dp)) { Sq("▶ PLAY THESE BARS", { hearPlay(model, page, see.caption, p) }) } }
     }
     is CourseSee.KeyStaff -> {
         val key = KeyMode(root, see.scaleId)
@@ -354,6 +434,99 @@ private fun Check(model: AppModel, page: CoursePage, check: CourseCheck) {
     picked?.let { p ->
         Text((if (p == answer) "Right. " else "It was ${check.options[answer].label}. ") + check.options[answer].explain, style = T.small.copy(lineHeight = 16.sp), modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
     }
+}
+
+private fun hearPlay(model: AppModel, page: CoursePage, title: String, p: Play) = hearCourse(model, page, title, p.audio())
+
+/** Piano keys around [keys]: lit ones filled copper and named, faint ones (context) outlined in copper. */
+@Composable
+private fun CourseKeys(keys: List<com.betterappmafia.apophenia.core.learn.Key>) {
+    if (keys.isEmpty()) return
+    val ms = keys.map { it.midi }
+    val lo = (ms.min() / 12) * 12
+    val hi = maxOf(((ms.max() / 12) + 1) * 12, lo + 12)
+    val whites = (lo..hi).filter { it % 12 in setOf(0, 2, 4, 5, 7, 9, 11) }
+    val byMidi = keys.associateBy { it.midi }
+    val keyW = 28.dp
+    Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+        Canvas(Modifier.padding(horizontal = 12.dp, vertical = 8.dp).width(keyW * whites.size).height(128.dp)) {
+            val w = keyW.toPx()
+            val h = size.height
+            val paint = android.graphics.Paint().apply { isAntiAlias = true; textSize = 10.dp.toPx(); typeface = android.graphics.Typeface.MONOSPACE; textAlign = android.graphics.Paint.Align.CENTER; isFakeBoldText = true }
+            fun label(m: Int, x: Float, y: Float) {
+                val k = byMidi[m] ?: return
+                paint.color = (if (k.faint) C.acc else C.bg).toArgb()
+                drawContext.canvas.nativeCanvas.drawText(k.label, x, y, paint)
+            }
+            fun fill(m: Int, base: androidx.compose.ui.graphics.Color) = byMidi[m]?.let { if (it.faint) base else C.acc } ?: base
+            whites.forEachIndexed { i, m ->
+                drawRect(fill(m, C.text.copy(alpha = 0.6f)), Offset(i * w + 1, 0f), androidx.compose.ui.geometry.Size(w - 2, h))
+                if (byMidi[m]?.faint == true) drawRect(C.acc, Offset(i * w + 3, h - 26.dp.toPx()), androidx.compose.ui.geometry.Size(w - 6, 22.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(2f))
+                label(m, i * w + w / 2, h - 10.dp.toPx())
+            }
+            whites.forEachIndexed { i, m ->
+                val b = m + 1
+                if (m % 12 in setOf(0, 2, 5, 7, 9) && b <= hi) {
+                    val x = (i + 1) * w - w * 0.32f
+                    drawRect(fill(b, C.bg), Offset(x, 0f), androidx.compose.ui.geometry.Size(w * 0.64f, h * 0.6f))
+                    if (byMidi[b]?.faint == true) drawRect(C.acc, Offset(x + 2, h * 0.6f - 22.dp.toPx()), androidx.compose.ui.geometry.Size(w * 0.64f - 4, 20.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(2f))
+                    label(b, x + w * 0.32f, h * 0.6f - 8.dp.toPx())
+                }
+            }
+        }
+    }
+}
+
+/** Rows against columns; lit cells filled copper. A row with its own sound plays on tap. */
+@Composable
+private fun CourseGrid(model: AppModel, page: CoursePage, g: CourseSee.Grid) {
+    var on by remember(g) { mutableStateOf<Int?>(null) }
+    g.play?.let { p -> Row(Modifier.padding(start = 14.dp, bottom = 6.dp)) { Sq("▶ PLAY EVERY ROW", { on = null; hearPlay(model, page, g.caption, p) }) } }
+    val labelW = (g.rows.maxOfOrNull { it.label.length } ?: 2).coerceIn(2, 14) * 9 + 12
+    val cellW = maxOf(g.columns.maxOfOrNull { it.length } ?: 1, g.rows.flatMap { it.cells }.maxOfOrNull { it.length } ?: 1).coerceIn(2, 8) * 9 + 12
+    Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+        Column(Modifier.padding(horizontal = 14.dp)) {
+            Row {
+                Text("", modifier = Modifier.width(labelW.dp))
+                g.columns.forEach { Text(it, style = T.label, modifier = Modifier.width(cellW.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center) }
+            }
+            g.rows.forEachIndexed { i, r ->
+                Row(Modifier.padding(top = 3.dp).let { m -> r.play?.let { p -> m.clickable(role = Role.Button) { on = i; hearPlay(model, page, r.label, p) } } ?: m }, verticalAlignment = Alignment.CenterVertically) {
+                    Text(r.label, style = T.body.copy(color = if (on == i) C.acc else C.hi, fontWeight = FontWeight.Bold), modifier = Modifier.width(labelW.dp))
+                    r.cells.forEachIndexed { c, v ->
+                        val lit = c in r.lit
+                        Box(Modifier.width(cellW.dp).padding(1.dp).heightIn(min = 26.dp).background(if (lit) C.acc else C.panel2), contentAlignment = Alignment.Center) {
+                            Text(v, style = T.small.copy(color = if (lit) C.bg else C.faint, fontWeight = if (lit) FontWeight.Bold else FontWeight.Normal))
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (g.rows.any { it.play != null }) Text("TAP A ROW TO HEAR IT", style = T.label, modifier = Modifier.padding(start = 14.dp, top = 6.dp))
+}
+
+/** A progression as boxes in order: numeral, symbol, notes and job. Tap a box to hear that chord; ▶ plays them all. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CourseChart(model: AppModel, page: CoursePage, c: CourseSee.Chart) {
+    var on by remember(c) { mutableStateOf<Int?>(null) }
+    Row(Modifier.padding(start = 14.dp, bottom = 6.dp)) { Sq("▶ PLAY IN ORDER", { on = null; hearPlay(model, page, c.caption, c.play) }) }
+    FlowRow(Modifier.padding(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        c.chords.forEachIndexed { i, ch ->
+            Column(
+                Modifier.width(92.dp).background(if (on == i) C.selected else C.panel).border(1.dp, if (on == i) C.acc else C.line2)
+                    .clickable(role = Role.Button) { on = i; hearPlay(model, page, ch.symbol.ifEmpty { ch.numeral }, Play(listOf(ch.midis), 1.6, spread = true)) }
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+            ) {
+                Text(ch.numeral, style = T.hi.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                if (ch.symbol.isNotEmpty()) Text(ch.symbol, style = T.body.copy(color = C.acc, fontWeight = FontWeight.Bold), maxLines = 1)
+                Text(ch.notes, style = T.small, maxLines = 2)
+                if (ch.tag.isNotEmpty()) Text(ch.tag.uppercase(), style = T.label, maxLines = 2)
+            }
+        }
+    }
+    Text("TAP A CHORD TO HEAR IT ON ITS OWN", style = T.label, modifier = Modifier.padding(start = 14.dp, top = 6.dp))
 }
 
 private fun hearCourse(model: AppModel, page: CoursePage, title: String, audio: EarAudio) =

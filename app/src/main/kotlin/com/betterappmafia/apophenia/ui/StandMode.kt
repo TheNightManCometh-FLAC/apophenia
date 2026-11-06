@@ -143,7 +143,7 @@ fun StandMode(model: AppModel, projectId: Long, requestMic: (() -> Unit) -> Unit
         }
         // One-thumb controls.
         androidx.compose.foundation.layout.BoxWithConstraints(Modifier.width(92.dp).fillMaxHeight().background(C.panel)) {
-            val keyH = minOf(64.dp, (maxHeight - 16.dp) / 7)
+            val keyH = minOf(64.dp, (maxHeight - 16.dp) / (if (recording) 8 else 7))
             androidx.compose.runtime.CompositionLocalProvider(LocalKeyHeight provides keyH) { Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceEvenly, horizontalAlignment = Alignment.CenterHorizontally) {
                 Box {
                     StandKey(if (p?.playing == true) "■" else "▶", if (p?.playing == true) "Stop" else "Play", C.acc) {
@@ -161,6 +161,10 @@ fun StandMode(model: AppModel, projectId: Long, requestMic: (() -> Unit) -> Unit
                 StandKey(if (recording) "■" else "●", if (recording) "Stop recording" else "Record into this project over the playback", C.rec) {
                     if (recording) model.stopRecording()
                     else requestMic { model.startRecording(RecordTarget.Project(projectId, model.projectName(projectId) ?: "")) }
+                }
+                if (recording) {
+                    val paused by model.app.audio.recPaused.collectAsState()
+                    StandKey(if (paused) "●▸" else "❚❚", if (paused) "Resume recording" else "Pause recording", C.rec) { model.app.audio.pauseRecording(!paused) }
                 }
                 StandKey("A+", "Larger type", C.hi) { size = (size + 4).coerceAtMost(56) }
                 StandKey("A−", "Smaller type", C.hi) { size = (size - 4).coerceAtLeast(14) }

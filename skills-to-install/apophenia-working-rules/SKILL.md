@@ -23,10 +23,11 @@ description: Use at the start of every Apophenia work session and before plannin
 ## Evidence labels (use them in every report)
 **source-only** · **unit-tested** · **build-verified** · **device-verified** (installed and run on the S22 Ultra) · **ear-verified** (audio judged by listening). Never blur them. Nothing is "done" until walked through on the phone.
 
-## End of every milestone
+## End of every milestone and every delivered build
 - `docs/walkthroughs/Mx.md`: exact steps for Christopher to try on the phone, with headphones and speaker, plus interruption and forced-kill cases.
 - `docs/STATUS.md`: what shipped, tests and counts, Device Lab measurements (device, date), known limits, and an **unverified on device** list.
 - Bump versionCode/versionName for anything installable.
+- **Capture what was learned** (load `skill-authoring`): his corrections, what he praised and why, approaches that failed, measured numbers. Put each in the skill that owns it (personal skills for cross-project lessons, this repo's skills for Apophenia facts), then refresh `C:/Users/Wi-Fi/skills-for-claude-ai`. The `~/.claude/hooks/skill-capture.sh` clock asks for this when the project runs more than a day ahead of the last skill write; don't wait for it.
 
 ## Releases (M7 and after)
 - Every update ships to **Google Play (AAB), GitHub release (APK), F-Droid (built from source by F-Droid)** in one pass. Christopher uploads to Play and creates GitHub releases/tags; Claude prepares artifacts, changelog and notes.

@@ -161,6 +161,11 @@ private fun SaveSheet(model: AppModel, scrapId: Long, letter: String) {
         }
         Text("TAGS", style = T.label, modifier = Modifier.padding(start = 12.dp, top = 10.dp))
         TagPicker(model, scrapId)
+        // Christopher, 2 Nov 2026: delete the take right here. To the trash, with UNDO.
+        Kv("DELETE", onClick = { title = null; model.trashSaved(scrapId, letter) }) {
+            Text("✕ Delete take $letter", style = T.body.copy(color = C.rec))
+            Text("TO THE TRASH · UNDO ON THE NOTICE", style = T.label)
+        }
     }
 }
 

@@ -28,6 +28,7 @@ In `onAudioReady` (and anything it calls): no allocation, no locks/mutexes, no J
 
 ## Recordings are never edited
 - Write audio to disk **as it records** (temp file, appended; finalized atomically, then the database row is committed). On launch, detect and recover partial takes. Closing the save sheet never loses audio.
+- **Pausing a take** (0.9.46/0.9.47): the mic stays open; pauses are input-ring gaps `[from, to)` kept under a mutex shared by the control and writer threads (never the audio thread). The writer skips a gap (holds while it is open, without counting it as overrun) or, for a take over a playing stack, writes zeros for it so later audio stays lined up with the stack. Anything mapped from input frames to file frames (click grid, markers) goes through the same gap list.
 - Original files are immutable. Trim, gain, fades, loop points, offsets and tempo/pitch conform are **per-project settings** applied at playback or in cached renders.
 - Conformed layers are rendered on a worker into an evictable cache keyed by (source file, settings, stretcher version); playback mixes cached renders so many layers stay cheap. Free-time layers are never conformed; unknown-key layers aren't pitch-shifted.
 - Loop seams get short crossfades; compensate the stretcher's latency/padding before writing rendered length.
@@ -37,6 +38,7 @@ Recording or playing with the screen off needs a foreground service with the cor
 
 ## ML inference
 Models (Basic Pitch TFLite, Spleeter TFLite/ONNX, Moonshine via sherpa-onnx) load once off the main thread, run on workers, never in the audio callback, and sit behind interfaces so the app works if a model fails to load. Results are derived data linked to the source take with model name/version; the user's corrections always win.
+Models in the app (Oct 2026): Beat This! (tempo, beats, downbeats; ONNX), Basic Pitch and the GAPS guitar model (Notes → MIDI, the user picks), Spleeter with the multichannel Wiener filter (stems, fp16 weights with fp32 arithmetic), Demucs added by the user (link, file picker, SHA check), Moonshine (speech). What each is measured to do, and what was dropped: the personal skill `music-audio-analysis-mir`. ONNX Runtime on Android quirks: `onnx-integration`. Bump `TakeAnalysis.VERSION` whenever results change, so old takes are analysed again; never overwrite a value the user set.
 
 ## Measurements belong in the Device Lab
 Latency per route, mic source quality (UNPROCESSED vs VOICE_RECOGNITION vs MIC), simultaneous in/out stability, max conformed layers, stretcher quality, model speed. Record results in `docs/STATUS.md` with the device model and date; never state a performance claim that wasn't measured.

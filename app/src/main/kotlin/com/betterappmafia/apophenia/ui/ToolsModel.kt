@@ -28,7 +28,7 @@ import kotlin.math.ln
 enum class Tool(val label: String) { METRONOME("Metronome"), TUNER("Tuner"), DRONE("Drone"), SPEED("Playback speed"), ISOLATOR("Isolator"), PRACTICE("Practice timer") }
 
 /** Full-screen tools inside the Tools mode. */
-enum class ToolScreen { METRONOME, TUNER, DRONE, SPEED, ISOLATOR, PRACTICE }
+enum class ToolScreen { METRONOME, TUNER, DRONE, SPEED, ISOLATOR }
 
 /**
  * The tools' state (plan §7): the full metronome, tuner and drone, the pinned top-bar slots, and the
@@ -100,10 +100,10 @@ class ToolsModel(private val model: AppModel) {
         val t = timer
         val secs = t.elapsedMs(now) / 1000
         app.io.launch {
-            val id = app.db.practice().add(com.betterappmafia.apophenia.data.PracticeEntity(startedAt = t.firstStart ?: now, seconds = secs, scrapId = t.scrapId, projectId = t.projectId, exercise = t.exercise, note = note))
+            val id = app.db.practice().add(com.betterappmafia.apophenia.data.PracticeEntity(startedAt = t.firstStart ?: now, seconds = secs, scrapId = t.scrapId, projectId = t.projectId, exercise = t.exercise, note = note, bpm = t.bpm))
             model.notice(if (id == null) "Under 5 seconds: not logged." else "Logged ${clockSeconds(secs)}.")
         }
-        changeTimer(PracticeTimer(scrapId = t.scrapId, projectId = t.projectId, exercise = t.exercise, label = t.label))
+        changeTimer(PracticeTimer(scrapId = t.scrapId, projectId = t.projectId, exercise = t.exercise, label = t.label, bpm = t.bpm))
     }
 
     // ---- Isolator ----
@@ -205,7 +205,8 @@ class ToolsModel(private val model: AppModel) {
             Tool.METRONOME -> open(ToolScreen.METRONOME)
             Tool.SPEED -> open(ToolScreen.SPEED)
             Tool.ISOLATOR -> open(ToolScreen.ISOLATOR)
-            Tool.PRACTICE -> open(ToolScreen.PRACTICE)
+            // The practice timer lives in Exercises (Christopher, 2 Nov 2026).
+            Tool.PRACTICE -> { screen = null; model.go(Mode.EXERCISES) }
         }
     }
 

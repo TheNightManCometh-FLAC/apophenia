@@ -2,6 +2,227 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.9.51 (5 Nov 2026): coffee cup to Ko-fi; licences checked
+
+- Christopher, 5 Nov 2026: "Maybe have a coffee cup icon for a quick way to reach the donate button." A drawn coffee cup sits in the top bar, left of the settings gear, on every screen; tap opens https://ko-fi.com/betterappmafia in the browser (an intent; still no INTERNET permission, checked with aapt2 on the 0.9.51 APK). [Claude] placement beside the gear, drawn rather than an emoji (fonts differ), dim like the gear.
+- Licence check before the store: every bundled piece has its text in `assets/licenses/` and a row in Licences and privacy (19 rows). `NOTICE.md` was behind the app and gained Beat This!, Guitar GAPS, Demucs (runner only), Cormorant Garamond and Jost. Open: deezer/spleeter#898 (weights licence stated in the JOSS paper, not yet in the repo); F-Droid questions in docs/RELEASING.md.
+- 0.9.38–0.9.51 committed and pushed with the v0.9.51 release, so the published source matches the build (GPL-3.0).
+- **Unverified:** the cup has not been seen on the emulator or the phone (the emulator check was stopped); build-verified only.
+
+## Build 0.9.50 (4 Nov 2026): player controls
+
+Christopher, 4 Nov 2026: "The player needs better controls." Asked which; he picked a scrub bar, back to start, and speed and loop (not skip back/forward).
+
+- **Scrub bar** along the top of the bottom player: the position in the accent colour, the A–B loop shaded. Tap to move there; drag to scrub, and the time follows the finger; it moves on release (each move reloads the take, so not on every frame of the drag). [Claude] move on release.
+- **Back to start** (drawn ⏮): to the top of the take, or to loop point A when a loop is set. It keeps playing or paused as it was. [Claude] loop point A when looping.
+- **Speed**: the take's speed (accent when not 1.00×); tap for the Playback speed steps, plus a way to the full screen for pitch, step-up and marks.
+- **Loop**: LOOP / A… / A–B; tap for Set A here, Set B here, Clear the loop, and the full screen. Same rules as the Playback speed screen.
+- Speed and loop show only for recordings and imported songs (what Playback speed works on), not for reference sounds or scores.
+- **Pause reads as pause.** The player's button was a ■ that paused, and the time line showed ■ when paused, which read as stopped. The button is now a drawn pause/play (also on the Playback speed screen), and the state glyph is gone from the time. The other "■ STOP" buttons around the app (Board, Stems, Exercises) are unchanged.
+- New `AudioController.seekFrame` so back-to-start lands on loop point A exactly.
+- **Unverified on device:** all of it; the drag on the phone; whether the row fits with the stack row under it.
+
+## Build 0.9.49 (3 Nov 2026): text reads on every frame
+
+Christopher, 3 Nov 2026: "The study section looks very nice. The text doesn't show well though with the bright lettering on the bright background", then "Also the other screens. Just needs to be readable, but looks good".
+
+- **Why.** 0.9.48's contrast test checked text on the see-through panels over a lit key or a violet column, and passed; but much of the text sits bare on the frame (the project row, sub-tabs, headers, captions, the course cards' titles, Practice's labels). STUDY's lit keys measured up to 0.56 relative luminance averaged over a line of text, and PRACTICE's columns up to 0.76; light text needs 0.12 or less for 4.5:1.
+- **What changed** (`core/art/FilmRooms.kt`, `legible`). After painting, each section frame is measured over line-of-text-sized areas (ground plus light at rest), and anything above a ceiling of 0.12 relative luminance is pulled down with a soft knee (from 0.07), ground and light together, so shapes, hues and movement stay as painted. A beat's pulse can flash past it for a moment.
+  - STUDY: the print itself is darker (white keys 100 instead of 210), so the lit tonic key still stands out under the ceiling.
+  - PRACTICE: the columns are saturated violet (175, 85, 255) instead of near-white (220, 200, 255); near-white went grey under the ceiling, saturated violet stays vivid at the same brightness.
+  - PLAN: only its ground is held down; the trails keep all their light (brightest 0.5% of pixels 169–213 luma, unchanged), since he reads through a trail crossing text and wanted them bright. Its ground was already under the ceiling (0.07 at most), so PLAN is unchanged.
+  - Film's dim labels went from #ABA59C to #C0BAB0 so they read at 3:1 on the ceiling.
+  - Measured on the PC (540×1158 frames): text-area maximum PRACTICE 0.76 → 0.10, STUDY 0.56 → 0.10; brightest 0.5% PRACTICE 224 → 89, STUDY 248 → 96. [Claude] the ceiling, the knee, the line-sized window and the new print and violet values.
+- Frame version 4, so cached frames are painted again.
+- Tests: FilmFrameTest (no line-sized area above the ceiling in 22 frames across PLAN, PRACTICE and STUDY; PLAN's trails stay bright; STUDY's white keys stand clear of the black ones; the tonic still lit), ThemeContrastTest (bare Film text, hi, dim and accent over the ceiling). Record red reads 1.8:1 over the ceiling, so it belongs on panels and buttons only; not every one of its 34 uses has been checked. 720 tests, 0 failures.
+- Emulator (x86_64, Android 16, 3 Nov 2026): STUDY (Theory basics, scrolled through chapters 1–4) and PRACTICE (Tools): every label, title and topic list reads; the keys and the violet columns still show. A section's new frame takes a few seconds to appear the first time on the emulator while it paints. Emulator-verified.
+- **Unverified on device:** how it looks and reads on the phone, outdoors included; Ear, Exercises, Reference and Library not looked at.
+
+## Build 0.9.48 (3 Nov 2026): a frame per section, brighter light, light that moves
+
+Christopher, 3 Nov 2026: "The background changes even when I don't add anything. Figure that out. And add more pizzazz to the generation. It's still not very different per project or anything. And I wanted it to be different from plan practice and study. Animation that doesn't drain battery would be nice. Maybe moves slowly when nothings playing and does things at the tempo being played. I have files with different tempos and keys on the board. Wheres that bright violet from the mockup? Why do the lines look so much less bright?"
+
+- **Why it changed by itself.** The Board's rows come back ordered by which window is on top, and the frame took "the commonest key" from that order, so with a tie (one fragment in A, one in E) bringing a window forward flipped the whole frame's colour. Keys, tempos and takes are now read in the order fragments came onto the Board; a tie goes to the first. Unit-tested (`BoardKeysTest`). A frame still changes when analysis finishes and fills in a key or tempo it didn't have; that is the material changing.
+- **Why the lines were dimmer than the mockup.** The trails were painted at a quarter of the frame's size (an eighth of the screen's) and stretched up, which smeared their bright cores; the mockup painted them at full size. Trails and their tight glows are now painted at the frame's full size (half the screen's), a little wider. Haze and wide glows stay at a quarter.
+- **A frame per section** (`core/art/FilmRooms.kt`). PLAN: the project's frame. PRACTICE: the mockup's violet room, two columns of light placed by the project. STUDY: the mockup's sepia print of piano keys out of focus, with light pooling on the project's tonic key. Switching section crossfades.
+- **More per project.** Each take's trail burns in its own key's colour, and its tempo knots the trail (faster, closer knots). Each tempo on the Board lays its own set of bands (up to three; the main one level, the others slightly tilted, so they cross). The second commonest key tints the haze (duotone). The project picks one of three trail layouts (low and level, rising, arched), and about half of projects get a light leak burning in from one edge. [Claude] all of these mappings, the layouts and the leak.
+- **Movement.** Each section frame is two baked layers: the ground stays still, the light is added over it. With nothing playing the light sways and breathes slowly (about 15 redraws a second). While the click, a stack or a take with a tempo plays, it swells on each beat (about 30 a second), harder on the click's downbeat. Nothing is painted again; it's two bitmap draws per redraw. It stops in the background, while recording, under a full-screen detail or stand mode, and with Android's "Remove animations" or Battery Saver on. [Claude] the rates and amounts; a take's first beat isn't stored, so its pulse keeps the take's tempo but may sit off the beat (the click's is exact).
+- Paint cost: about 230 ms for a 540×1158 frame on the PC (it was about 30 ms), once per change; the phone's time shows in Settings. Takes' own frames (Board windows, recording detail, stack layers, course plates) are unchanged.
+- Tests: 717, 0 failures (FilmFrameTest: two layers add up to the frame, PRACTICE violet and STUDY sepia in any key, STUDY lights the tonic, two projects with the same material differ, each trail in its own key's colour; ThemeContrastTest: text over the violet columns and lit keys).
+- Emulator (x86_64, Android 16, 3 Nov 2026): PLAN, PRACTICE and STUDY frames show and crossfade, no crash; the light pulses with the click on (346 frames in 10 s, about 35 a second) and sways when idle (152 in 10 s, about 15 a second); with the emulator's animator scale at 0 (its default) it stays still, as designed. Emulator-verified.
+- **Unverified on device:** all of it on the phone, including how the movement feels and what it costs in battery.
+
+## Build 0.9.47 (2 Nov 2026): take letters reused, silence in stack pauses
+
+Christopher, 2 Nov 2026: "Add silence in to compensate where it doesnt add up and there's a bug with the multiple takes. If you record take b. Then delete it. Then record take b again it'll be named c and so on."
+
+- **Take letters.** The next take gets the first letter free among the live takes, so deleting B frees B. A trashed take holding that letter is moved aside to an internal "~id" letter (trashed takes aren't listed anywhere; the unique (scrap, letter) index stays). UNDO/restore keeps its letter if still free, otherwise takes the next free one (the old B comes back as C). Unit-tested (data: 90 tests, 0 failures; the old "lettered after every letter used" test changed to the new rule).
+- **Silence in stack pauses.** A take recorded over a playing stack writes silence for the length of each pause instead of cutting it, so everything after the pause still lines up with the stack (the stack keeps playing while paused). The recorder says so while paused; its clock keeps running, since the silence is part of the take. Other takes still cut the pause out (the click grid follows the cut). Removes 0.9.46's known limit. [Claude] silence only where it doesn't line up (over a stack), reading "where it doesn't add up" as that case. Source-only + build-verified.
+- **Unverified on device:** both.
+
+## Build 0.9.46 (2 Nov 2026): pause a take, delete a take, recordings count as practice
+
+Christopher, 2 Nov 2026: "Recordings made automatically count towards the practice counter. The recording mode itself should let you pause a take as well as stop it, and there needs to be a delete take option either straight in the recorder or in the menu right after when you title."
+
+- **Pause.** The recorder's bar is now ✕ DELETE · ◆ MARK · ❚❚ PAUSE · ■ STOP. PAUSE keeps the mic open and the same take going; nothing is written until ● RESUME, so the file is the playing with the pauses cut out. The clock dims and the header reads PAUSED. MARK is off while paused. Stand mode gets a ❚❚ key while recording. Native: the writer skips input-ring stretches [from, to) recorded per pause; the click grid is mapped through the same gaps, so click lines stay on the beats after a pause (source-only + build-verified).
+- **Delete.** ✕ DELETE in the recorder stops, saves, then moves the take to the trash with UNDO, and no save sheet opens. The save sheet ends with ✕ Delete take X (same, from there). A new recording goes to the trash whole; a further take (B, C…) only that take. [Claude] both places, since he offered either.
+- **Recordings count as practice.** Every mic take adds a practice row (started when ● REC was pressed, length = what was written, attached to the recording, labelled "Recording" when untitled), so it shows in the streak, week, month, calendar and log. A take deleted afterwards keeps its time ([Claude]: the time was spent playing). Stretches that overlap (a take while the practice timer runs) count once: PracticeStats merges them (unit-tested). Takes under 5 s aren't logged (the log's existing mis-tap rule). Imports, bounces and stems don't count.
+- ~~Known limit: a stack take paused lines up only up to the pause~~ fixed in 0.9.47 (silence fills the pause).
+- Tests: PracticeStatsTest 4 (new: overlapping stretches count once; the old sum gives 31 min where the answer is 24). Full suite 710 tests, 0 failures; assembleRelease OK (build-verified).
+- **Unverified on device:** pause/resume on the phone (file length, clock, click grid after a pause), screen-off pause via the notification (none: pause is only on screen), delete from the recorder and the save sheet, recordings in the practice totals.
+
+## Build 0.9.45 (2 Nov 2026): Practice laid out by how it's used
+His decisions (2 Nov 2026): tools as live strips; Ear keeps its order of complexity as one mode, with "drill my weakest" on the specific answers missed, the up/down part gone, and a quick check of what's passed; Exercises with no preset tempo ladder, plus a day streak, week and month totals, a calendar, the log and the timer; exercises for every instrument, "vetted very carefully".
+- **Tools (rack):** metronome, drone and tuner each a live strip: the value large, its main controls (− + TAP; root ‹ › 5TH 3RD; the cents meter), ▶/■. Tap a strip's name for its full screen. Running strips are outlined. Speed, Isolator and ● REC sit under them for the take in the player. The tuner stops when you leave Tools (the mic is open only while you use it). The practice timer moved to Exercises; a top-bar pin for it opens Exercises.
+- **Ear modes:** PATH · WEAKEST · QUICK CHECK · TEST · SCORES.
+  - PATH is the drill list in its order, chapters numbered, each with "n OF m PASSED" and a bar; drills show ✓ and "n OF m ANSWERS SURE".
+  - WEAKEST: pick a drill you've answered; its answers as a map coloured red (missed most) to the accent (sure), with % and count. DRILL MY WEAKEST practises that drill's worst answers (up to 4); tap cells and DRILL THESE; or THE WHOLE DRILL.
+  - QUICK CHECK: 10 questions from the answers you've passed, those checked longest ago first. Miss one and it drops off the passed list.
+  - Weakest and quick-check sessions count per answer but stay out of the high scores.
+  - "Melodic · up and down" is now just "Melodic".
+- **Exercises:** day streak (and best), this week, this month; the practice timer card (ON ▾, + NOTE, ▶/❚❚, ■ LOG); exercises by instrument (DRUMS · GUITAR · BASS · PIANO · VOICE · EVERY INSTRUMENT · YOURS); the month's calendar shaded by time, a tap shows that day's log; the log with tempo and note.
+  - **One exercise:** the music (staff, tab under fretted parts, sticking for rudiments), KEY ▾ and NEXT KEY › (voice: UP A HALF STEP ›), YOUR TEMPO (− + ±5, tap to type: yours, never raised for you), ▶ HEAR AT n, ▶ CLICK AT n, ◷ TIME IT and ■ LOG (the tempo goes into the log), and its own log with total time and fastest logged tempo.
+  - The tempo ladder is gone (`TempoLadder` deleted). Your own Library exercises keep a tempo the same way.
+- **The catalogue (`core/tools/Exercises.kt`):**
+  - Drums: the 40 PAS rudiments (also still in Reference).
+  - Every instrument: major; natural, harmonic and melodic minor (melodic comes down natural); major and minor pentatonic; major in thirds; arpeggios (maj, m, 7, maj7, m7, m7♭5, °7). All 12 keys.
+  - Guitar: chromatic 1-2-3-4, 1-3-2-4, 1-2-4-3, 1-4-2-3; the 5 minor pentatonic boxes; 7 three-notes-a-string major patterns, in every key.
+  - Bass: chromatic (Simandl 1-2-4); major scale, major and minor arpeggios, root–fifth–octave in one position.
+  - Piano: five-finger patterns; RH major scale (standard fingering shown for C G D A E F only); C contrary motion; RH chromatic fingering; RH triad arpeggio (1 2 3 5 on C F G).
+  - Voice: five-tone scale, 1 3 5 8 arpeggio, nine-tone scale, moving up a half step.
+  - Nothing is typed in by hand: notes come from the spelling engine, tab from the fretboard model.
+  - Left out because they couldn't be vetted as safely: Hanon (the exact turnarounds weren't checkable here), Stick Control (copyright status unclear), fingerings for keys other than those listed.
+- **Reference:** a new ARPEGGIOS section in the index (7 chips on the chosen root); the card plays it up and back, and PRACTISE IT › opens it in Exercises in that key.
+- **Data, schema v16:** `ear_answer` (each first answer per item, for WEAKEST and QUICK CHECK), and `practice.bpm`. Automatic migration from v15.
+- **Tests:** 20 new core tests, unit-tested.
+  - ExercisesTest (13): every note of every exercise in every key is in its scale or chord; seven-note scales step through the letters with single accidentals (G♯ melodic minor's F𝄪 the one exception); bars fill exactly; every tab note equals its string and fret.
+  - Fixtures against the standard shapes: the five A minor pentatonic boxes, G major 3-a-string pattern 1, G major on bass, C major and chromatic piano fingering, C°7 = C E♭ G♭ B𝄫.
+  - They caught a bass-position bug on the way back down, fixed before the build.
+  - PracticeStatsTest (3): streak, week, month, calendar. EarMasteryTest (4): items, the 20-answer window, weakest, quick check.
+- [Claude] the thresholds:
+  - An answer is sure at 90% of its last 20, over at least 8. It's weak below 90% once it has 3.
+  - A quick check is 10 questions from up to 12 answers.
+  - An exercise starts at 60 BPM until you set one.
+  - Calendar shades step at 15, 30 and 60 minutes.
+- **Build-verified, unit-tested.** **Unverified on device:** all of it.
+
+## Build 0.9.44 (2 Nov 2026): the stack as loose squares
+His pick ("3rd one") of three stack treatments in the app's own look, after Splice Stacks as the reference.
+- **Layers as loose squares:** two staggered columns of square stills, each its take painted by the Film painter in its own key's colour (a take played in another key looks it, even when conformed). The part not yet played is dimmed as the stack plays. Caption underneath: the layer's stem or first tag (else LAYER n) · how it plays, the title (tap opens the recording), take and conform.
+- **Tap a still to mute, hold to solo.** ⋯ under each: loop / one-shot / free time, conform on or off, start at the top, open, remove.
+- **Top:** title card, key ▾ and tempo ▾ (the existing sheet), EXPORT ▾ (FL Studio package).
+- **Bottom:** ＋ FROM LIBRARY (the Library filtered, as before) and ● RECORD A PART (starts the stack if it's stopped, then records a new layer: plan §5.4). Transport: MIXER (a hairline fader on each still, −24 to +6 dB, written when the finger lifts), UNDO, PLAY, REDO, BOUNCE. No shuffle or swap: the app doesn't suggest material.
+- **Undo and redo** (new, `StackModel`): every layer edit (mute, solo, gain, mode, conform, offset, remove) is kept as before/after for the loaded stack, at most 50. Removing a layer and undoing puts it back with the same id and place (`StackDao.restoreLayer`).
+- **The bottom player** shows the stack as a bar per layer in its key colour, the name as a title card, tempo · key · layers and the position, ▶/■ and × (out of the player, stays saved).
+- **Data:** the layers query also returns each layer's stem name and the scrap's first tag. No schema change.
+- [Claude] the dimming is worked out from the stack clock and the take length (with conform's stretch), so it is close, not sample-exact; LAYER n when a recording has no tag or stem.
+- **Build-verified.** Note: 0.9.43 was built while this work was under way; 0.9.44 is the one to install. **Unverified on device:** all of it.
+
+## Build 0.9.43 (2 Nov 2026): MAKE is now PLAN
+Christopher: "Make should also be called plan." The first bottom tab reads PLAN (BOARD · LIBRARY · AI); internal ids unchanged. Stacks: he called the first round "too similar" to his reference; the round in the app's own look (contact strip, track sheet, loose squares) waits for his pick.
+
+## Build 0.9.42 (1 Nov 2026): painted chapter plates, the Reference index
+His picks from mockup round two: "1 and 1 and be able to play the sound of whatever you're actively looking at in the reference."
+- **Chapter plates:** every chapter in Theory basics opens on a painted plate: the Film painter's long exposure (`FilmFrame`, kind TAKE) in the chapter's colour, its light following the chapter's topic levels in order, the chapter's drawing in cream over it, the number in the corner. Baked once and cached like project frames. [Claude] the colours (painter hue per chapter) and the level-driven light.
+- **Reference index** (`ui/RefIndex.kt`): roots C–B at the top, a card that shows the picked item on that root (title, spelled notes, keys or strings) with ▶ PLAY and OPEN THE PAGE ›, then every interval, scale, chord, progression and tuning as chips grouped by family. FIND still searches as before. Grooves, rudiments and Name a chord open their lists. Sounds: chords and scales as on their pages, intervals up then together, progressions chord by chord, tunings strummed low to high.
+- **Strips** take an ink colour (cream on plates).
+- **Stacks:** his reference (Splice Stacks) arrived; three treatments mocked up for him to pick, nothing built.
+- **Build-verified:** tests and release build pass. **Unverified on device:** all of it.
+
+## Build 0.9.41 (1 Nov 2026): his icon, Theory basics
+Christopher, on 0.9.40: "It doesnt have the new pictures" (the icon he had sent: a white serif "a" on navy grain, round and square), and "change it from course, that implies its a prescribed order… Music Theory basics".
+- **Icon:** his "a" on navy grain, full bleed at 74/108 (`art/apophenia-icon-a.png`), background #10141F; the Play Store icon is his square original. I had misread his first message ("Also new app icon" with these images attached) as a request to design one, and mocked up four of my own: wrong.
+- **Course is now Theory basics:** sub-tab THEORY BASICS, screen title MUSIC THEORY BASICS, the bottom bar reads THEORY BASICS · REFERENCE. Ear drill text that pointed at "The Course page" now says "The Theory basics page". Internal ids are unchanged. [Claude] the sub-tab wording.
+- **Open, asked of him (mockup round two):** imagery or ornament for the chapters (1 plates, 2 ornament, 3 covers), and a Reference layout that is quick to scan and unlike the chapter list (A index, B lookup, C cheat sheet).
+- **Unverified on device:** all of it.
+
+## Build 0.9.40 (1 Nov 2026): Course and Reference as a contents page, long titles
+Christopher: "I want a little more stylization in the menus. Everything looks identical there still… Each thing is just clear to see what you're going to learn." He picked option C (Contents) from three mockups (title cards, paper and ink, contents), then: "it cuts off if its a long title."
+- **Course home:** each chapter has a big number, its title card in the serif, a line of topics, pages and levels, a strip drawn from the chapter's own pages, and every topic named underneath.
+- **A chapter's topics:** numbered 3.1, 3.2…, title card, what it covers, pages and level, then the topic's own first picture as a strip.
+- **Pictures come from the pages:** `Course.cover(topic)` is the first drawing in the topic's pages (a table only when there is no drawing); a chapter's is its first topic drawing. `ui/CourseStrip.kt` paints every picture kind as line art: keys, grids, charts, staff and score (clef, noteheads, ledger lines, accidentals), rhythm lengths, the circle. [Claude] that rule, so the list can't drift from what the pages show.
+- **Reference home** in the same style: count, title card, what's inside, and a strip drawn from the list itself (the interval names, D Dorian on the keys, chord symbols, the first progressions and tunings, the rock groove's grid, the single paradiddle's sticking).
+- **Long titles:** the Board's project name and a recording's title shrink when long and wrap to a second line instead of cutting off ("Lights an…"). The Board's drag hint moved under the title.
+- **Tests:** `CourseTest`: every written topic and chapter has a picture, a drawing wherever its pages have one (unit-tested).
+- **Icon:** not changed yet. Options 1 (long exposure), 4 (noise) and the two combined were rendered for him to pick.
+- **Unverified on device:** all of it.
+
+## Build 0.9.39 (1 Nov 2026): lessons that teach, drill descriptions, film-still Board cards, the icon
+Christopher: "Go in depth into [the lessons] so they really explain how these things work… When I played the hear this I expected to hear what was on the chart and instead heard just a scale of chords… make it make sense with visual aids and more explanation." Plus: "a description of what each ear training is"; "why don't the fragments on the board look this stylized?" (the Film mockup); his new icon, then "I don't like that space on the outside".
+- **Course, all 123 pages rewritten** (all nine chapters):
+  - Each page is now a short intro, then numbered steps. Each step explains one idea next to a picture: piano keys, a progression chart (numeral, symbol, notes, job), a grid (chords on a scale, voices moving, step patterns, fret positions, polyrhythm steps), a staff, a score with tab, or a rhythm bar. Then IN SHORT bullets, then HEAR, TRY, CHECK as before.
+  - **Every picture's ▶ plays exactly what it draws**, in the key it's drawn in. Table rows play on tap. Steps whose sound can't be a piano note (sine tones, beats, harmonics, drum grooves) carry their own ▶ buttons. HEAR still follows the key under TRY and is labelled so.
+  - New picture kinds in `core/learn/Course.kt`: Keys, Grid, Chart, Staff, and playable Table rows. Rendered by `app/ui/CourseView.kt`.
+  - Ids, checks, TRY and links are unchanged.
+- **Ear drill descriptions:** `core/learn/EarAbout.kt` describes every drill (what it plays, what to listen for). The drill screen shows it under WHAT THIS DRILL IS ▾, open until the first answer.
+- **Bug fixed, unit-tested:** `EarHarmony.voice` placed the upper chord notes as if every key were C (only the bass followed the key), so every Ear harmony drill in a key other than C played wrong chords. A new test fails on the old code and passes on the new.
+- **Board in the Film theme:** windows are film stills. Lyrics, text and tab go on cream paper in dark ink, words in serif italic. Chord charts go on a black card with large serif chord names. Recordings show their painted take. The caption sits under each card: KIND · TITLE, then details, then + STACK.
+- **Icon:** the launcher uses Christopher's square art full bleed, with no grey rim. The wordmark is repainted smaller and lower (`art/apophenia-icon-launcher.png`) so every launcher shape shows it whole. The Play Store icon is his square original. [Claude] the repaint, Times New Roman Bold as the nearest match for his wordmark.
+- **Tests (unit-tested):**
+  - `CourseTest`: every page teaches in steps and sums up; every picture plays what it draws; every chart spells what it plays.
+  - The rhythm, reading and MusicXML tests now read the pictures inside steps too. The bar-sum test covers every rhythm picture.
+  - Ear: the voicing test and a test that every drill has a description.
+  - Suite: core 552 (1 skipped), data 90, app 22, audio 27, all passing.
+- **Build-verified:** signed release APK 0.9.39 (120), 252,870,592 bytes, CN=Better App Mafia, no INTERNET permission. Uploaded as a GitHub draft release. Not emulator-checked: the PC had an unexpected shutdown (Kernel-Power 41) during the first build attempt, so I didn't run the emulator on top of it.
+- **Unverified on device:** all of it. The lesson pages, Board cards, drill descriptions and icon have not been seen on the S22 Ultra.
+
+  Walkthrough: `docs/walkthroughs/M7.md` §13.
+
+## Build 0.9.38 (31 Oct 2026): the Film look
+Christopher picked "Film still" from the design canvas ("Now that's what I'm talking about"), chose abstract backgrounds painted from each project's own data over scenes, asked about battery and CPU, then said to build it. Decisions: `docs/plan/design-enhancement-plan.md` › Decisions so far.
+- **Painter** (`core/art/FilmFrame.kt`, pure Kotlin):
+  - The key's tonic picks the hue; a mode with a minor third is darker.
+  - The tempo spaces faint bands of light, one beat apart.
+  - Each take's loudness becomes one long-exposure trail (up to five; the starred take brightest).
+  - Haze, a soft seeded glow, halation, vignette, grain and dust.
+  - Deterministic from the seed and the data. Soft layers are worked at a quarter of the size with box blurs, so cost doesn't depend on the blur radius.
+- **Tests:** `FilmFrameTest`, 11 tests (unit-tested):
+  - same input, same pixels;
+  - another key changes the hue;
+  - minor is darker;
+  - each take lights the lower band;
+  - the text area stays dark;
+  - a faster tempo gives more bands;
+  - an empty project still paints;
+  - a take frame's exposure sits in the upper third;
+  - blur keeps the light.
+- **Paint time:** one half-size phone frame (540×1158) took **28.5 ms on this PC** (unit-tested, desktop). Not measured on the phone yet: Settings › THEME shows the last paint time.
+- **In the app:**
+  - **Film** is a new theme and the default, applied once over an earlier pick with a notice. The six others stay in Settings.
+  - The open project's frame sits behind every screen.
+  - Panels are translucent; menus and sheets stay opaque.
+  - A recording shows its take as a long exposure. The unplayed part is dimmed by a plain rectangle, so playback never repaints the picture.
+  - Frames are painted once on a worker thread at half the screen's pixel size. They're kept in a 16 MB memory cache plus up to 40 JPEGs in the cache folder (evictable).
+  - Nothing animates except a single fade-in when a new frame arrives.
+- **Type:**
+  - The project and recording names are title cards in Cormorant Garamond italic.
+  - Titles, labels and buttons are spaced capitals in Jost. Both fonts are OFL, from google/fonts; licences in `assets/licenses` and Notices.
+  - Content, values and Board glimpses stay in JetBrains Mono, because tab and chords over lyrics line up by character. A first attempt set small text in Jost and broke the tab glimpses on the emulator; it was reverted.
+- **[Claude]:**
+  - which data drives which part of the picture;
+  - the palette rule;
+  - half-size frames;
+  - the cache sizes;
+  - Film as the default;
+  - titles in spaced capitals except names (the code's titles are written in capitals).
+- **Checks:**
+  - **Contrast, unit-tested:** a new `ThemeContrastTest` case lays Film's see-through panels over the frame's ground and over the core of a light trail. Text must stay at 4.5:1 and the accent and record colours on the ground at 4.5:1.
+    - It first failed at 4.45:1 (text over a trail), so the panels were made a little less see-through.
+    - The record red was raised from #E5341F to #F2553F (it was 4.31:1).
+    - The Notices test now covers both new fonts.
+  - **Suite:** core 548 (1 skipped), data 90, app 22, audio 27, all passing.
+- **Emulator-verified** (x86_64 Android 13, not the phone):
+  - The Board shows the project's frame behind smoked-glass windows, with the project name as a serif title card. Tab glimpses line up.
+  - A recording shows its take as a long-exposure banner, teal for F♯ Phrygian.
+  - Light trails cross the Library rows and a recording's info. A darker scrim off the Board was tried and taken out again: Christopher read the brighter version fine and preferred it.
+- **Not done yet:** Ear and Reference have no frames of their own. They sit over the project's frame, as every screen does.
+- **Unverified on device:**
+  - paint time, memory and battery on the S22 Ultra;
+  - how the frames look on its screen;
+  - legibility in daylight.
+
+  Walkthrough: `docs/walkthroughs/M7.md` §12.
+
 ## Build 0.9.37 (30 Oct 2026): the meter from the downbeats
 Christopher: "focus on that. its important" (takes without the click were always charted in 4/4, "the meter is a guess").
 - **What it does** (`core/analysis/BarMeter.kt`, used by `TakeAnalysis.analyse` when there's no click):

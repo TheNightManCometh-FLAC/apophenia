@@ -43,16 +43,16 @@ class LibraryAndMigrationTest {
         assertEquals(0, row.starred)
     }
 
-    @Test fun `another take is lettered after every letter used, even a trashed one`() = runBlocking<Unit> {
+    @Test fun `another take gets the first free letter, a trashed one's included`() = runBlocking<Unit> {
         val id = db.scraps().createRecording(ScrapEntity(format = ScrapFormat.RECORDING, createdAt = now, editedAt = now), take("a.wav"))
         assertEquals("B", db.scraps().addTake(id, take("b.wav"), now + 1))
         val b = db.takes().takesOf(id).first { it.letter == "B" }
         db.takes().moveToTrash(b.id, now + 2)
         db.takes().setStarred(db.takes().takesOf(id).single().id, true)
-        assertEquals("C", db.scraps().addTake(id, take("c.wav"), now + 3))
+        assertEquals("B", db.scraps().addTake(id, take("c.wav"), now + 3))   // B was deleted: its letter is free (2 Nov 2026)
 
         val row = db.scraps().libraryRows().first().single()
-        assertEquals(2, row.takes)      // A and C; B is in the trash
+        assertEquals(2, row.takes)      // A and the new B; the old B is in the trash
         assertEquals(1, row.starred)
         assertEquals(now + 3, row.scrap.editedAt)
     }

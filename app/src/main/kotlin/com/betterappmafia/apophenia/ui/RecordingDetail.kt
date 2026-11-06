@@ -74,7 +74,7 @@ fun RecordingDetail(model: AppModel, scrapId: Long, requestMic: (() -> Unit) -> 
         TitleBar {
             Sq("‹", { model.detail = null }, modifier = Modifier.semantics { contentDescription = "Back" })
             Box(Modifier.weight(1f).clickable { model.sheet = Sheet.Rename(scrapId) }.semantics { contentDescription = "Rename $title" }) {
-                Line1(title + if (take?.starred == true) " ★" else "", T.title)
+                DisplayTitle(title + if (take?.starred == true) " ★" else "")
             }
             Box {
                 Sq(if (take != null) "TAKE ${take.letter} ▾" else "TAKES ▾", { takeMenu = true }, on = true)
@@ -130,16 +130,37 @@ fun RecordingDetail(model: AppModel, scrapId: Long, requestMic: (() -> Unit) -> 
         val progress = if (loadedHere && player!!.frames > 0) player!!.position.toFloat() / player!!.frames else -1f
         val mark = if (take.prerollFrames > 0 && take.durationFrames > 0) take.prerollFrames.toFloat() / take.durationFrames else -1f
 
-        Waveform(
-            peaks, mark = mark, progress = progress,
-            modifier = Modifier.fillMaxWidth().height(84.dp).padding(horizontal = 12.dp, vertical = 10.dp)
-                .semantics { contentDescription = "Waveform of take ${take.letter}. Tap to play from that point." }
-                .pointerInput(take.id) {
-                    detectTapGestures { pos ->
-                        val frac = pos.x / size.width
-                        if (loadedHere) model.app.audio.seek(frac) else model.app.audio.load(scrapId, take.id, "$title · ${take.letter}", file.absolutePath, true, (take.durationFrames * frac).toLong())
+        val seekable = Modifier
+            .semantics { contentDescription = "Waveform of take ${take.letter}. Tap to play from that point." }
+            .pointerInput(take.id) {
+                detectTapGestures { pos ->
+                    val frac = pos.x / size.width
+                    if (loadedHere) model.app.audio.seek(frac) else model.app.audio.load(scrapId, take.id, "$title · ${take.letter}", file.absolutePath, true, (take.durationFrames * frac).toLong())
+                }
+            }
+        if (C.palette.film) {
+            // Film: the take as a long exposure of its own loudness, painted once; what hasn't played yet is dimmed
+            // by a plain rectangle drawn over it, so playback never repaints the picture.
+            val key = KeyMode.parseOrNull(s.key)
+            val frame = remember(take.id, peaks) {
+                if (peaks.isEmpty()) null else com.betterappmafia.apophenia.core.art.FilmFrame.Input(
+                    com.betterappmafia.apophenia.core.art.FilmFrame.Kind.TAKE, take.id, key?.tonic?.pitchClass, key?.let { isMinor(it) } ?: false, s.bpmLow, listOf(peaks),
+                )
+            }
+            Box(Modifier.fillMaxWidth().height(150.dp).padding(horizontal = 12.dp, vertical = 10.dp).then(seekable)) {
+                FilmBackdrop(frame, Modifier.fillMaxSize())
+                androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+                    if (progress in 0f..1f) {
+                        val x = progress * size.width
+                        drawRect(androidx.compose.ui.graphics.Color(0xA6000000), androidx.compose.ui.geometry.Offset(x, 0f), androidx.compose.ui.geometry.Size(size.width - x, size.height))
+                        drawLine(C.hi.copy(alpha = 0.75f), androidx.compose.ui.geometry.Offset(x, 0f), androidx.compose.ui.geometry.Offset(x, size.height), 1.5f)
                     }
-                },
+                    if (mark in 0f..1f) drawLine(C.listening, androidx.compose.ui.geometry.Offset(mark * size.width, 0f), androidx.compose.ui.geometry.Offset(mark * size.width, size.height), 2f)
+                }
+            }
+        } else Waveform(
+            peaks, mark = mark, progress = progress,
+            modifier = Modifier.fillMaxWidth().height(84.dp).padding(horizontal = 12.dp, vertical = 10.dp).then(seekable),
         )
         Row(Modifier.fillMaxWidth().drawBehindTop(C.line)) {
             val playing = loadedHere && player?.playing == true

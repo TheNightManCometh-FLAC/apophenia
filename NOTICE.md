@@ -22,13 +22,18 @@ attributed below and carries the same CC BY 4.0 attribution.
 | Signalsmith Stretch (vendored in `audio/src/main/cpp/third_party/`) | time-stretch, pitch-shift | MIT | Geraint Luff / Signalsmith Audio Ltd. | signalsmith-stretch-LICENSE.txt |
 | Signalsmith Linear (vendored) | FFT for Stretch | MIT | Signalsmith Audio | signalsmith-linear-LICENSE.txt |
 | LiteRT 2.3.0 | runs Basic Pitch | Apache-2.0 + third-party notices | Google LLC | litert-LICENSE.txt, litert-THIRD_PARTY_NOTICE.txt |
-| ONNX Runtime 1.31.0 | runs Spleeter, Moonshine | MIT + third-party notices | Microsoft Corporation | onnxruntime-LICENSE.txt, onnxruntime-ThirdPartyNotices.txt |
+| ONNX Runtime 1.31.0 | runs Spleeter, Moonshine, Beat This!, Guitar GAPS, Demucs | MIT + third-party notices | Microsoft Corporation | onnxruntime-LICENSE.txt, onnxruntime-ThirdPartyNotices.txt |
 | Basic Pitch (ICASSP 2022) model | notes from audio | Apache-2.0 | Spotify AB | basic-pitch-LICENSE.txt |
 | Spleeter 4-stems, ONNX conversion | stem separation | MIT (Spleeter), Apache-2.0 (conversion) | Deezer SA | spleeter-LICENSE.txt, spleeter-4stems-onnx-README.md |
 | Moonshine base | speech to text | MIT | Moonshine AI | moonshine-LICENSE.txt |
+| Beat This! small (`small0`), exported to ONNX | beats, downbeats, tempo | MIT (code and weights); some training data is copyrighted, as its README notes | Institute of Computational Perception, JKU Linz | beat-this-LICENSE.txt |
+| Guitar GAPS, converted to ONNX | optional solo-guitar notes | MIT (see the paragraph above) | Xavier Riley and contributors; Qiuqiang Kong | guitar-gaps-NOTICE.txt |
+| Demucs 4.0.1 (how its model is run, ported to Kotlin) | optional HT-Demucs stems; the model file is not bundled, the user adds it | MIT | Meta Platforms, Inc. and affiliates | demucs-LICENSE.txt |
 | Bravura | music font | SIL OFL 1.1 | Steinberg Media Technologies GmbH | Bravura-OFL.txt |
 | Noto Music | music symbols in text | SIL OFL 1.1 | The Noto Project Authors | NotoMusic-OFL.txt |
 | JetBrains Mono | typeface | SIL OFL 1.1 | The JetBrains Mono Project Authors | JetBrainsMono-OFL.txt |
+| Cormorant Garamond (italic) | titles in the Film theme | SIL OFL 1.1 | The Cormorant Project Authors | CormorantGaramond-OFL.txt |
+| Jost | labels in the Film theme | SIL OFL 1.1 | The Jost Project Authors | Jost-OFL.txt |
 | University of Iowa MIS piano (30 notes, processed) | piano sound | free use without restrictions | University of Iowa Electronic Music Studios | iowa-piano-NOTICE.txt |
 | Android Jetpack (Compose, Room, Lifecycle, Activity, Core), Kotlin | interface, database, language | Apache-2.0 | The Android Open Source Project; JetBrains s.r.o. | apache-2.0.txt |
 

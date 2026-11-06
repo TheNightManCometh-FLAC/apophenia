@@ -1,0 +1,1 @@
+Every Course lesson rewritten to teach step by step: pictures of keys, charts, staves and grids whose play button plays exactly what's drawn. Each Ear drill says what it is. Board windows are styled as film stills: paper for words and tab, black cards for chord charts, painted takes. New full-bleed icon. Fix: Ear harmony drills in keys other than C played the wrong chords.

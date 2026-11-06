@@ -22,6 +22,7 @@
 #include <cstring>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -497,6 +498,26 @@ struct Recording {
     std::atomic<int64_t> lostFrames{0};
     std::atomic<bool> diskError{false};
     std::thread writer;
+    // Pauses (Christopher, 2 Nov 2026: "pause a take as well as stop it"): input-ring frames [from, to) left out of
+    // the file; to = -1 while paused. The mic stays open so a resume continues at the exact frame. A take over a
+    // playing stack fills its pauses with silence instead ("add silence in to compensate where it doesn't add up"),
+    // so it stays lined up with the stack. Control thread appends, the writer reads; not the audio thread, so a mutex is fine.
+    struct Gap { int64_t from, to; bool fill; };
+    std::mutex gapsLock;
+    std::vector<Gap> gaps;
+
+    // The take file's frame for an input-ring frame, or -1 if it fell in a pause.
+    int64_t fileFrame(int64_t ring) {
+        std::lock_guard<std::mutex> g(gapsLock);
+        int64_t f = ring - fileStart;
+        for (const auto &[from, to, fill] : gaps) {
+            if (fill) continue;                 // silence was written: the file keeps the ring's timing
+            if (ring < from) break;
+            if (to < 0 || ring < to) return -1;
+            f -= to - from;
+        }
+        return f;
+    }
 };
 
 // ---- Engine state shared with the callbacks ---------------------------------------------------
@@ -926,10 +947,31 @@ void writerLoop(Recording *r) {
     std::vector<float> chunk(4096);
     std::vector<uint8_t> pcm(4096 * 3);
     int64_t sinceSync = 0;
+    size_t gap = 0;
     for (;;) {
         const int64_t written = e.inputRing.written();
         const int64_t stopAt = r->stopAt.load(std::memory_order_acquire);
-        const int64_t limit = stopAt >= 0 ? std::min(stopAt, written) : written;
+        int64_t limit = stopAt >= 0 ? std::min(stopAt, written) : written;
+        bool held = false, mute = false;
+        {
+            std::lock_guard<std::mutex> g(r->gapsLock);
+            if (gap < r->gaps.size()) {
+                const auto [from, to, fill] = r->gaps[gap];
+                if (r->cursor >= from) {
+                    if (fill) {                                         // paused over a stack: silence, same length
+                        if (to >= 0 && r->cursor >= to) { ++gap; continue; }
+                        mute = true;
+                        if (to >= 0) limit = std::min(limit, to);
+                    } else if (to < 0) held = true;                     // paused: write nothing until resumed or stopped
+                    else { r->cursor = std::max(r->cursor, to); ++gap; continue; }
+                } else limit = std::min(limit, from);
+            }
+        }
+        if (held) {
+            if (stopAt >= 0) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            continue;
+        }
         if (written - r->cursor > e.inputRing.capacity()) {           // fell a whole ring behind
             const int64_t skipTo = written - e.inputRing.capacity() / 2;
             r->lostFrames.fetch_add(skipTo - r->cursor);
@@ -943,7 +985,8 @@ void writerLoop(Recording *r) {
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
             continue;
         }
-        if (!e.inputRing.read(r->cursor, chunk.data(), n)) { r->lostFrames.fetch_add(n); r->cursor += n; continue; }
+        if (mute) std::fill(chunk.begin(), chunk.begin() + n, 0.0f);
+        else if (!e.inputRing.read(r->cursor, chunk.data(), n)) { r->lostFrames.fetch_add(n); r->cursor += n; continue; }
         for (int i = 0; i < n; ++i) {
             const int32_t v = static_cast<int32_t>(std::lrint(std::clamp(chunk[i], -1.0f, 1.0f) * 8388607.0f));
             pcm[i * 3] = static_cast<uint8_t>(v & 0xFF);
@@ -972,10 +1015,9 @@ void writerLoop(Recording *r) {
 // captured at that moment, so the grid lines up with what was played against it. Without timestamps,
 // or if a stream reopened mid-take, frames are matched by count only and the grid is marked unaligned
 // (it then sits late by the round trip). Control thread, after the writer has finished.
-void captureGrid(Engine &e, const Recording &r) {
+void captureGrid(Engine &e, Recording &r) {
     e.lastGrid.assign(2, 0);
     e.lastGridCounted.clear();
-    const int64_t stopAt = r.stopAt.load();
     const int64_t count = e.gridCount.load(std::memory_order_acquire);
     const int64_t first = std::max<int64_t>(0, count - kGridLog + 256);   // leave room for the audio thread to keep writing
     if (count == first) return;
@@ -1005,10 +1047,11 @@ void captureGrid(Engine &e, const Recording &r) {
         }
         // By counts alone (frames handed to the output against frames taken from the input), the way a layer recorded
         // over a stack is placed: the play-along calibration measures the round trip against this.
-        const int64_t counted = inNow - (outNow - c) - r.fileStart;
-        if (counted >= 0 && counted < stopAt - r.fileStart) e.lastGridCounted.push_back(counted);
-        const auto f = static_cast<int64_t>(std::llround(ring)) - r.fileStart;
-        if (f < 0 || f >= stopAt - r.fileStart) continue;
+        const int64_t length = r.framesWritten.load();
+        const int64_t counted = r.fileFrame(inNow - (outNow - c));
+        if (counted >= 0 && counted < length) e.lastGridCounted.push_back(counted);
+        const int64_t f = r.fileFrame(std::llround(ring));
+        if (f < 0 || f >= length) continue;
         e.lastGrid.push_back(f);
         e.lastGrid.push_back(flags);
     }
@@ -1235,6 +1278,20 @@ JNI() jboolean JNICALL FN(nativeRecordingState)(JNIEnv *env, jobject, jlongArray
     jlong s[5] = {e.rec->framesWritten.load(), e.rec->prerollFrames, e.rec->lostFrames.load(),
                   e.rec->diskError.load() ? 1 : 0, e.inDisconnected.load() ? 1 : 0};
     env->SetLongArrayRegion(outArr, 0, 5, s);
+    return JNI_TRUE;
+}
+
+// Pauses or resumes the take at the newest input frame. Returns false if nothing is recording or it already was.
+JNI() jboolean JNICALL FN(nativePauseRecording)(JNIEnv *, jobject, jboolean pause, jboolean fillSilence) {
+    Engine &e = engine();
+    if (!e.rec) return JNI_FALSE;
+    Recording &r = *e.rec;
+    std::lock_guard<std::mutex> g(r.gapsLock);
+    const bool paused = !r.gaps.empty() && r.gaps.back().to < 0;
+    if (pause == paused) return JNI_FALSE;
+    const int64_t now = e.inputRing.written();
+    if (pause) r.gaps.push_back({now, -1, fillSilence == JNI_TRUE});
+    else r.gaps.back().to = std::max(now, r.gaps.back().from);
     return JNI_TRUE;
 }
 

@@ -46,6 +46,8 @@ data class Recorded(
     val metronomeGrid: String? = null,
     /** Markers set while recording (plan §7 Recorder), in the take file's frames. */
     val marks: List<Long> = emptyList(),
+    /** When ● REC was pressed (epoch ms); 0 when not recorded from the mic. */
+    val startedAt: Long = 0,
 )
 
 /** The stack in the persistent player (plan §5). */
@@ -65,6 +67,10 @@ class AudioController(private val context: Context, private val audioDir: File) 
     val level: StateFlow<Float> = _level.asStateFlow()
     private val _recFrames = MutableStateFlow(0L)
     val recFrames: StateFlow<Long> = _recFrames.asStateFlow()
+    private val _recPaused = MutableStateFlow(false)
+    /** The take being recorded is paused: the mic stays open, nothing is written until it resumes. */
+    val recPaused: StateFlow<Boolean> = _recPaused.asStateFlow()
+    private var recStartedAt = 0L
     private val _click = MutableStateFlow(ClickState())
     val click: StateFlow<ClickState> = _click.asStateFlow()
     private val _player = MutableStateFlow<Loaded?>(null)
@@ -141,6 +147,8 @@ class AudioController(private val context: Context, private val audioDir: File) 
         recording = part to final
         stackPosAtStart = _stack.value?.takeIf { it.playing }?.let { NativeEngine.stackState().position }
         interruptReported = false
+        recStartedAt = System.currentTimeMillis()
+        _recPaused.value = false
         _recFrames.value = preroll
         _mic.value = Mic.RECORDING
         Breadcrumbs.add("record start")
@@ -154,6 +162,7 @@ class AudioController(private val context: Context, private val audioDir: File) 
         val st = NativeEngine.stopRecording()
         recording = null
         activePart = null
+        _recPaused.value = false
         // Queued behind the start command, so the service has always reached startForeground() first.
         if (serviceRunning) runCatching { context.startService(RecordingService.stopIntent(context)) }
         serviceRunning = false
@@ -168,7 +177,14 @@ class AudioController(private val context: Context, private val audioDir: File) 
         val marks = recMarks.toList()
         recMarks.clear()
         _markCount.value = 0
-        st?.let { Recorded(final, it.framesWritten, it.prerollFrames, it.lostFrames, it.diskError, sampleRate, if (click.on || grid != null) metronome.clampedBpm else null, stackPosAtStart, grid, marks.filter { m -> m < it.framesWritten }) }
+        st?.let { Recorded(final, it.framesWritten, it.prerollFrames, it.lostFrames, it.diskError, sampleRate, if (click.on || grid != null) metronome.clampedBpm else null, stackPosAtStart, grid, marks.filter { m -> m < it.framesWritten }, recStartedAt) }
+    }
+
+    /** Pauses or resumes the take (Christopher, 2 Nov 2026). Markers and the clock count only what is written. */
+    fun pauseRecording(pause: Boolean) = scope.launch {
+        if (recording == null) return@launch
+        // Over a playing stack the pause is written as silence, so the rest of the take still lines up with the stack.
+        if (NativeEngine.pauseRecording(pause, fillSilence = stackPosAtStart != null)) { _recPaused.value = pause; Breadcrumbs.add(if (pause) "record pause" else "record resume") }
     }
 
     private val recMarks = java.util.concurrent.CopyOnWriteArrayList<Long>()
@@ -178,7 +194,7 @@ class AudioController(private val context: Context, private val audioDir: File) 
 
     /** Drops a marker at the newest recorded frame (plan §7 Recorder: markers while recording). */
     fun markRecording() = scope.launch {
-        if (_mic.value != Mic.RECORDING) return@launch
+        if (_mic.value != Mic.RECORDING || _recPaused.value) return@launch
         NativeEngine.recordingState()?.let { recMarks.add(it.framesWritten); _markCount.value = recMarks.size }
     }
 
@@ -278,6 +294,12 @@ class AudioController(private val context: Context, private val audioDir: File) 
             }
         }
         ensurePolling()
+    }
+
+    /** Moves the take in the player to [frame], playing or paused as [play] says. */
+    fun seekFrame(frame: Long, play: Boolean = true) {
+        val p = _player.value ?: return
+        load(p.scrapId, p.takeId, p.title, p.path, play, frame.coerceIn(0, (p.frames - 1).coerceAtLeast(0)), p.playback)
     }
 
     fun seek(fraction: Float, play: Boolean = true) {

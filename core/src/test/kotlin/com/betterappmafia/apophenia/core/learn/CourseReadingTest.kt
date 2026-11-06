@@ -19,7 +19,7 @@ class CourseReadingTest {
 
     @Test
     fun `every score example's bars add up to their meter`() {
-        val scores = Course.pages.mapNotNull { (it.see as? CourseSee.Score)?.score }
+        val scores = Course.pages.flatMap { p -> p.pictures.filterIsInstance<CourseSee.Score>().map { it.score } }
         assertTrue(scores.size >= 7)
         for (s in scores) for (p in s.parts) p.bars.forEachIndexed { i, b ->
             assertEquals(s.meter.barLength, b.voices.first().fold(Rational.ZERO) { a, e -> a + e.duration.length }, "bar ${i + 1}")
@@ -45,6 +45,6 @@ class CourseReadingTest {
     @Test
     fun `the road map plays in the order the page states`() {
         assertEquals(listOf(1, 2, 3, 1, 2, 4, 5, 1, 2), R.playOrder())
-        assertTrue(Course.page("roadmap")!!.explain.contains("1 2 3 1 2 4 5 1 2"))
+        assertTrue(Course.page("roadmap")!!.text.contains("1 2 3 1 2 4 5 1 2"))
     }
 }

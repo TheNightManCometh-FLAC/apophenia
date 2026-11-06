@@ -1,0 +1,1 @@
+0.9.46: the recorder pauses and resumes the same take (the pause is left out of the file). Delete a take right in the recorder (✕ DELETE) or on the save sheet; it goes to the trash with UNDO. Every take you record now counts toward your practice streak, week and month, and shows in the practice log; time recorded while the practice timer runs counts once.

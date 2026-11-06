@@ -117,8 +117,11 @@ private fun ProjectBoard(model: AppModel, project: ProjectEntity, requestMic: ((
     val record = { requestMic { model.startRecording(RecordTarget.Project(project.id, project.name)) } }
     Column(Modifier.fillMaxSize()) {
         TitleBar {
-            Text("BOARD", style = T.title)
-            Text(if (rows.isNullOrEmpty()) "" else "HOLD AND DRAG TO ARRANGE · CORNER TO RESIZE", style = T.label.copy(fontSize = 8.sp), modifier = Modifier.weight(1f))
+            // Film: the project's name as its title card (the strip above already says BOARD).
+            Column(Modifier.weight(1f)) {
+                if (C.palette.film) DisplayTitle(project.name) else Text("BOARD", style = T.title)
+                if (!rows.isNullOrEmpty()) Text("HOLD AND DRAG TO ARRANGE · CORNER TO RESIZE", style = T.label.copy(fontSize = 8.sp))
+            }
             Box {
                 val player by model.app.audio.player.collectAsState()
                 val here = player?.takeIf { pl -> rows.orEmpty().any { it.scrap.id == pl.scrapId } }
@@ -216,6 +219,7 @@ private fun BoardWindow(model: AppModel, projectId: Long, row: BoardRow, rect: B
     val s = row.scrap
     val title = displayTitle(s)
     val open = { model.open(s.id, projectId) }
+    val film = C.palette.film
     fun drop() {
         val r = current
         pending = r; moveBy = Offset.Zero; sizeBy = Offset.Zero; active = false
@@ -229,8 +233,7 @@ private fun BoardWindow(model: AppModel, projectId: Long, row: BoardRow, rect: B
             .zIndex(if (active) 10_000f else row.z.toFloat())
             // Laid down by hand, not in rows: a slight tilt, the same for a scrap every time; straight while it's being moved.
             .graphicsLayer { rotationZ = if (active) 0f else ((s.id * 37 % 5) - 2) * 0.6f }
-            .background(C.panel)
-            .border(1.dp, if (active) C.acc else C.line2)
+            .then(if (film) Modifier else Modifier.background(C.panel).border(1.dp, if (active) C.acc else C.line2))
             .pointerInput(s.id) { detectTapGestures(onTap = { open() }, onLongPress = {}) }
             .pointerInput(s.id) {
                 detectDragGesturesAfterLongPress(
@@ -244,7 +247,7 @@ private fun BoardWindow(model: AppModel, projectId: Long, row: BoardRow, rect: B
                 onClick("Open") { open(); true }
             },
     ) {
-        Column(Modifier.fillMaxSize().padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 6.dp)) {
+        if (film) FilmWindow(model, projectId, row, title, active, inStack) else Column(Modifier.fillMaxSize().padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 6.dp)) {
             // What it is, at a glance (Christopher, 25 Oct 2026: "instantly understand what they are by the tags"):
             // the kind of fragment as a filled tag, then its own tags, then the title.
             @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
@@ -283,9 +286,9 @@ private fun BoardWindow(model: AppModel, projectId: Long, row: BoardRow, rect: B
                 }
             }
         }
-        // The resize corner.
+        // The resize corner (on a Film card, the card's own corner, above the caption).
         Box(
-            Modifier.align(Alignment.BottomEnd).size(30.dp)
+            Modifier.align(Alignment.BottomEnd).padding(bottom = if (film) FILM_CAPTION else 0.dp).size(30.dp)
                 .pointerInput(s.id) {
                     detectDragGestures(
                         onDragStart = { active = true },
@@ -296,7 +299,7 @@ private fun BoardWindow(model: AppModel, projectId: Long, row: BoardRow, rect: B
                 .semantics { contentDescription = "Resize $title" },
         ) {
             Canvas(Modifier.fillMaxSize().padding(7.dp)) {
-                val c = if (active) C.acc else C.dim
+                val c = if (active) C.acc else if (film) filmInk(s.format).copy(alpha = 0.55f) else C.dim
                 drawLine(c, Offset(size.width, 0f), Offset(0f, size.height), 1.5f)
                 drawLine(c, Offset(size.width, size.height * 0.5f), Offset(size.width * 0.5f, size.height), 1.5f)
             }
@@ -304,9 +307,92 @@ private fun BoardWindow(model: AppModel, projectId: Long, row: BoardRow, rect: B
     }
 }
 
+// ------------------------------------------------------------------------------------------------- Film cards
+
+/** How tall the caption under a Film card is. */
+private val FILM_CAPTION = 34.dp
+
+/**
+ * The Film look's Board card (Christopher, 31 Oct 2026: "why don't the fragments on the board look this stylized?",
+ * after Film.dc.html): each scrap is an object laid on the frame, with what it is captioned under it like a print in a
+ * gallery: the kind first, then its title (the kind tag stays first, as he asked on 25 Oct), then its numbers.
+ * Words and tab are printed on paper, a chord chart on a black card, a recording is its own painted take.
+ */
+@Composable
+private fun FilmWindow(model: AppModel, projectId: Long, row: BoardRow, title: String, active: Boolean, inStack: Boolean) {
+    val s = row.scrap
+    val paper = filmPaper(s.format)
+    Column(Modifier.fillMaxSize()) {
+        Box(
+            Modifier.weight(1f).fillMaxWidth().background(paper)
+                .border(if (active) 1.5.dp else 1.dp, if (active) C.acc else if (s.format == ScrapFormat.RECORDING) FILM_PAPER else FILM_EDGE),
+        ) {
+            if (s.format == ScrapFormat.RECORDING) FilmTake(model, row)
+            else Box(Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 9.dp)) { Glimpse(model, row, filmInk(s.format)) }
+        }
+        Row(Modifier.fillMaxWidth().height(FILM_CAPTION).padding(top = 5.dp), verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Line1((formatWord(s.format) + " · " + title).uppercase(), T.label.copy(fontSize = 8.sp, color = C.hi), Modifier)
+                val meta = buildList {
+                    if (row.takes > 1) add("${row.takes} takes")
+                    if (keyShort(s) != "—") add(keyShort(s))
+                    if (bpmText(s) != "—") add(bpmText(s) + if (s.freeTime) "" else " bpm")
+                    if (row.starred > 0) add("★ ${row.starred}")
+                    addAll(row.tagList.map { it.lowercase() })
+                }
+                Line1(meta.joinToString(" · "), T.small.copy(fontSize = 9.sp, color = C.dim), Modifier)
+            }
+            if (s.format == ScrapFormat.RECORDING) Box(
+                Modifier.clickable { if (inStack) model.stacks.removeScrap(projectId, s.id) else model.stacks.add(projectId, setOf(s.id)) }.padding(start = 6.dp, top = 1.dp)
+                    .semantics { contentDescription = if (inStack) "In the stack. Tap to take it out." else "Add to the stack" },
+            ) { Text(if (inStack) "● IN STACK" else "+ STACK", style = T.label.copy(fontSize = 8.sp, color = if (inStack) C.rec else C.text)) }
+        }
+    }
+}
+
+private val FILM_PAPER = androidx.compose.ui.graphics.Color(0xFFEDE6D8)
+private val FILM_BLACK = androidx.compose.ui.graphics.Color(0xFF0A0A0B)
+private val FILM_EDGE = androidx.compose.ui.graphics.Color(0x33F2EEE6)
+private val FILM_INK = androidx.compose.ui.graphics.Color(0xFF2A2521)
+
+/** Paper for words and tab, a black card for a chord chart, the take's own frame for a recording. */
+private fun filmPaper(f: ScrapFormat) = when (f) {
+    ScrapFormat.CHORD_CHART -> FILM_BLACK
+    ScrapFormat.RECORDING -> FILM_PAPER
+    else -> FILM_PAPER
+}
+private fun filmInk(f: ScrapFormat) = if (f == ScrapFormat.CHORD_CHART || f == ScrapFormat.RECORDING) FILM_PAPER else FILM_INK
+
+/** A recording on a Film card: its take painted as a long exposure inside a paper mat, the unplayed part dimmed as it plays. */
+@Composable
+private fun FilmTake(model: AppModel, row: BoardRow) {
+    val path = row.glimpsePath
+    val peaks by produceState(FloatArray(0), path) {
+        value = if (path == null) FloatArray(0) else withContext(Dispatchers.IO) { runCatching { Wav.peaks(File(model.app.audioDir, path), 96) }.getOrDefault(FloatArray(0)) }
+    }
+    val s = row.scrap
+    val key = remember(s.key) { com.betterappmafia.apophenia.core.catalog.KeyMode.parseOrNull(s.key) }
+    val frame = remember(path, peaks) {
+        if (peaks.isEmpty()) null else com.betterappmafia.apophenia.core.art.FilmFrame.Input(
+            com.betterappmafia.apophenia.core.art.FilmFrame.Kind.TAKE, (path ?: "").hashCode().toLong(), key?.tonic?.pitchClass, key?.let { isMinor(it) } ?: false, s.bpmLow, listOf(peaks),
+        )
+    }
+    val player by model.app.audio.player.collectAsState()
+    val p = player
+    val progress = if (p != null && p.scrapId == s.id && p.frames > 0) p.position.toFloat() / p.frames else -1f
+    Box(Modifier.fillMaxSize().padding(4.dp).background(FILM_BLACK)) {
+        FilmBackdrop(frame, Modifier.fillMaxSize())
+        if (progress >= 0f) Canvas(Modifier.fillMaxSize()) {
+            val x = size.width * progress.coerceIn(0f, 1f)
+            drawRect(androidx.compose.ui.graphics.Color(0x8C000000), Offset(x, 0f), androidx.compose.ui.geometry.Size(size.width - x, size.height))
+            drawLine(FILM_PAPER, Offset(x, 0f), Offset(x, size.height), 1.5f)
+        }
+    }
+}
+
 /** What the window shows of the scrap: a recording's waveform (its newest starred take, else its newest). */
 @Composable
-private fun Glimpse(model: AppModel, row: BoardRow) {
+private fun Glimpse(model: AppModel, row: BoardRow, ink: androidx.compose.ui.graphics.Color? = null) {
     when (row.scrap.format) {
         ScrapFormat.RECORDING -> {
             val path = row.glimpsePath ?: return
@@ -352,9 +438,22 @@ private fun Glimpse(model: AppModel, row: BoardRow) {
                 }
                 else -> body.trim()
             }
+            // On a Film card: words set in the serif on paper, a chord chart's chords large on the black card.
+            val style = when {
+                ink == null -> T.small.copy(fontSize = 11.sp, lineHeight = 15.sp)
+                row.scrap.format == ScrapFormat.LYRIC || row.scrap.format == ScrapFormat.TEXT ->
+                    androidx.compose.ui.text.TextStyle(fontFamily = com.betterappmafia.apophenia.ui.theme.FilmSerif, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, fontSize = 16.sp, lineHeight = 19.sp)
+                row.scrap.format == ScrapFormat.CHORD_CHART ->
+                    androidx.compose.ui.text.TextStyle(fontFamily = com.betterappmafia.apophenia.ui.theme.FilmSerif, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, fontSize = 21.sp, lineHeight = 25.sp)
+                else -> T.small.copy(fontSize = 11.sp, lineHeight = 15.sp)
+            }
+            val color = when { ink == null -> if (text.isEmpty()) C.faint else C.text; text.isEmpty() -> ink.copy(alpha = 0.45f); else -> ink }
+            val shownText = if (ink != null && row.scrap.format == ScrapFormat.CHORD_CHART && following == null)
+                ChordChart.parse(body).bars.flatMap { b -> b.beats.filter { it.isNotBlank() && it != "%" && it != "/" } }.map { ChordText.display(it) }.fold(emptyList<String>()) { acc, c -> if (acc.lastOrNull() == c) acc else acc + c }.joinToString("  ").ifEmpty { text }
+                else text
             Text(
-                text.ifEmpty { "empty · tap to write" },
-                style = T.small.copy(fontSize = 11.sp, lineHeight = 15.sp, color = if (text.isEmpty()) C.faint else C.text),
+                shownText.ifEmpty { "empty · tap to write" },
+                style = style.copy(color = color),
                 overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
             )
         }
@@ -373,7 +472,7 @@ private fun Glimpse(model: AppModel, row: BoardRow) {
                     }
             Text(
                 text.ifEmpty { "empty" },
-                style = T.small.copy(fontSize = 11.sp, lineHeight = 15.sp, color = if (text.isEmpty()) C.faint else C.text),
+                style = T.small.copy(fontSize = 11.sp, lineHeight = 15.sp, color = when { ink == null -> if (text.isEmpty()) C.faint else C.text; text.isEmpty() -> ink.copy(alpha = 0.45f); else -> ink }),
                 overflow = androidx.compose.ui.text.style.TextOverflow.Clip, softWrap = false,
             )
         }

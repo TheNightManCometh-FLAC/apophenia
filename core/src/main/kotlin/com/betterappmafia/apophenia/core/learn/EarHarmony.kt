@@ -164,12 +164,14 @@ object EarHarmony {
     /** A chord voiced on the piano: the bass two octaves under the tonic, the rest close around the tonic. */
     fun voice(ch: HChord, tonic: Int): List<Int> {
         val bass = tonic - 24 + ch.bass
-        val lower = ch.pcs.map { pc -> (tonic - 7) + Math.floorMod(pc - (tonic - 7), 12) }.sorted()
+        // [HChord.pcs] count up from the tonic, so each note is placed by its distance above the tonic, not as a pitch
+        // class of C (that read every key as C above the right bass until 0.9.39).
+        val lower = ch.pcs.map { pc -> (tonic - 7) + Math.floorMod(pc + 7, 12) }.sorted()
         // A stacked chord's upper notes go up in order, each above the last, starting above the lower chord.
         var top = lower.maxOrNull() ?: (tonic - 13)
         val upper = ch.upper.map { t ->
             val pc = Math.floorMod(t.interval.semitones + ch.shift, 12)
-            (top + 1 + Math.floorMod(pc - (top + 1), 12)).also { top = it }
+            (top + 1 + Math.floorMod(tonic + pc - (top + 1), 12)).also { top = it }
         }
         return listOf(bass) + lower + upper
     }

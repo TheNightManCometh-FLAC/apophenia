@@ -50,7 +50,38 @@ class CourseTest {
                 is CourseTarget.Page -> assertNotNull(Course.page(t.id), "${p.id} → page ${t.id}")
             }
             assertTrue(p.level in 1..5)
-            assertTrue(p.explain.length > 200, "${p.id} explains")
+            assertTrue(p.text.length > 200, "${p.id} explains")
+            assertTrue(p.steps.size >= 2 && p.inShort.isNotEmpty(), "${p.id} teaches in steps and sums up")
+        }
+    }
+
+    @Test
+    fun `every picture plays exactly what it draws`() {
+        for (p in Course.pages) for (see in p.pictures) when (see) {
+            is CourseSee.Chart -> {
+                assertTrue(see.chords.isNotEmpty(), "${p.id} ${see.caption}")
+                assertEquals(see.chords.map { it.midis }, see.play.chords, "${p.id} ${see.caption}: the chart plays its chords in order")
+                see.chords.forEach { c -> assertTrue(c.midis.size >= 2 && c.notes.isNotBlank(), "${p.id} ${c.numeral}") }
+            }
+            is CourseSee.Keys -> {
+                assertTrue(see.keys.isNotEmpty(), "${p.id} ${see.caption}")
+                see.play?.let { pl -> assertTrue(pl.chords.flatten().isNotEmpty(), "${p.id} ${see.caption} plays") }
+            }
+            is CourseSee.Grid -> {
+                assertTrue(see.rows.all { it.cells.size == see.columns.size }, "${p.id} ${see.caption}: every row has a cell per column")
+                assertTrue(see.rows.all { r -> r.lit.all { it in see.columns.indices } }, "${p.id} ${see.caption}: lit cells exist")
+            }
+            is CourseSee.Table -> assertTrue(see.play.isEmpty() || see.play.size == see.rows.size, "${p.id} ${see.caption}: one sound per row")
+            is CourseSee.Staff -> see.play?.let { pl -> assertEquals(see.score.parts.first().bars.flatMap { b -> b.voices.first() }.map { e -> e.notes.map { it.pitch.midi } }.filter { it.isNotEmpty() }.size, pl.chords.size, "${p.id} ${see.caption}") }
+            else -> {}
+        }
+    }
+
+    @Test
+    fun `the chord charts spell what they play`() {
+        for (p in Course.pages) for (see in p.pictures.filterIsInstance<CourseSee.Chart>()) for (c in see.chords) {
+            val spelled = c.notes.split(' ').map { PitchName.parse(it.replace("♭", "b").replace("♯", "#").replace("𝄫", "bb").replace("𝄪", "x")).pitchClass }.toSet()
+            assertEquals(spelled, c.midis.map { Math.floorMod(it, 12) }.toSet(), "${p.id} ${see.caption} ${c.numeral}: notes ${c.notes}")
         }
     }
 
@@ -150,5 +181,16 @@ class CourseTest {
         assertEquals("●●○○○", Course.gauge(2))
         assertEquals("tuning-equal", Course.next("tuning-cents")!!.id)
         assertEquals(null, Course.previous(Course.pages.first().id))
+    }
+
+    @Test
+    fun `every written topic and every chapter has a picture for the contents, a drawing wherever its pages have one`() {
+        val topics = Course.categories.flatMap { it.topics }.filter { it.pages.isNotEmpty() }
+        val missing = topics.filter { Course.cover(it) == null }.map { it.name }
+        assertTrue(missing.isEmpty(), "topics with no picture: $missing")
+        val tableWhereDrawing = topics.filter { t -> Course.cover(t) is CourseSee.Table && t.pages.flatMap { it.pictures }.any { it !is CourseSee.Table } }
+        assertTrue(tableWhereDrawing.isEmpty(), "a table chosen over a drawing: ${tableWhereDrawing.map { it.name }}")
+        Course.categories.forEach { c -> assertTrue(Course.cover(c) != null && Course.cover(c) !is CourseSee.Table, "${c.name} has no drawing") }
+        assertEquals(Course.cover(Course.categories.first().topics.first { Course.cover(it) !is CourseSee.Table }), Course.cover(Course.categories.first()))
     }
 }

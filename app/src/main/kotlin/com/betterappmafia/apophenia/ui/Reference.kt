@@ -50,6 +50,7 @@ import com.betterappmafia.apophenia.core.interval.Interval
 import com.betterappmafia.apophenia.core.instrument.Tuning
 import com.betterappmafia.apophenia.core.instrument.Tunings
 import com.betterappmafia.apophenia.core.learn.ChordPages
+import com.betterappmafia.apophenia.core.learn.CourseSee
 import com.betterappmafia.apophenia.core.learn.Commentary
 import com.betterappmafia.apophenia.core.learn.IntervalPages
 import com.betterappmafia.apophenia.core.learn.TuningReference
@@ -91,10 +92,10 @@ internal fun LearnHome(model: AppModel) {
         TitleBar {
             if (list != null) Sq("‹", { model.learnList = if (":" in list) list.substringBefore(":") else null })
             // Inside a list the title names it (and its family), so a page deep in the Reference says where it is.
-            val title = if (model.learnPart != "REFERENCE" || list == null) model.learnPart else listTitle(list)
+            val title = if (model.learnPart != "REFERENCE" || list == null) (if (model.learnPart == "COURSE") "MUSIC THEORY BASICS" else model.learnPart) else listTitle(list)
             Text(title, style = T.title, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = if (list != null) Modifier.weight(1f) else Modifier)
             if (list == null) Text(
-                when (model.learnPart) { "COURSE" -> "PICK A CATEGORY"; "EAR" -> "PRACTICE · HIGH SCORES"; else -> "EVERYTHING, ON YOUR TUNING" },
+                when (model.learnPart) { "COURSE" -> ""; "EAR" -> "PATH · WEAKEST · QUICK CHECK · TEST"; else -> "EVERYTHING, ON YOUR TUNING" },
                 style = T.label, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f), maxLines = 1,
             )
         }
@@ -120,20 +121,7 @@ internal fun LearnHome(model: AppModel) {
                         val hits = remember(query) { Reference.find(query).take(40) }
                         if (hits.isEmpty()) Text("Nothing by that name.", style = T.small, modifier = Modifier.padding(14.dp))
                         hits.forEach { h -> RefRow(model, h.item, h.root) }
-                    } else {
-                        RefKind.entries.forEach { k ->
-                            CategoryRow("${Reference.items.count { it.kind == k }}", k.label, when (k) {
-                                RefKind.INTERVAL -> "UNISON TO DOUBLE OCTAVE"
-                                RefKind.SCALE -> "MODES OF MAJOR, MELODIC, HARMONIC MINOR AND MAJOR · SYMMETRIC · BEBOP · OTHER"
-                                RefKind.CHORD -> "TRIADS TO THIRTEENTHS, ALTERED, SUS, ADD"
-                                RefKind.PROGRESSION -> "POP, MODAL, JAZZ, BLUES, CADENCES · ON ANY KEY"
-                                RefKind.TUNING -> "STANDARD, DROP, OPEN MAJOR AND MINOR, MODAL, REGULAR, 7 AND 8 STRINGS"
-                            }) { model.learnList = k.name }
-                        }
-                        CategoryRow("${com.betterappmafia.apophenia.core.tools.Groove.COMMON.size}", "Drum grooves", "COMMON BEATS AS DRUM TAB") { model.learnList = "GROOVES" }
-                        CategoryRow("40", "Drum rudiments", "THE PAS RUDIMENTS") { model.learnList = "RUDIMENTS" }
-                        CategoryRow("·", "Name a chord", "TAP NOTES ON THE PIANO OR YOUR GUITAR") { model.learnList = "NAME" }
-                    }
+                    } else ReferenceIndex(model)
                 }
             }
         }
@@ -212,7 +200,7 @@ private fun rowNote(item: RefItem) = when (item.kind) {
 internal fun degreeText(s: String) = s.replace(Regex("bb(?=\\d)"), "𝄫").replace(Regex("b(?=\\d)"), "♭").replace(Regex("#(?=\\d)"), "♯").replace(Regex("(?<![A-Za-z])x(?=\\d)"), "𝄪")
 
 /** A catalog symbol as written, with real accidentals and the ° its ASCII "o" stands for ("Cm(b5)", "Co7"). */
-private fun symbolText(s: String) = com.betterappmafia.apophenia.core.sheet.ChordText.display(s).replace(Regex("^([A-G][♭♯]?)o(?=\\d|$)"), "$1°")
+internal fun symbolText(s: String) = com.betterappmafia.apophenia.core.sheet.ChordText.display(s).replace(Regex("^([A-G][♭♯]?)o(?=\\d|$)"), "$1°")
 
 /** A page's name as shown: scale names carry degrees ("Dorian b2" reads Dorian ♭2); a rudiment's "#1" is a number. */
 private fun refTitle(item: RefItem) = if (item.kind == RefKind.SCALE) degreeText(item.title) else item.title

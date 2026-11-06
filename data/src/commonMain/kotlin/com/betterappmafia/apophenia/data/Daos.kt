@@ -84,7 +84,12 @@ abstract class ScrapDao {
     @Query("UPDATE scrap SET edited_at = :now WHERE id = :id") abstract suspend fun touch(id: Long, now: Long)
 
     @Insert protected abstract suspend fun insertTake(take: TakeEntity): Long
-    @Query("SELECT letter FROM take WHERE scrap_id = :scrapId") protected abstract suspend fun lettersOf(scrapId: Long): List<String>
+    /** Letters of the live takes: a deleted take's letter is free again (Christopher, 2 Nov 2026: delete B, record, it's B). */
+    @Query("SELECT letter FROM take WHERE scrap_id = :scrapId AND deleted_at IS NULL") protected abstract suspend fun liveLetters(scrapId: Long): List<String>
+    /** A trashed take holding [letter] moves aside to "~id" (trashed takes aren't listed anywhere), so the letter can be reused. */
+    @Query("UPDATE take SET letter = '~' || id WHERE scrap_id = :scrapId AND letter = :letter AND deleted_at IS NOT NULL")
+    protected abstract suspend fun freeLetter(scrapId: Long, letter: String)
+    protected suspend fun lettersOf(scrapId: Long): List<String> = liveLetters(scrapId).also { freeLetter(scrapId, TakeLetters.next(it)) }
 
     @Insert(onConflict = OnConflictStrategy.IGNORE) protected abstract suspend fun insertRef(ref: ProjectRefEntity): Long
 
@@ -157,12 +162,28 @@ interface TakeDao {
     /** Every take audio file the database knows, trashed ones included: a file not listed is an orphan. */
     @Query("SELECT audio_path FROM take") suspend fun allAudioPaths(): List<String>
 
-    /** Every letter used, trashed takes included, so a restored take never collides with a newer one. */
-    @Query("SELECT letter FROM take WHERE scrap_id = :scrapId") suspend fun lettersUsed(scrapId: Long): List<String>
+    /** Letters of the live takes; the next take gets the first one free (a deleted take's letter included). */
+    @Query("SELECT letter FROM take WHERE scrap_id = :scrapId AND deleted_at IS NULL") suspend fun lettersUsed(scrapId: Long): List<String>
 
     @Query("UPDATE take SET starred = :starred WHERE id = :id") suspend fun setStarred(id: Long, starred: Boolean)
     @Query("UPDATE take SET deleted_at = :now WHERE id = :id") suspend fun moveToTrash(id: Long, now: Long)
-    @Query("UPDATE take SET deleted_at = NULL WHERE id = :id") suspend fun restore(id: Long)
+    @Query("UPDATE take SET deleted_at = NULL WHERE id = :id") suspend fun undelete(id: Long)
+    @Query("UPDATE take SET letter = :letter WHERE id = :id") suspend fun setLetter(id: Long, letter: String)
+    @Query("UPDATE take SET letter = '~' || id WHERE scrap_id = :scrapId AND letter = :letter AND deleted_at IS NOT NULL")
+    suspend fun freeLetter(scrapId: Long, letter: String)
+
+    /** Back from the trash (UNDO). Its letter is kept unless a newer take took it meanwhile; then it gets the next free one. */
+    @Transaction
+    suspend fun restore(id: Long) {
+        val t = get(id) ?: return
+        val live = lettersUsed(t.scrapId)
+        if (t.letter.startsWith("~") || t.letter in live) {
+            val l = TakeLetters.next(live)
+            freeLetter(t.scrapId, l)
+            setLetter(id, l)
+        }
+        undelete(id)
+    }
     @Query("DELETE FROM take WHERE deleted_at <= :cutoff") suspend fun purgeExpired(cutoff: Long): Int
 }
 

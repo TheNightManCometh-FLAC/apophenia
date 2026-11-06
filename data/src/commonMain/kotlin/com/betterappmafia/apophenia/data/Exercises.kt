@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.Flow
 /**
  * An exercise (plan §7 Exercises; schema v15): a piece of written music to practise on a tempo ladder. It is either one
  * of your own Library scraps ([scrapId]; deleting the scrap for good removes the exercise) or, later, one of the curated
- * exercises shipped with the app ([curated], its id in the catalogue). The ladder's numbers are core.tools.TempoLadder.
+ * exercises shipped with the app ([curated], its id in the catalogue). The tempo you set is kept in current_bpm (start and goal hold the same; the ladder was dropped, Christopher, 2 Nov 2026).
  */
 @Entity(
     tableName = "exercise",
