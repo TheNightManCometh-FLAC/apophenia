@@ -288,7 +288,14 @@ private fun androidx.compose.foundation.layout.ColumnScope.LyricsView(model: App
         scroll.animateScrollTo((y - scroll.viewportSize / 3).coerceAtLeast(0))
     }
     val fs = TEXT_SIZES[size].sp
-    Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 220.dp)) {
+    // Long lines wrap to the screen (Christopher, 9 Nov 2026: they ran off the edge). The face is monospace, so the
+    // width in columns is the line width over one character's advance; chords and words are cut at the same column.
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val charW = remember(fs) { measurer.measure("0000000000", T.body.copy(fontSize = fs)).size.width / 10f }
+    var widthPx by remember { mutableIntStateOf(0) }
+    val cols = if (widthPx > 0 && charW > 0f) (widthPx / charW).toInt() else 0
+    Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 220.dp)
+        .onGloballyPositioned { widthPx = it.size.width }) {
         if (lines.isEmpty() || lines.all { it == LyricSheet.Line.Blank }) Text("No words yet. Tap EDIT.", style = T.body.copy(color = C.faint))
         lines.forEachIndexed { i, line ->
             when (line) {
@@ -298,13 +305,15 @@ private fun androidx.compose.foundation.layout.ColumnScope.LyricsView(model: App
                     val w = wordIndex[i]
                     val lit = w == current
                     val (top, bottom) = LyricSheet.chordsOverWords(line)
+                    val rows = remember(top, bottom, line.text, showChords, cols) { if (showChords) LyricSheet.wrap(top, bottom, cols) else LyricSheet.wrap("", line.text, cols) }
                     Column(
                         Modifier.fillMaxWidth().background(if (lit) C.selected else androidx.compose.ui.graphics.Color.Transparent)
-                            .onGloballyPositioned { lineY[w] = it.positionInParent().y.toInt() }
-                            .horizontalScroll(rememberScrollState()),
+                            .onGloballyPositioned { lineY[w] = it.positionInParent().y.toInt() },
                     ) {
-                        if (showChords && top.isNotEmpty()) Text(top, style = T.body.copy(fontSize = fs, color = C.acc, fontWeight = FontWeight.Bold), softWrap = false)
-                        Text(if (showChords) bottom else line.text, style = T.body.copy(fontSize = fs, color = if (current >= 0 && !lit) C.text else C.hi, lineHeight = (fs.value * 1.35f).sp), softWrap = false)
+                        rows.forEach { (t, b) ->
+                            if (showChords && top.isNotEmpty()) Text(t, style = T.body.copy(fontSize = fs, color = C.acc, fontWeight = FontWeight.Bold), softWrap = false)
+                            Text(b, style = T.body.copy(fontSize = fs, color = if (current >= 0 && !lit) C.text else C.hi, lineHeight = (fs.value * 1.35f).sp), softWrap = false)
+                        }
                     }
                 }
             }

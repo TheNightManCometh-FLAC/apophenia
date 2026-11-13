@@ -91,6 +91,30 @@ object LyricSheet {
         return top.toString().trimEnd() to bottom.toString().trimEnd()
     }
 
+    /**
+     * Wraps a chords-over-words pair to [cols] monospace columns, cutting both rows at the same column so each chord
+     * stays over its syllable. Cuts at the last space in the words that doesn't split a chord name; a word longer than
+     * the line is cut at the edge. The space at a cut is dropped from both rows.
+     */
+    fun wrap(top: String, bottom: String, cols: Int): List<Pair<String, String>> {
+        val n = maxOf(top.length, bottom.length)
+        if (cols <= 0 || n <= cols) return listOf(top to bottom)
+        val t = top.padEnd(n)
+        val b = bottom.padEnd(n)
+        fun inChord(k: Int) = k in 1 until n && t[k - 1] != ' ' && t[k] != ' '
+        val out = ArrayList<Pair<String, String>>()
+        var start = 0
+        while (n - start > cols) {
+            var cut = (start + cols downTo start + 1).firstOrNull { b[it] == ' ' && !inChord(it) } ?: -1
+            val skip = cut >= 0
+            if (!skip) cut = (start + cols downTo start + 1).firstOrNull { !inChord(it) } ?: (start + cols)
+            out += t.substring(start, cut).trimEnd() to b.substring(start, cut).trimEnd()
+            start = if (skip && t[cut] == ' ') cut + 1 else cut
+        }
+        out += t.substring(start).trimEnd() to b.substring(start).trimEnd()
+        return out
+    }
+
     /** The words only, for previews and search. */
     fun plainText(source: String): String = parse(source).joinToString("\n") {
         when (it) {

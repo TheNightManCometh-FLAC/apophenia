@@ -95,7 +95,12 @@ fun StandMode(model: AppModel, projectId: Long, requestMic: (() -> Unit) -> Unit
     var size by remember { mutableStateOf(26) }
     var playMenu by remember { mutableStateOf(false) }
     val ordered = remember(rows) { rows.sortedWith(compareBy({ it.y ?: 0 }, { it.x ?: 0 })) }
-    val lines = remember(ordered, model.chordDialect) { ordered.flatMap { standLines(it) } }
+    // Lyric lines wrap to the width, chords cut with their words (as in the lyric view, 9 Nov 2026).
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val charW = remember(size) { measurer.measure("0000000000", T.body.copy(fontFamily = FontFamily.Monospace, fontSize = size.sp)).size.width / 10f }
+    var widthPx by remember { mutableStateOf(0) }
+    val cols = if (widthPx > 0 && charW > 0f) (widthPx / charW).toInt() else 0
+    val lines = remember(ordered, model.chordDialect, cols) { ordered.flatMap { standLines(it, cols) } }
     val player by model.app.audio.player.collectAsState()
     val p = player?.takeIf { pl -> ordered.any { it.scrap.id == pl.scrapId } }
     // Lyric syncs for the take that's playing, by lyric id.
@@ -118,11 +123,12 @@ fun StandMode(model: AppModel, projectId: Long, requestMic: (() -> Unit) -> Unit
 
     Row(Modifier.fillMaxSize().background(C.bg)) {
         Column(
-            Modifier.weight(1f).fillMaxHeight().onGloballyPositioned { height = it.size.height }.verticalScroll(scroll).padding(horizontal = 24.dp, vertical = 16.dp),
+            Modifier.weight(1f).fillMaxHeight().onGloballyPositioned { height = it.size.height }.verticalScroll(scroll).padding(horizontal = 24.dp, vertical = 16.dp)
+                .onGloballyPositioned { widthPx = it.size.width },
         ) {
             if (lines.isEmpty()) Text("Nothing on this Board to read yet.", style = T.body.copy(fontSize = size.sp, color = C.faint))
             for (l in lines) {
-                val lit = l.key == current
+                val lit = current != null && (l.key == current || l.key.startsWith("$current:"))
                 val base = when (l.kind) {
                     StandLine.Kind.TITLE -> T.label.copy(fontSize = (size * 0.5f).sp, color = C.acc)
                     StandLine.Kind.SECTION -> T.label.copy(fontSize = (size * 0.6f).sp, color = C.dim)
@@ -216,7 +222,7 @@ private fun playingKey(rows: List<BoardRow>, p: com.betterappmafia.apophenia.aud
 private const val BARS_A_LINE = 4
 
 /** A Board block as stand lines. */
-private fun standLines(row: BoardRow): List<StandLine> {
+private fun standLines(row: BoardRow, cols: Int): List<StandLine> {
     val s = row.scrap
     val id = s.id
     val body = row.shownBody
@@ -230,8 +236,11 @@ private fun standLines(row: BoardRow): List<StandLine> {
                 is LyricSheet.Line.Words -> {
                     val (top, bottom) = LyricSheet.chordsOverWords(line)
                     val key = "$id:line:${words++}"
-                    if (top.isNotBlank()) out += StandLine("$key:c", ChordText.display(top), StandLine.Kind.CHORDS)
-                    out += StandLine(key, bottom, StandLine.Kind.WORDS)
+                    LyricSheet.wrap(top, bottom, cols).forEachIndexed { n, (t, b) ->
+                        val k = if (n == 0) key else "$key:$n"
+                        if (top.isNotBlank()) out += StandLine("$k:c", ChordText.display(t), StandLine.Kind.CHORDS)
+                        out += StandLine(k, b, StandLine.Kind.WORDS)
+                    }
                 }
                 LyricSheet.Line.Blank -> out += StandLine("$id:b:${out.size}", " ", StandLine.Kind.NOTE)
             }

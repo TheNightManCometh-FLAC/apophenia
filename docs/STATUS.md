@@ -2,6 +2,22 @@
 
 **22 Oct 2026:** M0's code is done (scaffold, core types, Room, Device Lab 0.0.2; no git yet, waiting for the repo URL); C4 approved; AI is the fifth mode. **M1 code-complete (builds 0.1.0–0.1.2) and sent, not yet run on the phone.** Waiting on: Christopher's run of 0.1.2 (walkthrough `docs/walkthroughs/M1a.md`) and of the Device Lab, the GitHub repo URL, and the open questions below.
 
+## Build 0.9.53 (9 Nov 2026): long lyric lines wrap
+
+- Christopher, 9 Nov 2026 (phone screenshots of "Music"): "The words are not showing up right either." In the lyric view long lines ran off the right edge ("strewn over t", "universes of desir"); they scrolled sideways one line at a time, which nobody would guess. The editor wrapped them, so the two screens disagreed.
+- Long lines now wrap to the screen in the lyric view and in Stand mode. Chords over words are cut at the same column so each chord stays over its syllable, at a space that doesn't split a chord name; a word longer than the line is cut at the edge. `LyricSheet.wrap` in the core (5 unit tests); the view counts columns from the monospace face's measured advance at the chosen text size. [Claude] the cut rule.
+- Stand mode: a wrapped line's continuation rows light up with it while a synced take plays.
+- **Metronome tempo shows at once.** Christopher, 13 Nov 2026: with the click running, + and +5 left the big number unchanged until the bar finished, "so it looks like nothing happened". The number showed the tempo of the bar being played; the engine changes tempo at the next bar line (kept, so a bar never stretches halfway). The number (and the Tools rack tile) now shows the tempo you set straight away, and the line under it reads "BAR n · FROM THE NEXT BAR" until the bar line. With the trainer on, the number still follows the climbing tempo. [Claude] the wording.
+- **Unverified on device:** all of it; not seen on the emulator either (it was too loaded to install a 300 MB build in 20 minutes on 9 Nov). Unit-tested: the wrap rule.
+
+## Build 0.9.52 (9 Nov 2026): the keyboard no longer covers what you type
+
+- Christopher, 9 Nov 2026 (phone screenshot): "The lyrics get blocked by the keyboard when it gets longer." Cause: the app draws edge to edge, where `adjustResize` no longer shrinks the window, and the frame only padded for the system bars, so every editor ran on under the keyboard and the field thought the hidden lines were on screen.
+- Fix: the main frame pads for the keyboard (`imePadding`), so the editor ends at the keyboard's top and scrolls to the line being typed. This covers every text editor in the frame (lyrics, text notes, chord and drum charts), not only lyrics.
+- While the keyboard is up the bottom player and the PLAN · PRACTICE · STUDY tabs are hidden; they were under the keyboard before, and above it they would leave little room for the text. [Claude]
+- **Emulator-verified** (Pixel x86_64, Android 13): 22 lines typed into a new lyric, the last line stays just above the keyboard; closing the keyboard brings the player and tabs back. Also seen there: the 0.9.51 coffee cup in the top bar.
+- **Unverified on device:** the S22 Ultra with Samsung Keyboard (its toolbar row is taller); Stand mode was not changed.
+
 ## Build 0.9.51 (5 Nov 2026): coffee cup to Ko-fi; licences checked
 
 - Christopher, 5 Nov 2026: "Maybe have a coffee cup icon for a quick way to reach the donate button." A drawn coffee cup sits in the top bar, left of the settings gear, on every screen; tap opens https://ko-fi.com/betterappmafia in the browser (an intent; still no INTERNET permission, checked with aapt2 on the 0.9.51 APK). [Claude] placement beside the gear, drawn rather than an emoji (fonts differ), dim like the gear.

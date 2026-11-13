@@ -23,6 +23,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
@@ -71,7 +74,9 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
         // Stand mode takes the whole screen (plan §4.4); recording, sheets and dialogs still sit over it.
         val stand = model.standProject
         if (stand != null) Box(Modifier.fillMaxSize().systemBarsPadding()) { StandMode(model, stand, requestMic) { model.standProject = null } }
-        else Column(Modifier.fillMaxSize().systemBarsPadding()) {
+        // Edge to edge, the window doesn't shrink for the keyboard (adjustResize does nothing): the frame ends at the
+        // keyboard's top itself, or long lyrics type on under it (Christopher, 9 Nov 2026).
+        else Column(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
             TopBar(model, mic)
             ClickRecBar(model, mic, requestMic)
             Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -99,8 +104,14 @@ fun Shell(model: AppModel, requestMic: (() -> Unit) -> Unit) {
                 }
             }
             NoticeBar(model)
-            Transport(model)
-            NavBar(model)
+            // While typing, the player and tabs would sit on the keyboard and squeeze the text; they were under it before.
+            // [Claude] hidden while the keyboard is up.
+            @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+            val typing = WindowInsets.isImeVisible
+            if (!typing) {
+                Transport(model)
+                NavBar(model)
+            }
         }
         // In stand mode the sheet stays up while recording (plan §4.4: the lyric you're singing stays visible).
         if (mic == Mic.RECORDING && model.standProject == null) RecordingOverlay(model)

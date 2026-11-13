@@ -100,7 +100,7 @@ private fun ToolList(model: AppModel, requestMic: (() -> Unit) -> Unit, rest: @C
                 "METRONOME · ${s.meter}", click.on, { tm.screen = ToolScreen.METRONOME },
                 value = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(fmtHz(if (click.on) click.bpmNow else s.clampedBpm), style = upright)
+                        Text(fmtHz(if (click.on && s.trainer != null) click.bpmNow else click.bpm), style = upright)
                         Row(Modifier.padding(start = 12.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                             for (i in 0 until minOf(s.meter.beatsPerBar, 8)) {
                                 val lit = click.on && click.beat == i
@@ -271,7 +271,10 @@ private fun MetronomeScreen(model: AppModel) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             // Tempo: drag sideways on the number, tap it to type, − / TAP / + under it.
             var dragged by remember { mutableFloatStateOf(0f) }
-            val shown = if (click.on) click.bpmNow else s.clampedBpm
+            // The tempo you set shows at once; the engine changes at the next bar line (Christopher, 13 Nov 2026: "it looks
+            // like nothing happened"). Only the trainer's climbing tempo is read from the bar that's playing.
+            val shown = if (click.on && s.trainer != null) click.bpmNow else click.bpm
+            val waiting = click.on && s.trainer == null && kotlin.math.abs(click.bpmNow - click.bpm) > 0.01
             Box(
                 Modifier.fillMaxWidth().height(120.dp)
                     .pointerInput(s.bpm) {
@@ -292,6 +295,7 @@ private fun MetronomeScreen(model: AppModel) {
                     !click.on -> "BPM · DRAG OR TAP THE NUMBER"
                     click.bar < 0 -> "COUNT-IN · ${-click.bar} TO GO"
                     s.trainer != null -> "BAR ${click.bar + 1} · TRAINER ${fmtHz(click.bpmNow)} → ${s.trainer!!.maxBpm}"
+                    waiting -> "BAR ${click.bar + 1} · FROM THE NEXT BAR"
                     else -> "BAR ${click.bar + 1}"
                 } + if (click.on && s.silent != null && !s.audible(click.bar)) " · SILENT" else "",
                 style = T.label, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),

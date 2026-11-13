@@ -1,0 +1,1 @@
+Long lyrics and notes no longer disappear under the keyboard: the line you're typing stays just above it. The player and tabs step aside while you type.

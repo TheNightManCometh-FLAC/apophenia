@@ -6,6 +6,35 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LyricSheetTest {
+    @Test fun `a line wider than the screen wraps at a space and drops it`() {
+        assertEquals(
+            listOf("" to "droplets of dew strewn", "" to "over the web of you"),
+            LyricSheet.wrap("", "droplets of dew strewn over the web of you", 25),
+        )
+    }
+
+    @Test fun `a line that fits is left alone`() {
+        assertEquals(listOf("" to "a cosmos of fear"), LyricSheet.wrap("", "a cosmos of fear", 25))
+    }
+
+    @Test fun `wrapping keeps each chord over its syllable`() {
+        val line = LyricSheet.parse("[Am]droplets of dew strewn [G]over the [F]web of you").single() as LyricSheet.Line.Words
+        val (top, bottom) = LyricSheet.chordsOverWords(line)
+        val rows = LyricSheet.wrap(top, bottom, 25)
+        assertEquals(listOf("Am" to "droplets of dew strewn", "G        F" to "over the web of you"), rows)
+    }
+
+    @Test fun `a cut never splits a chord name`() {
+        // The space at column 4 sits under "Cmaj7": the cut moves back to the space before it.
+        val rows = LyricSheet.wrap("    Cmaj7", "ab cd efghijk", 6)
+        assertTrue(rows.none { (t, _) -> t.isNotEmpty() && "Cmaj7" !in t && t.trim().let { it.isNotEmpty() && "Cmaj7".contains(it) } })
+        assertEquals("Cmaj7", rows.joinToString("") { it.first.trim() })
+    }
+
+    @Test fun `a word longer than the line is cut at the edge`() {
+        assertEquals(listOf("" to "abcde", "" to "fghij"), LyricSheet.wrap("", "abcdefghij", 5))
+    }
+
     @Test fun `a chord in brackets sits over the words after it`() {
         val line = LyricSheet.parse("[Dm7]Salt on the [G]window, the").single() as LyricSheet.Line.Words
         assertEquals("Salt on the window, the", line.text)
